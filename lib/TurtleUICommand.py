@@ -10,21 +10,45 @@ _handlers = []
 class TurtleUICommand():
     def __init__(self, cmdId:str, cmdName:str, cmdDesc:str):
         super().__init__()
+        self.cmdId = cmdId
         try:
-            self.commandDefinition = ui.commandDefinitions.itemById(cmdId)
+            self.commandDefinition = ui.commandDefinitions.itemById(self.cmdId)
+
+            if self.commandDefinition:
+                self.destroyAddinUI()
+                self.commandDefinition.deleteMe()
+                self.commandDefinition = None
+                
             if not self.commandDefinition:
-                self.commandDefinition = ui.commandDefinitions.addButtonDefinition(cmdId, cmdName, cmdDesc)
+                self.resFolder = ".//resources//" + self.cmdId 
+                self.commandDefinition = ui.commandDefinitions.addButtonDefinition(self.cmdId, cmdName, cmdDesc, self.resFolder)
+                self.createAddinUI()
 
             onCommandCreated = self.getCreatedHandler()
             self.commandDefinition.commandCreated.add(onCommandCreated)
             _handlers.append(onCommandCreated)
 
-            self.commandDefinition.execute()
-            
+            # self.commandDefinition.execute()
             adsk.autoTerminate(False)
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
     
+    def getTargetPanel(self):
+        return ui.allToolbarPanels.itemById('SolidScriptsAddinsPanel')
+
+    def createAddinUI(self):
+        targetPanel = self.getTargetPanel()
+        tbs = ui.allToolbarPanels
+        buttonControl = targetPanel.controls.addCommand(self.commandDefinition)
+        buttonControl.isPromotedByDefault = True
+        buttonControl.isPromoted = True
+
+    def destroyAddinUI(self):
+        targetPanel = self.getTargetPanel()
+        buttonControl = targetPanel.controls.itemById(self.cmdId)
+        if buttonControl:
+            buttonControl.deleteMe()
+
     # Override 'on' methods to add custom funcionality
     def onStartedRunning(self, eventArgs:core.CommandCreatedEventArgs):
         pass
@@ -39,10 +63,10 @@ class TurtleUICommand():
         pass
         
     def onExecute(self, eventArgs:core.CommandEventArgs):
-        print("execute")
+        pass
 
     def onDestroy(self, eventArgs:core.CommandEventArgs):
-        pass
+        self.destroyAddinUI()
 
     # get handlers, only need to override to inject custom handlers
     def getCreatedHandler(self):
@@ -69,9 +93,9 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def notify(self, eventArgs):
         cmd = eventArgs.command
 
-        onDestroy = self.turtleUICommand.getDestroyHandler()
-        cmd.destroy.add(onDestroy)
-        _handlers.append(onDestroy)
+        # onDestroy = self.turtleUICommand.getDestroyHandler()
+        # cmd.destroy.add(onDestroy)
+        # _handlers.append(onDestroy)
         
         onInputChanged = self.turtleUICommand.getInputChangedHandler()
         cmd.inputChanged.add(onInputChanged)

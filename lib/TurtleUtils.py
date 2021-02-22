@@ -75,7 +75,7 @@ class TurtleUtils:
         try:
             result = root.clipboard_get()
             # this clipboard is quite flakey, without this text can be on the clipboard but not detected
-            cls.clearClipboardText()
+            #cls.clearClipboardText()
             #cls.setClipboardText(result) 
         except tk.TclError:
             #print(traceback.format_exc())

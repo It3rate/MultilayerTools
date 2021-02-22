@@ -12,26 +12,55 @@ from .TurtleLayers import TurtleLayers
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
 class SketchDecoder:
+
     def __init__(self, data, transform = core.Matrix3D.create(), flipX = False, flipY = False):
-        self.sketch:f.Sketch = TurtleUtils.getTargetSketch(f.Sketch)
+        self.flipX = flipX
+        self.flipY = flipY
+        self.transform = core.Matrix3D.create()
+        self.guideline = None
+        self.sketch = None
+
+    @classmethod
+    def create(cls, data, flipX = False, flipY = False):
+        decoder = SketchDecoder()
+        decoder.guideline = self.tsketch.getSingleConstructionLine()
+        decoder.run(data)
+
+    @classmethod
+    def createWithTransform(cls, data, transform:core.Matrix3D, flipX = False, flipY = False):
+        decoder = SketchDecoder(flipX, flipY)
+        # It doesn't make sense to map transforms, as the sketch transform in fusion isn't constant.
+        # Tt will be based on where the camera is when entering the sketch, so just use identity, and allow flipping.
+        decoder.transform = transform
+        decoder.guideline = self.tsketch.getSingleConstructionLine()
+        decoder.run(data)
+
+    @classmethod
+    def createWithGuideline(cls, data, guideline:f.SketchLine, flipX = False, flipY = False):
+        decoder = SketchDecoder(flipX, flipY)
+        decoder.guideline = guideline
+        decoder.sketch:f.Sketch = guideline.parentSketch
+        decoder.run(data)
+
+    def run(self, data):
+        if not self.sketch:
+            self.sketch = TurtleUtils.getTargetSketch(f.Sketch)
         if not self.sketch:
             return
+        
+        self.sketch.isComputeDeferred = True
         self.tcomponent = TurtleComponent.createFromSketch(self.sketch)
         self.tsketch = self.tcomponent.activeSketch
         self.tparams = TurtleParams.instance()
 
-        # It doesn't make sense to map transforms, as the sketch transform in fusion isn't constant.
-        # Tt will be based on where the camera is when entering the sketch, so just use identity, and allow flipping.
-        self.transform = transform
-        self.flipX = flipX
-        self.flipY = flipY
-        self.assessGuidelineTransform(data) # align to selected guideline
+        if self.guideline:
+            self.assessGuidelineTransform(data)
 
         self.decodeSketchData(data)
         self.decodeFromSketch()
 
-        TurtleUtils.selectEntity(self.sketch)
-
+        self.sketch.isComputeDeferred = False
+        
         
     def decodeSketchData(self, data):
         self.params = data["Params"] if "Params" in data else {}
@@ -77,16 +106,15 @@ class SketchDecoder:
     def assessGuidelineTransform(self, data):
         gl = data["Guideline"] if "Guideline" in data else []
         guidePts = [self.asPoint3D(gl[0]),self.asPoint3D(gl[1])] if len(gl) > 1 else []
-        cline:f.SketchLine = self.tsketch.getSingleConstructionLine()
-        self.guideline = cline
         self.guideIndex = -1
         self.guideScale = 1.0
-        if cline and len(guidePts) > 1:
+        if self.guideline and len(guidePts) > 1:
             self.guideIndex = int(gl[2][1:])
             gl0 = guidePts[0]
             gl1 = guidePts[1]
-            cl0 = cline.startSketchPoint.geometry
-            cl1 = cline.endSketchPoint.geometry
+            cl0 = self.guideline.startSketchPoint.geometry
+            cl1 = self.guideline.endSketchPoint.geometry
+            # todo: check if guide move left to right, and top to bottom vs selected guide andadjust flips accordingly
             
             vc = core.Vector3D.create
             gVec = vc((gl1.x-gl0.x), (gl1.y - gl0.y), 0)

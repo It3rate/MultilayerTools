@@ -1,0 +1,14 @@
+{
+	"autodeskProduct":	"Fusion360",
+	"type":	"addin",
+	"id":	"2404043a-8a2a-4b6f-8dc2-d8459b20eb8b",
+	"author":	"Robin Debreuil",
+	"description":	{
+		"":	"Copies sketch points, lines, constraints and dimensions, including parameters. Optionally relative to a guideline for relative pasting.",
+		"":	"Pastes sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow transformed pasting if a guideline was selected while copying."
+	},
+	"version":	"0.1",
+	"runOnStartup":	false,
+	"supportedOS":	"windows|mac",
+	"editEnabled":	true
+}

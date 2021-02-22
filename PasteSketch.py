@@ -1,19 +1,20 @@
-# #Author-Robin Debreuil
-# #Description-Copies sketch points, lines, constraints and dimensions, including parameters. Optionally relative to a guideline for relative pasting.
+#Author-Robin Debreuil
+#Description-'Pastes sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow transformed pasting if a guideline was selected while copying.'
 
 import adsk.core, adsk.fusion, traceback
 from .lib.TurtleUtils import TurtleUtils
 from .lib.TurtleUICommand import TurtleUICommand
 from .lib.TurtleSketch import TurtleSketch
-from .lib.SketchEncoder import SketchEncoder
+from .lib.SketchDecoder import SketchDecoder
+from .lib.data.SketchData import SketchData
 
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
-class CopySketchCommand(TurtleUICommand):
+class PasteSketchCommand(TurtleUICommand):
     def __init__(self):
-        cmdId = 'CopySketchId'
-        cmdName = 'Copy Sketch Command'
-        cmdDescription = 'Copies sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow relative pasting.'
+        cmdId = 'PasteSketchId'
+        cmdName = 'Paste Sketch Command'
+        cmdDescription = 'Pastes sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow transformed pasting if a guideline was selected while copying.'
         super().__init__(cmdId, cmdName, cmdDescription)
 
     def onStartedRunning(self, eventArgs:core.CommandCreatedEventArgs):
@@ -42,6 +43,10 @@ class CopySketchCommand(TurtleUICommand):
             self.sketchSelection.addSelectionFilter('Sketches')
 
             self.sketchText = inputs.addTextBoxCommandInput('txSketch', 'Select Sketch', '<b>Auto selected.</b>', 1, True)
+
+            # Flip checkboxes
+            self.flipHSelection = inputs.addBoolValueInput('bFlipH', 'Flip Horizontal', True)
+            self.flipVSelection = inputs.addBoolValueInput('bFlipV', 'Flip Vertical', True)
 
             if self.sketch and not self.guideline:
                 tSketch = TurtleSketch(self.sketch)
@@ -76,8 +81,17 @@ class CopySketchCommand(TurtleUICommand):
             super().onValidateInputs(eventArgs)
         
     def onExecute(self, eventArgs:core.CommandEventArgs):
-        enc = SketchEncoder(self.sketch, self.guideline)
+        data = self.getSketchData()
+        enc = SketchDecoder.createWithGuideline(data, self.guideline)
         adsk.autoTerminate(False)
+
+    def getSketchData(self):
+        result = TurtleUtils.getClipboardText()
+        if result == None or not (result.startswith("#Turtle Generated Data")):
+            result = SketchData.getTestData()
+        else:
+            result = eval(result)
+        return result
     
     def resetUI(self):
         if self.guideline or self.isInSketch:
@@ -90,3 +104,4 @@ class CopySketchCommand(TurtleUICommand):
 
     def onDestroy(self, eventArgs:core.CommandEventArgs):
         super().onDestroy(eventArgs)
+
