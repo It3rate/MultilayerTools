@@ -14,8 +14,11 @@ class CopySketchCommand(TurtleUICommand):
         cmdId = 'CopySketchId'
         cmdName = 'Copy Sketch Command'
         cmdDescription = 'Copies sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow relative pasting.'
-        targetPanel = ui.allToolbarPanels.itemById('SolidCreatePanel')
-        super().__init__(cmdId, cmdName, cmdDescription, targetPanel)
+        targetPanels = self.getTargetPanels()
+        super().__init__(cmdId, cmdName, cmdDescription, targetPanels)
+
+    def getTargetPanels(self):
+        return ui.allToolbarPanels.itemById('SolidCreatePanel'), ui.allToolbarPanels.itemById('SketchCreatePanel')
 
     def onStartedRunning(self, eventArgs:core.CommandCreatedEventArgs):
         super().onStartedRunning(eventArgs)
