@@ -182,58 +182,61 @@ class SketchDecoder:
         for chain in chains:
             segs = chain.split(" ")
             for seg in segs:
-                # can't capture repeating groups with re, so max 4 params. Use pip regex to improve, but sticking with this for now. Could put it in a loop as well.
-                parse = re.findall(r"([xX])([fF])([LACEOS])([pvase][0-9\[\]\.\-,|]*)([pvase][0-9\[\]\.\-,|]*)?([pvase][0-9\[\]\.\-,|]*)?([pvase][0-9\[\]\.\-,|]*)?", seg)[0]
-                
-                isConstruction = parse[0] == "x"
-                isFixed = parse[1] == "f"
-                kind = parse[2]
-                params = self.parseParams(parse[3:])
-                curve = None
-                if kind == "L":
-                    if self.guideIndex > -1 and len(result) == self.guideIndex:
-                        # don't duplicate existing guideline
-                        if self.isXFlipped:
-                            self.replacePoint(params[1], self.guideline.startSketchPoint)
-                            self.replacePoint(params[0], self.guideline.endSketchPoint)
+                try:
+                    # can't capture repeating groups with re, so max 4 params. Use pip regex to improve, but sticking with this for now. Could put it in a loop as well.
+                    parse = re.findall(r"([xX])([fF])([LACEOS])([pvase][0-9\[\]\.\-,|]*)([pvase][0-9\[\]\.\-,|]*)?([pvase][0-9\[\]\.\-,|]*)?([pvase][0-9\[\]\.\-,|]*)?", seg)[0]
+                    
+                    isConstruction = parse[0] == "x"
+                    isFixed = parse[1] == "f"
+                    kind = parse[2]
+                    params = self.parseParams(parse[3:])
+                    curve = None
+                    if kind == "L":
+                        if self.guideIndex > -1 and len(result) == self.guideIndex:
+                            # don't duplicate existing guideline
+                            if self.isXFlipped:
+                                self.replacePoint(params[1], self.guideline.startSketchPoint)
+                                self.replacePoint(params[0], self.guideline.endSketchPoint)
+                            else:
+                                self.replacePoint(params[0], self.guideline.startSketchPoint)
+                                self.replacePoint(params[1], self.guideline.endSketchPoint)
+                            curve = self.guideline
+                            isFixed = True # temp
                         else:
-                            self.replacePoint(params[0], self.guideline.startSketchPoint)
-                            self.replacePoint(params[1], self.guideline.endSketchPoint)
-                        curve = self.guideline
-                        isFixed = True # temp
-                    else:
-                        curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
-                elif kind == "A":
-                    curve = sketchCurves.sketchArcs.addByThreePoints(params[0], self.asPoint3D(params[1]), params[2])
-                    if len(params) > 2:
-                        self.replacePoint(params[3], curve.centerSketchPoint)
-                elif kind == "C":
-                    curve = sketchCurves.sketchCircles.addByCenterRadius(params[0], params[1][0] * self.guideScale)
-                elif kind == "E":
-                    curve = sketchCurves.sketchEllipses.add(params[0], self.asPoint3D(params[1]), self.asPoint3D(params[2]))
-                elif kind == "O":
-                    # seems there is no add for conic curves yet?
-                    #curve = sketchCurves.sketchConicCurves.add()
-                    pass
-                elif kind == "S":
-                    splinePoints = params[0]
-                    if params[1] != 0: # check if closed
-                        splinePoints.append(splinePoints[0])
-                    pts = self.asObjectCollection(params[0])
-                    curve = sketchCurves.sketchFittedSplines.add(pts)
-                    fitPoints = curve.fitPoints
-                    count = 0
-                    for pt in params[0]:
-                        self.replacePoint(pt, fitPoints.item(count))
-                        # idx = self.points.index(pt)
-                        # self.points[idx] = fitPoints.item(count)
-                        # pt.deleteMe()
-                        count += 1
+                            curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
+                    elif kind == "A":
+                        curve = sketchCurves.sketchArcs.addByThreePoints(params[0], params[1].geometry, params[2])
+                        if len(params) > 2:
+                            self.replacePoint(params[3], curve.centerSketchPoint)
+                    elif kind == "C":
+                        curve = sketchCurves.sketchCircles.addByCenterRadius(params[0], params[1][0] * self.guideScale)
+                    elif kind == "E":
+                            curve = sketchCurves.sketchEllipses.add(params[0], params[1].geometry, params[2].geometry)
+                    elif kind == "O":
+                        # seems there is no add for conic curves yet?
+                        #curve = sketchCurves.sketchConicCurves.add()
+                        pass
+                    elif kind == "S":
+                        splinePoints = params[0]
+                        if params[1] != 0: # check if closed
+                            splinePoints.append(splinePoints[0])
+                        pts = self.asObjectCollection(params[0])
+                        curve = sketchCurves.sketchFittedSplines.add(pts)
+                        fitPoints = curve.fitPoints
+                        count = 0
+                        for pt in params[0]:
+                            self.replacePoint(pt, fitPoints.item(count))
+                            # idx = self.points.index(pt)
+                            # self.points[idx] = fitPoints.item(count)
+                            # pt.deleteMe()
+                            count += 1
 
-                if curve:
-                    curve.isConstruction = isConstruction
-                    curve.isFixed = isFixed
-                    result.append(curve)
+                    if curve:
+                        curve.isConstruction = isConstruction
+                        curve.isFixed = isFixed
+                        result.append(curve)
+                except:
+                    print(seg + ' Curve Generation Failed:\n{}'.format(traceback.format_exc()))
         return result
     
     def replacePoint(self, orgPoint, newPoint):
