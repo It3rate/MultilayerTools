@@ -15,7 +15,8 @@ class PasteSketchCommand(TurtleUICommand):
         cmdId = 'PasteSketchId'
         cmdName = 'Paste Sketch Command'
         cmdDescription = 'Pastes sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow transformed pasting if a guideline was selected while copying.'
-        super().__init__(cmdId, cmdName, cmdDescription)
+        targetPanel = ui.allToolbarPanels.itemById('SolidCreatePanel')
+        super().__init__(cmdId, cmdName, cmdDescription, targetPanel)
 
     def onStartedRunning(self, eventArgs:core.CommandCreatedEventArgs):
         super().onStartedRunning(eventArgs)
@@ -39,14 +40,14 @@ class PasteSketchCommand(TurtleUICommand):
 
             # Select sketch.
             self.sketchSelection = inputs.addSelectionInput('selSketch', 'Select Sketch', 'Select sketch to copy.')
-            self.sketchSelection.setSelectionLimits(1,1)
+            self.sketchSelection.setSelectionLimits(0,1)
             self.sketchSelection.addSelectionFilter('Sketches')
 
             self.sketchText = inputs.addTextBoxCommandInput('txSketch', 'Select Sketch', '<b>Auto selected.</b>', 1, True)
 
             # Flip checkboxes
-            self.flipHSelection = inputs.addBoolValueInput('bFlipH', 'Flip Horizontal', True)
-            self.flipVSelection = inputs.addBoolValueInput('bFlipV', 'Flip Vertical', True)
+            self.flipHSelection = inputs.addBoolValueInput('bFlipH', 'Flip Sketch', True)
+            self.flipVSelection = inputs.addBoolValueInput('bFlipV', 'Mirror Sketch', True)
 
             if self.sketch and not self.guideline:
                 tSketch = TurtleSketch.createWithSketch(self.sketch)
@@ -69,24 +70,28 @@ class PasteSketchCommand(TurtleUICommand):
                 if cmdInput.selectionCount > 0:
                     self.guideline = cmdInput.selection(0).entity
                     self.sketch = self.guideline.parentSketch
-                    if self.sketchSelection.selection != self.sketch:
+                    if self.sketchSelection.selectionCount == 0 or self.sketchSelection.selection(0) != self.sketch:
                         self.sketchSelection.clearSelection()
                         self.sketchSelection.addSelection(self.sketch)
                 else:
                     self.guideline = None
             elif cmdInput.id == 'selSketch':
-                self.sketch = cmdInput.selection(0).entity
-                if(self.guideline and self.guideline.parentSketch != self.sketch):
+                if self.sketchSelection.selectionCount > 0:
+                    self.sketch = cmdInput.selection(0).entity
+                    if(self.guideline and self.guideline.parentSketch != self.sketch):
+                        self.guideline = None
+                        self.guidelineSelection.clearSelection()
+                else:
+                    self.sketch = None
                     self.guideline = None
-                    self.guidelineSelection.selection = None
+                    self.guidelineSelection.clearSelection()
 
             self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
         
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
-            # print("isValid: " + str(eventArgs.areInputsValid))
-            super().onValidateInputs(eventArgs)
+            eventArgs.areInputsValid = True if self.sketch else False
         
     def onPreview(self, eventArgs:core.CommandEventArgs):
         data = self.getSketchData()

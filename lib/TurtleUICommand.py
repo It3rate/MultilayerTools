@@ -8,21 +8,17 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 _handlers = []
 
 class TurtleUICommand():
-    def __init__(self, cmdId:str, cmdName:str, cmdDesc:str):
+    def __init__(self, cmdId:str, cmdName:str, cmdDesc:str, targetPanel = None):
         super().__init__()
         self.cmdId = cmdId
+        self.targetPanel = targetPanel
         try:
             self.commandDefinition = ui.commandDefinitions.itemById(self.cmdId)
 
-            if self.commandDefinition:
-                self.destroyAddinUI()
-                self.commandDefinition.deleteMe()
-                self.commandDefinition = None
-                
             if not self.commandDefinition:
                 self.resFolder = ".//resources//" + self.cmdId 
                 self.commandDefinition = ui.commandDefinitions.addButtonDefinition(self.cmdId, cmdName, cmdDesc, self.resFolder)
-                self.createAddinUI()
+            self.createAddinUI()
 
             onCommandCreated = self.getCreatedHandler()
             self.commandDefinition.commandCreated.add(onCommandCreated)
@@ -34,14 +30,16 @@ class TurtleUICommand():
             print('Failed:\n{}'.format(traceback.format_exc()))
     
     def getTargetPanel(self):
-        return ui.allToolbarPanels.itemById('SolidScriptsAddinsPanel')
+        if not self.targetPanel:
+            self.targetPanel = ui.allToolbarPanels.itemById('SolidScriptsAddinsPanel')
+        return self.targetPanel
 
     def createAddinUI(self):
         targetPanel = self.getTargetPanel()
-        tbs = ui.allToolbarPanels
-        buttonControl = targetPanel.controls.addCommand(self.commandDefinition)
-        buttonControl.isPromotedByDefault = True
-        buttonControl.isPromoted = True
+        if not targetPanel.controls.itemById(self.commandDefinition.id):
+            buttonControl = targetPanel.controls.addCommand(self.commandDefinition)
+            buttonControl.isPromotedByDefault = False
+            buttonControl.isPromoted = False
 
     def destroyAddinUI(self):
         targetPanel = self.getTargetPanel()
@@ -57,13 +55,13 @@ class TurtleUICommand():
         pass
         
     def onSelectionEvent(self, eventArgs:core.SelectionEventArgs):
-        eventArgs.isSelectable = True
+        pass
         
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
         pass
         
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
-        eventArgs.areInputsValid = True
+        pass
         
     def onPreview(self, eventArgs:core.CommandEventArgs):
         pass
@@ -114,7 +112,11 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
         _handlers.append(onInputChanged)    
 
         onSelectionEvent = self.turtleUICommand.getSelectionEventHandler()
-        cmd.selectionEvent.add(onSelectionEvent)
+        # cmd.preSelect.add(onSelectionEvent)
+        # cmd.preSelectMouseMove.add(onSelectionEvent)
+        # cmd.preSelectEnd.add(onSelectionEvent)
+        cmd.select.add(onSelectionEvent)
+        #cmd.unselect.add(onSelectionEvent)          
         _handlers.append(onSelectionEvent)
         
         onValidateInputs = self.turtleUICommand.getValidateInputsHandler()
