@@ -38,30 +38,30 @@ class TurtleSketch:
 
     def draw(self, line:f.SketchLine, *data:str):
         data = " ".join(data)
-        self.sketch.isComputeDeferred = True
+        #self.sketch.isComputeDeferred = True
         result = self.path.draw(line, data, False)
-        self.sketch.isComputeDeferred = False
+        #self.sketch.isComputeDeferred = False
         return result
 
     def drawClosed(self, line:f.SketchLine, *data:str):
         data = " ".join(data)
-        self.sketch.isComputeDeferred = True
+        #self.sketch.isComputeDeferred = True
         result = self.path.draw(line, data, True)
-        self.sketch.isComputeDeferred = False
+        #self.sketch.isComputeDeferred = False
         return result
 
     def constrain(self, constraintList):
-        self.sketch.isComputeDeferred = True
+        #self.sketch.isComputeDeferred = True
         self.path.setConstraints(constraintList)
-        self.sketch.isComputeDeferred = False
+        #self.sketch.isComputeDeferred = False
 
 
 
     def setDistances(self, lines, indexValues):
-        self.sketch.isComputeDeferred = True
+        #self.sketch.isComputeDeferred = True
         for pair in indexValues:
              self.addLineLength(self.sketch, lines[pair[0]], pair[1])
-        self.sketch.isComputeDeferred = False
+        #self.sketch.isComputeDeferred = False
 
     def makeVertHorz(self, lines, indexes):
         for index in indexes:

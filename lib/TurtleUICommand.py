@@ -62,6 +62,9 @@ class TurtleUICommand():
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
         pass
         
+    def onPreview(self, eventArgs:core.CommandEventArgs):
+        pass
+        
     def onExecute(self, eventArgs:core.CommandEventArgs):
         pass
 
@@ -72,14 +75,17 @@ class TurtleUICommand():
     def getCreatedHandler(self):
         return BaseCommandCreatedHandler(self)
 
-    def getExecuteHandler(self):
-        return BaseCommandExecuteHandler(self)
-
     def getInputChangedHandler(self):
         return BaseCommandInputChangedHandler(self)
 
     def getValidateInputsHandler(self):
         return BaseValidateInputsHandler(self)
+
+    def getExecuteHandler(self):
+        return BaseCommandExecuteHandler(self)
+
+    def getPreviewHandler(self):
+        return BaseCommandPreviewHandler(self)
 
     def getDestroyHandler(self):
         return BaseCommandDestroyHandler(self)
@@ -105,6 +111,10 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
         cmd.validateInputs.add(onValidateInputs)
         _handlers.append(onValidateInputs)
 
+        onPreview = self.turtleUICommand.getPreviewHandler()
+        cmd.executePreview.add(onPreview)
+        _handlers.append(onPreview)
+
         onExecute = self.turtleUICommand.getExecuteHandler()
         cmd.execute.add(onExecute)
         _handlers.append(onExecute)
@@ -125,6 +135,13 @@ class BaseValidateInputsHandler(core.ValidateInputsEventHandler):
         self.turtleCommand = turtleCommand
     def notify(self, eventArgs):
         self.turtleCommand.onValidateInputs(eventArgs)
+
+class BaseCommandPreviewHandler(adsk.core.CommandEventHandler):
+    def __init__(self, turtleCommand:TurtleUICommand):
+        super().__init__()
+        self.turtleCommand = turtleCommand
+    def notify(self, eventArgs):
+        self.turtleCommand.onPreview(eventArgs)
 
 class BaseCommandExecuteHandler(core.CommandEventHandler):
     def __init__(self, turtleCommand:TurtleUICommand):

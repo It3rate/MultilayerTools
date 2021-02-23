@@ -72,6 +72,12 @@ class PasteSketchCommand(TurtleUICommand):
                         self.sketchSelection.addSelection(self.sketch)
                 else:
                     self.guideline = None
+            elif cmdInput.id == 'selSketch':
+                self.sketch = cmdInput.selection(0).entity
+                if(self.guideline and self.guideline.parentSketch != self.sketch):
+                    self.guideline = None
+                    self.guidelineSelection.selection = None
+
             self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
@@ -80,9 +86,13 @@ class PasteSketchCommand(TurtleUICommand):
             # print("isValid: " + str(eventArgs.areInputsValid))
             super().onValidateInputs(eventArgs)
         
+    def onPreview(self, eventArgs:core.CommandEventArgs):
+        data = self.getSketchData()
+        enc = SketchDecoder.createWithGuideline(data, self.guideline, self.flipHSelection.value, self.flipVSelection.value)
+
     def onExecute(self, eventArgs:core.CommandEventArgs):
         data = self.getSketchData()
-        enc = SketchDecoder.createWithGuideline(data, self.guideline)
+        enc = SketchDecoder.createWithGuideline(data, self.guideline, self.flipHSelection.value, self.flipVSelection.value)
         adsk.autoTerminate(False)
 
     def getSketchData(self):

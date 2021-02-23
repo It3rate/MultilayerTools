@@ -81,7 +81,8 @@ class SketchEncoder:
         if len(self.data["Dimensions"]) > 0:
             result += "\'Dimensions\':" + self.encodeList(self.data["Dimensions"]) + ",\n" #             [\n\'" + "\',\'".join(self.data["Dimensions"]) + "\'\n],\n")
         if self.guideline:
-            result += "\'Guideline\':[" + self.encodePoints(self.guideline) + ",\'" + self.encodeEntity(self.guideline) + "\']\n"
+            guidePoints = self.getSortedPoints(self.guideline)
+            result += "\'Guideline\':[" + self.encodePoints(*guidePoints) + ",\'" + self.encodeEntity(self.guideline) + "\']\n"
         else: 
             result += "\'Guideline\':[]\n" 
         result += "}\n\n"
@@ -380,6 +381,18 @@ class SketchEncoder:
                     self.usedParams.append(pname)
         else:
             result += self.encodePoint(expr)
+        return result
+
+    def getSortedPoints(self, line:f.SketchLine):
+        result = []
+        if (line.startSketchPoint.geometry.x > line.endSketchPoint.geometry.x) or \
+            (line.startSketchPoint.geometry.x == line.endSketchPoint.geometry.x and \
+            line.startSketchPoint.geometry.y > line.endSketchPoint.geometry.y):
+            result.append(line.endSketchPoint)
+            result.append(line.startSketchPoint)
+        else:
+            result.append(line.startSketchPoint)
+            result.append(line.endSketchPoint)
         return result
 
     def encodePoints(self, *points, lineStep = 5):

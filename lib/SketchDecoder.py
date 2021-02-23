@@ -13,7 +13,7 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
 class SketchDecoder:
 
-    def __init__(self, data, transform = core.Matrix3D.create(), flipX = False, flipY = False):
+    def __init__(self, flipX = False, flipY = False):
         self.flipX = flipX
         self.flipY = flipY
         self.transform = core.Matrix3D.create()
@@ -105,35 +105,46 @@ class SketchDecoder:
 
     def assessGuidelineTransform(self, data):
         gl = data["Guideline"] if "Guideline" in data else []
-        guidePts = [self.asPoint3D(gl[0]),self.asPoint3D(gl[1])] if len(gl) > 1 else []
+        encodedPts = [self.asPoint3D(gl[0]),self.asPoint3D(gl[1])] if len(gl) > 1 else []
         self.guideIndex = -1
         self.guideScale = 1.0
-        if self.guideline and len(guidePts) > 1:
+        if self.guideline and len(encodedPts) > 1:
             self.guideIndex = int(gl[2][1:])
-            gl0 = guidePts[0]
-            gl1 = guidePts[1]
-            cl0 = self.guideline.startSketchPoint.geometry
-            cl1 = self.guideline.endSketchPoint.geometry
-            # todo: check if guide move left to right, and top to bottom vs selected guide andadjust flips accordingly
-            
+            # ensure encoded guide moves left to right, or top to bottom if vertival
+            sel0 = self.guideline.startSketchPoint.geometry
+            sel1 = self.guideline.endSketchPoint.geometry
+
+            enc0 = encodedPts[0]
+            enc1 = encodedPts[1]
+            if (enc0.x > enc1.x) or (enc0.x == enc1.x and enc0.y < enc1.y):
+                temp = enc1
+                enc1 = enc0
+                enc0 = temp
+
+            # note: guidelines are always encoded left to right on the x axis
+            naturalFlipX = sel0.x > sel1.x
+            naturalFlipY = sel0.y > sel1.y
+
             vc = core.Vector3D.create
-            gVec = vc((gl1.x-gl0.x), (gl1.y - gl0.y), 0)
-            destVec = vc((cl1.x-cl0.x), (cl1.y - cl0.y), 0)
+            encVec = vc((enc1.x-enc0.x), (enc1.y - enc0.y), 0)
+            selVec = vc((sel1.x-sel0.x), (sel1.y - sel0.y), 0)
+
             # adjust original encoded guideline to create flips
-            gOrigin = gl1 if self.flipX else gl0
-            gxVec = vc(-gVec.x, -gVec.y, 0) if self.flipX else gVec
-            gyVec = vc(-gVec.y,gVec.x,0) if self.flipY else vc(gVec.y,-gVec.x,0)
+            self.isXFlipped = (self.flipX != naturalFlipX)
+            gOrigin = enc1 if self.isXFlipped else enc0
+            gxVec = encVec if not self.isXFlipped else vc(-encVec.x, -encVec.y, 0)
+            gyVec = vc(-encVec.y,encVec.x,0) if self.flipY == naturalFlipY else vc(encVec.y,-encVec.x,0)
             self.transform.setToAlignCoordinateSystems(
                 gOrigin, 
                 gxVec,
                 gyVec,
                 vc(0,0,1),
-                cl0, 
-                destVec,
-                vc(destVec.y,-destVec.x,0),
+                sel0, 
+                selVec,
+                vc(selVec.y,-selVec.x,0),
                 vc(0,0,1)
             )
-            self.guideScale = destVec.length / gVec.length
+            self.guideScale = selVec.length / encVec.length
 
         
     def generatePoints(self, ptVals):
@@ -176,9 +187,14 @@ class SketchDecoder:
                 if kind == "L":
                     if self.guideIndex > -1 and len(result) == self.guideIndex:
                         # don't duplicate existing guideline
-                        self.replacePoint(params[0], self.guideline.startSketchPoint)
-                        self.replacePoint(params[1], self.guideline.endSketchPoint)
+                        if self.isXFlipped:
+                            self.replacePoint(params[1], self.guideline.startSketchPoint)
+                            self.replacePoint(params[0], self.guideline.endSketchPoint)
+                        else:
+                            self.replacePoint(params[0], self.guideline.startSketchPoint)
+                            self.replacePoint(params[1], self.guideline.endSketchPoint)
                         curve = self.guideline
+                        isFixed = True # temp
                     else:
                         curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
                 elif kind == "A":
