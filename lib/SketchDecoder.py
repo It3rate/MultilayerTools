@@ -201,11 +201,10 @@ class SketchDecoder:
                                 self.replacePoint(params[0], self.guideline.startSketchPoint)
                                 self.replacePoint(params[1], self.guideline.endSketchPoint)
                             curve = self.guideline
-                            isFixed = True # temp
                         else:
                             curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
                     elif kind == "A":
-                        curve = sketchCurves.sketchArcs.addByThreePoints(params[0], params[1].geometry, params[2])
+                        curve = sketchCurves.sketchArcs.addByThreePoints(params[0], self.asPoint3D(params[1]), params[2])
                         if len(params) > 2:
                             self.replacePoint(params[3], curve.centerSketchPoint)
                     elif kind == "C":

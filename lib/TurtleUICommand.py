@@ -8,10 +8,10 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 _handlers = []
 
 class TurtleUICommand():
-    def __init__(self, cmdId:str, cmdName:str, cmdDesc:str, targetPanel = None):
+    def __init__(self, cmdId:str, cmdName:str, cmdDesc:str, *targetPanels):
         super().__init__()
         self.cmdId = cmdId
-        self.targetPanel = targetPanel
+        self.targetPanels = targetPanels
         try:
             self.commandDefinition = ui.commandDefinitions.itemById(self.cmdId)
 
@@ -29,23 +29,25 @@ class TurtleUICommand():
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
     
-    def getTargetPanel(self):
-        if not self.targetPanel:
-            self.targetPanel = ui.allToolbarPanels.itemById('SolidScriptsAddinsPanel')
-        return self.targetPanel
+    def getTargetPanels(self):
+        if not self.targetPanels:
+            self.targetPanels = [ui.allToolbarPanels.itemById('SolidScriptsAddinsPanel')]
+        return self.targetPanels
 
     def createAddinUI(self):
-        targetPanel = self.getTargetPanel()
-        if not targetPanel.controls.itemById(self.commandDefinition.id):
-            buttonControl = targetPanel.controls.addCommand(self.commandDefinition)
-            buttonControl.isPromotedByDefault = False
-            buttonControl.isPromoted = False
+        targetPanels = self.getTargetPanels()
+        for targetPanel in targetPanels:
+            if not targetPanel.controls.itemById(self.commandDefinition.id):
+                buttonControl = targetPanel.controls.addCommand(self.commandDefinition)
+                buttonControl.isPromotedByDefault = False
+                buttonControl.isPromoted = False
 
     def destroyAddinUI(self):
-        targetPanel = self.getTargetPanel()
-        buttonControl = targetPanel.controls.itemById(self.cmdId)
-        if buttonControl:
-            buttonControl.deleteMe()
+        targetPanels = self.getTargetPanels()
+        for targetPanel in targetPanels:
+            buttonControl = targetPanel.controls.itemById(self.cmdId)
+            if buttonControl:
+                buttonControl.deleteMe()
 
     # Override 'on' methods to add custom funcionality
     def onStartedRunning(self, eventArgs:core.CommandCreatedEventArgs):
