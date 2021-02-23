@@ -175,10 +175,11 @@ class SketchDecoder:
             
             idx += 1
         return result
-
+    
     def generateCurves(self, chains):
         result = []
         sketchCurves = self.sketch.sketchCurves
+        self.generatedCurves = []
         for chain in chains:
             segs = chain.split(" ")
             for seg in segs:
@@ -202,7 +203,9 @@ class SketchDecoder:
                                 self.replacePoint(params[1], self.guideline.endSketchPoint)
                             curve = self.guideline
                         else:
-                            curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
+                            curve = self.replaceLine(params[0], params[1]) # check for generated line match, add if present
+                            if not curve: # else create line (normal path)
+                                curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
                     elif kind == "A":
                         curve = sketchCurves.sketchArcs.addByThreePoints(params[0], self.asPoint3D(params[1]), params[2])
                         if len(params) > 2:
@@ -210,7 +213,12 @@ class SketchDecoder:
                     elif kind == "C":
                         curve = sketchCurves.sketchCircles.addByCenterRadius(params[0], params[1][0] * self.guideScale)
                     elif kind == "E":
-                            curve = sketchCurves.sketchEllipses.add(params[0], params[1].geometry, params[2].geometry)
+                        curve = sketchCurves.sketchEllipses.add(params[0], params[1].geometry, params[2].geometry)
+                        # merge auto generated guides and points with drawn ones, maybe do this in the encoder.
+                        # note: the constraints will not be able to be reapplied, will result in warnings. Fix if bothersome.
+                        self.replacePoint(params[0], curve.centerSketchPoint)
+                        self.generatedCurves.append(curve.majorAxisLine)
+                        self.generatedCurves.append(curve.minorAxisLine)
                     elif kind == "O":
                         # seems there is no add for conic curves yet?
                         #curve = sketchCurves.sketchConicCurves.add()
@@ -225,9 +233,6 @@ class SketchDecoder:
                         count = 0
                         for pt in params[0]:
                             self.replacePoint(pt, fitPoints.item(count))
-                            # idx = self.points.index(pt)
-                            # self.points[idx] = fitPoints.item(count)
-                            # pt.deleteMe()
                             count += 1
 
                     if curve:
@@ -238,6 +243,23 @@ class SketchDecoder:
                     print(seg + ' Curve Generation Failed:\n{}'.format(traceback.format_exc()))
         return result
     
+    def replaceLine(self, pt0, pt1):
+        result = None
+        for line in self.generatedCurves:
+            if TurtlePath.isEquivalentLine(line, pt0, pt1):
+                result = line
+                self.replacePoint(pt0, line.startSketchPoint)
+                self.replacePoint(pt1, line.endSketchPoint)
+                break
+            elif TurtlePath.isEquivalentLine(line, pt1, pt0):
+                result = line
+                self.replacePoint(pt1, line.startSketchPoint)
+                self.replacePoint(pt0, line.endSketchPoint)
+                break
+        if result:
+            self.generatedCurves.remove(result)
+        return result
+
     def replacePoint(self, orgPoint, newPoint):
         result = True
         try:
@@ -245,6 +267,8 @@ class SketchDecoder:
             self.points[idx] = newPoint
             orgPoint.deleteMe()
         except:
+            print("Error replacing points:")
+            TurtlePath.printPoints([orgPoint, newPoint])
             result = False
         return result
 

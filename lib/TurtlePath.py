@@ -284,11 +284,11 @@ class TurtlePath:
         return core.Point3D.create(x, y, 0)
 
     @classmethod
-    def isOnLine(cls, a:core.Point3D, line:f.SketchLine):
+    def isOnLine(cls, a:core.Point3D, line:f.SketchLine, maxDist = 0.0001):
         b = line.startSketchPoint.geometry
         c = line.endSketchPoint.geometry
         cross = (c.y - a.y) * (b.x - a.x) - (c.x - a.x) * (b.y - a.y)
-        return abs(cross) < 0.0001
+        return abs(cross) < maxDist
 
     @classmethod
     def distanceToLine(cls, a:core.Point3D, line:f.SketchLine):
@@ -301,7 +301,7 @@ class TurtlePath:
         return num / den
 
     @classmethod
-    def isEquivalentCurve(cls, a:f.SketchCurve, b:f.SketchCurve, maxDist = 0):
+    def isEquivalentCurve(cls, a:f.SketchCurve, b:f.SketchCurve, maxDist = 0.0001):
         if type(a) == f.SketchCircle:
             result = abs(a.geometry.center.x - b.geometry.center.x) <= maxDist and \
                 abs(a.geometry.center.y - b.geometry.center.y) <= maxDist and \
@@ -311,6 +311,14 @@ class TurtlePath:
                 abs(a.geometry.startPoint.y - b.geometry.startPoint.y) <= maxDist and \
                 abs(a.geometry.endPoint.x - b.geometry.endPoint.x) <= maxDist and \
                 abs(a.geometry.endPoint.y - b.geometry.endPoint.y) <= maxDist
+        return result
+
+    @classmethod
+    def isEquivalentLine(cls, line:f.SketchLine, pt0:f.SketchPoint, pt1:f.SketchPoint, maxDist = 0.0001):
+        result = abs(pt0.geometry.x - line.geometry.startPoint.x) <= maxDist and \
+                abs(pt0.geometry.y - line.geometry.startPoint.y) <= maxDist and \
+                abs(pt1.geometry.x - line.geometry.endPoint.x) <= maxDist and \
+                abs(pt1.geometry.y - line.geometry.endPoint.y) <= maxDist
         return result
 
         

@@ -1,7 +1,6 @@
 import adsk.core, adsk.fusion, adsk.cam, traceback
 import os, math, re
 from .TurtleUtils import TurtleUtils
-from .JointMaker import JointMaker
 
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
@@ -105,6 +104,7 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def notify(self, eventArgs):
         cmd = eventArgs.command
 
+        # This will destroy the command, for single shot use.
         # onDestroy = self.turtleUICommand.getDestroyHandler()
         # cmd.destroy.add(onDestroy)
         # _handlers.append(onDestroy)
@@ -113,6 +113,7 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
         cmd.inputChanged.add(onInputChanged)
         _handlers.append(onInputChanged)    
 
+        # various selection events are available
         onSelectionEvent = self.turtleUICommand.getSelectionEventHandler()
         # cmd.preSelect.add(onSelectionEvent)
         # cmd.preSelectMouseMove.add(onSelectionEvent)
