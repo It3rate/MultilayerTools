@@ -36,6 +36,12 @@ class SketchDecoder:
         decoder.run(data)
 
     @classmethod
+    def createWithSketch(cls, data, sketch:f.Sketch, flipX = False, flipY = False):
+        decoder = SketchDecoder(flipX, flipY)
+        decoder.sketch = sketch
+        decoder.run(data)
+
+    @classmethod
     def createWithGuideline(cls, data, guideline:f.SketchLine, flipX = False, flipY = False):
         decoder = SketchDecoder(flipX, flipY)
         decoder.guideline = guideline
@@ -53,6 +59,8 @@ class SketchDecoder:
         self.tsketch = self.tcomponent.activeSketch
         self.tparams = TurtleParams.instance()
 
+        self.guideIndex = -1
+        self.guideScale = 1.0
         if self.guideline:
             self.assessGuidelineTransform(data)
 
@@ -106,8 +114,6 @@ class SketchDecoder:
     def assessGuidelineTransform(self, data):
         gl = data["Guideline"] if "Guideline" in data else []
         encodedPts = [self.asPoint3D(gl[0]),self.asPoint3D(gl[1])] if len(gl) > 1 else []
-        self.guideIndex = -1
-        self.guideScale = 1.0
         if self.guideline and len(encodedPts) > 1:
             self.guideIndex = int(gl[2][1:])
             # ensure encoded guide moves left to right, or top to bottom if vertival

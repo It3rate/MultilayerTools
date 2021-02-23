@@ -56,11 +56,14 @@ class TurtleUICommand():
     def onCreateUI(self, eventArgs:core.CommandCreatedEventArgs):
         pass
         
+    def onSelectionEvent(self, eventArgs:core.SelectionEventArgs):
+        eventArgs.isSelectable = True
+        
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
         pass
         
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
-        pass
+        eventArgs.areInputsValid = True
         
     def onPreview(self, eventArgs:core.CommandEventArgs):
         pass
@@ -75,8 +78,11 @@ class TurtleUICommand():
     def getCreatedHandler(self):
         return BaseCommandCreatedHandler(self)
 
+    def getSelectionEventHandler(self):
+        return BaseSelectionEventHandler(self)
+
     def getInputChangedHandler(self):
-        return BaseCommandInputChangedHandler(self)
+        return BaseInputChangedHandler(self)
 
     def getValidateInputsHandler(self):
         return BaseValidateInputsHandler(self)
@@ -85,10 +91,10 @@ class TurtleUICommand():
         return BaseCommandExecuteHandler(self)
 
     def getPreviewHandler(self):
-        return BaseCommandPreviewHandler(self)
+        return BasePreviewHandler(self)
 
     def getDestroyHandler(self):
-        return BaseCommandDestroyHandler(self)
+        return BaseDestroyHandler(self)
 
 
 class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
@@ -107,6 +113,10 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
         cmd.inputChanged.add(onInputChanged)
         _handlers.append(onInputChanged)    
 
+        onSelectionEvent = self.turtleUICommand.getSelectionEventHandler()
+        cmd.selectionEvent.add(onSelectionEvent)
+        _handlers.append(onSelectionEvent)
+        
         onValidateInputs = self.turtleUICommand.getValidateInputsHandler()
         cmd.validateInputs.add(onValidateInputs)
         _handlers.append(onValidateInputs)
@@ -122,12 +132,20 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
         self.turtleUICommand.onStartedRunning(eventArgs)
         self.turtleUICommand.onCreateUI(eventArgs)
 
-class BaseCommandInputChangedHandler(core.InputChangedEventHandler):
+class BaseInputChangedHandler(core.InputChangedEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
     def notify(self, eventArgs):
         self.turtleUICommand.onInputsChanged(eventArgs)
+
+# Fires when hovering over elements in the UI, decides if they are selectable
+class BaseSelectionEventHandler(core.SelectionEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, args):
+        self.turtleUICommand.onSelectionEvent(eventArgs)
 
 class BaseValidateInputsHandler(core.ValidateInputsEventHandler):
     def __init__(self, turtleCommand:TurtleUICommand):
@@ -136,7 +154,7 @@ class BaseValidateInputsHandler(core.ValidateInputsEventHandler):
     def notify(self, eventArgs):
         self.turtleCommand.onValidateInputs(eventArgs)
 
-class BaseCommandPreviewHandler(adsk.core.CommandEventHandler):
+class BasePreviewHandler(adsk.core.CommandEventHandler):
     def __init__(self, turtleCommand:TurtleUICommand):
         super().__init__()
         self.turtleCommand = turtleCommand
@@ -150,7 +168,7 @@ class BaseCommandExecuteHandler(core.CommandEventHandler):
     def notify(self, eventArgs):
         self.turtleCommand.onExecute(eventArgs)
 
-class BaseCommandDestroyHandler(core.CommandEventHandler):
+class BaseDestroyHandler(core.CommandEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand

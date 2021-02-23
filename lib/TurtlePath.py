@@ -10,7 +10,7 @@ class TurtlePath:
     def __init__(self, sketch:f.Sketch):
         self.sketch:f.Sketch = sketch
         self.dimensions = sketch.sketchDimensions
-        self.constraints:f.GeometricConstraints = self.sketch.geometricConstraints
+        self.constraints:f.GeometricConstraints = sketch.geometricConstraints
         self.unitsManager:f.UnitsManager = design.unitsManager
         
     # Command letters must be uppercase

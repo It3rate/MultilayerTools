@@ -49,12 +49,14 @@ class PasteSketchCommand(TurtleUICommand):
             self.flipVSelection = inputs.addBoolValueInput('bFlipV', 'Flip Vertical', True)
 
             if self.sketch and not self.guideline:
-                tSketch = TurtleSketch(self.sketch)
+                tSketch = TurtleSketch.createWithSketch(self.sketch)
                 lines = tSketch.getSingleLines()
                 if(len(lines) == 1):
                     self.guideline = lines[0]
                     
 
+            if self.sketch:
+                self.sketchSelection.addSelection(self.sketch)
             self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
@@ -92,7 +94,12 @@ class PasteSketchCommand(TurtleUICommand):
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         data = self.getSketchData()
-        enc = SketchDecoder.createWithGuideline(data, self.guideline, self.flipHSelection.value, self.flipVSelection.value)
+        flipX = self.flipHSelection.value
+        flipY = self.flipVSelection.value
+        if self.guideline:
+            SketchDecoder.createWithGuideline(data, self.guideline, flipX, flipY)
+        else:
+            SketchDecoder.createWithSketch(data, self.sketch, flipX, flipY)
         adsk.autoTerminate(False)
 
     def getSketchData(self):
@@ -111,6 +118,13 @@ class PasteSketchCommand(TurtleUICommand):
         else:
             self.sketchSelection.isVisible = True
             self.sketchText.isVisible = False
+        
+        if self.guideline:
+            self.flipHSelection.isEnabled = True
+            self.flipVSelection.isEnabled = True
+        else:
+            self.flipHSelection.isEnabled = False
+            self.flipVSelection.isEnabled = False
 
     def onDestroy(self, eventArgs:core.CommandEventArgs):
         super().onDestroy(eventArgs)
