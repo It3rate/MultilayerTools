@@ -6,7 +6,7 @@ from .TurtleUtils import TurtleUtils
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
 class TurtlePath:
-
+    tolerance = 0.00001
     def __init__(self, sketch:f.Sketch):
         self.sketch:f.Sketch = sketch
         self.dimensions = sketch.sketchDimensions
@@ -284,7 +284,7 @@ class TurtlePath:
         return core.Point3D.create(x, y, 0)
 
     @classmethod
-    def isOnLine(cls, a:core.Point3D, line:f.SketchLine, maxDist = 0.0001):
+    def isOnLine(cls, a:core.Point3D, line:f.SketchLine, maxDist = tolerance):
         b = line.startSketchPoint.geometry
         c = line.endSketchPoint.geometry
         cross = (c.y - a.y) * (b.x - a.x) - (c.x - a.x) * (b.y - a.y)
@@ -301,7 +301,7 @@ class TurtlePath:
         return num / den
 
     @classmethod
-    def isEquivalentCurve(cls, a:f.SketchCurve, b:f.SketchCurve, maxDist = 0.0001):
+    def isEquivalentCurve(cls, a:f.SketchCurve, b:f.SketchCurve, maxDist = tolerance):
         if type(a) == f.SketchCircle:
             result = abs(a.geometry.center.x - b.geometry.center.x) <= maxDist and \
                 abs(a.geometry.center.y - b.geometry.center.y) <= maxDist and \
@@ -314,7 +314,7 @@ class TurtlePath:
         return result
 
     @classmethod
-    def isEquivalentLine(cls, line:f.SketchLine, pt0:f.SketchPoint, pt1:f.SketchPoint, maxDist = 0.0001):
+    def isEquivalentLine(cls, line:f.SketchLine, pt0:f.SketchPoint, pt1:f.SketchPoint, maxDist = tolerance):
         result = abs(pt0.geometry.x - line.geometry.startPoint.x) <= maxDist and \
                 abs(pt0.geometry.y - line.geometry.startPoint.y) <= maxDist and \
                 abs(pt1.geometry.x - line.geometry.endPoint.x) <= maxDist and \

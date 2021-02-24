@@ -215,7 +215,7 @@ class SketchDecoder:
                     elif kind == "E":
                         curve = sketchCurves.sketchEllipses.add(params[0], params[1].geometry, params[2].geometry)
                         # merge auto generated guides and points with drawn ones, maybe do this in the encoder.
-                        # note: the constraints will not be able to be reapplied, will result in warnings. Fix if bothersome.
+                        # note: the constraints will not be able to be reapplied, will result in warnings. Fix if too bothersome.
                         self.replacePoint(params[0], curve.centerSketchPoint)
                         self.generatedCurves.append(curve.majorAxisLine)
                         self.generatedCurves.append(curve.minorAxisLine)

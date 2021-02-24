@@ -1,7 +1,7 @@
 import adsk.core, adsk.fusion, adsk.cam, traceback
 import tkinter as tk
 
-__decimalPlaces__ = 5
+__decimalPlaces__ = 6
 
 class TurtleUtils:
     def __init__(self):
