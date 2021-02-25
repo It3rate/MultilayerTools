@@ -27,14 +27,19 @@ class ExtrudeLayersCommand(TurtleUICommand):
 
     def onCreateUI(self, eventArgs:core.CommandCreatedEventArgs):
         try:
-            
+            self.thicknessParamNames = ['mat0', 'mat1', 'mat2', 'mat3', 'mat4', 'mat5']
             self.params.addParams(
-                'mat0', 2,
-                'mat1', 3,
-                'mat2', 3.5,
-                'mat3', 4,
-                'mat4', 4.5,
-                'mat5', 5)
+                self.thicknessParamNames[0], 2,
+                self.thicknessParamNames[1], 3,
+                self.thicknessParamNames[2], 3.5,
+                self.thicknessParamNames[3], 4,
+                self.thicknessParamNames[4], 4.5,
+                self.thicknessParamNames[5], 5)
+            
+            self.paramTable = []
+            for i in range(len(self.thicknessParamNames)):
+                paramVal = self.params.getValue(self.thicknessParamNames[i])
+                self.paramTable.append([self.thicknessParamNames[i], paramVal, True])
 
             self.layerCount = 0
             # Get the CommandInputs collection associated with the command.
@@ -50,7 +55,7 @@ class ExtrudeLayersCommand(TurtleUICommand):
             #self.flipDirection = inputs.addDirectionCommandInput('bFlip', 'Flip Direction')#, "./resources/Flip/")
             
             # Create table input
-            self.tbLayers = inputs.addTableCommandInput('tbLayers', 'Layers', 2, '1:1.2')
+            self.tbLayers = inputs.addTableCommandInput('tbLayers', 'Layers', 3, '6:4:1')
             self.addLayer(0)       
             self.addLayer(1)       
             self.addLayer(0)       
@@ -79,17 +84,21 @@ class ExtrudeLayersCommand(TurtleUICommand):
                 selectedIndex = cmdInput.selectedItem.index
                 thicknessField = cmdInput.parentCommandInput.getInputAtPosition(inputIndex, 1)
                 thicknessValue = self.params.getValue("mat" + str(selectedIndex))
-                thicknessField.expression = thicknessValue
+                thicknessField.expression = thicknessValue # todo: keep table of thickness expression changes, only commit to params at end. Use lock icon?
             elif cmdInput.id.startswith("MaterialThickness"):
                 inputIndex = int(cmdInput.id[-1])
-                print("thickness: " + cmdInput.id[-1])
             elif cmdInput.id == 'tableAdd':
-                self.addLayer()
+                if self.layerCount < 6:
+                    self.addLayer(self.layerCount)
+                if self.layerCount >= 5:
+                    cmdInput.isEnabled = False
             elif cmdInput.id == 'tableDelete':
                 if self.tbLayers.selectedRow == -1:
                     ui.messageBox('Select one row to delete.')
                 else:
-                    self.tbLayers.deleteRow(tableInput.selectedRow)
+                    selectedIndex = cmdInput.parentCommandInput.selectedRow
+                    self.tbLayers.deleteRow(selectedIndex)
+                    cmdInput.isEnabled = True
                     
             self.resetUI()
         except:
@@ -131,11 +140,18 @@ class ExtrudeLayersCommand(TurtleUICommand):
         for i in range(materialCount):
             ddItems.add('Material ' + str(i + 1), i == selectedIndex, 'resources/ColorChip' + str(i))
         
-        thicknessValue = self.params.getValue("mat" + str(selectedIndex))
-        print(thicknessValue)
-        valueInput = cmdInputs.addValueInput('MaterialThickness{}'.format(self.layerCount), 'Value', 'mm', self.params.createValue(thicknessValue))
+        paramItem = self.paramTable[selectedIndex]
+        thicknessValue = paramItem[1]
+        if paramItem[2]: # Locked
+            valueInput = cmdInputs.addTextBoxCommandInput('MaterialThickness{}'.format(self.layerCount), 'Value', str(thicknessValue), 1, True)
+            lockIcon = cmdInputs.addImageCommandInput('LockThickness{}'.format(self.layerCount), str(thicknessValue), 'resources/Lock/16x24.png')
+        else:
+            valueInput = cmdInputs.addValueInput('MaterialThickness{}'.format(self.layerCount), 'Value', 'mm', self.params.createValue(thicknessValue))
+            lockIcon = cmdInputs.addImageCommandInput('LockThickness{}'.format(self.layerCount), '', 'resources/Unlock/16x24.png')
         
         row = self.tbLayers.rowCount
         self.tbLayers.addCommandInput(ddMaterial, row, 0)
         self.tbLayers.addCommandInput(valueInput, row, 1)
+        self.tbLayers.addCommandInput(lockIcon, row, 2)
+
         self.layerCount += 1
