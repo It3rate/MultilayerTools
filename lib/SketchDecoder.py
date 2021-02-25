@@ -227,7 +227,7 @@ class SketchDecoder:
                         splinePoints = params[0]
                         if params[1] != 0: # check if closed
                             splinePoints.append(splinePoints[0])
-                        pts = self.asObjectCollection(params[0])
+                        pts = TurtleUtils.ensureObjectCollection(params[0])
                         curve = sketchCurves.sketchFittedSplines.add(pts)
                         fitPoints = curve.fitPoints
                         count = 0
@@ -328,7 +328,7 @@ class SketchDecoder:
                         dirPoint.transformBy(self.transform)
 
                         #dirPoint = c0.geometry.center if type(c0) == f.SketchCircle else c0.startSketchPoint.geometry
-                        oc = self.asObjectCollection(p0)
+                        oc = TurtleUtils.ensureObjectCollection(p0)
                         # the direction is set by the dirPoint geometry afaict, so distance is always positive relative to that
                         # this will generate new curves
                         offsetCurves = self.sketch.offset(oc, dirPoint, dist)
@@ -506,8 +506,3 @@ class SketchDecoder:
         result.transformBy(self.transform)
         return result
 
-    def asObjectCollection(self, items):
-        result = core.ObjectCollection.create()
-        for item in items:
-            result.add(item)
-        return result

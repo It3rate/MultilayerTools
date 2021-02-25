@@ -98,3 +98,15 @@ class TurtleUtils:
         root.clipboard_clear()
         root.update()
         root.destroy()
+        
+    @classmethod
+    def ensureObjectCollection(cls, itemList):
+        result = itemList
+        if type(itemList) != core.ObjectCollection: 
+            result = core.ObjectCollection.create()
+            if isinstance(itemList, list):
+                for item in itemList:
+                    result.add(item)
+            else:
+                result.add(itemList)
+        return result

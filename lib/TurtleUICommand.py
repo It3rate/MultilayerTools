@@ -15,7 +15,7 @@ class TurtleUICommand():
             self.commandDefinition = ui.commandDefinitions.itemById(self.cmdId)
 
             if not self.commandDefinition:
-                self.resFolder = ".//resources//" + self.cmdId 
+                self.resFolder = "resources/" + self.cmdId 
                 self.commandDefinition = ui.commandDefinitions.addButtonDefinition(self.cmdId, cmdName, cmdDesc, self.resFolder)
             self.createAddinUI()
 

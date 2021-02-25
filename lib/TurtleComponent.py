@@ -31,8 +31,8 @@ class TurtleComponent:
         result = TurtleComponent(component)
         return result
 
-    def createLayers(self,profiles:list, thicknesses:list, layerCount:int = 1):
-        return TurtleLayers(self, profiles, thicknesses, layerCount)
+    def createLayers(self,profiles:list, thicknesses:list, layerCount:int = 1, isFlipped = False):
+        return TurtleLayers(self, profiles, thicknesses, layerCount, isFlipped)
 
     def __wrapExistingSketches(self):
         self._sketches = []
@@ -77,23 +77,19 @@ class TurtleComponent:
         result = self.component.constructionPlanes.add(planeInput)
         return result
 
-    def extrude(self, profile, start, expression):
+    def extrude(self, profile, start, expression, isFlipped = False):
         if profile is None:
             return
         extrudes = self.component.features.extrudeFeatures
         dist = self.parameters.createValue(expression)
         extrudeInput = extrudes.createInput(profile, f.FeatureOperations.NewBodyFeatureOperation) 
         extentDistance = f.DistanceExtentDefinition.create(dist) 
-        extrudeInput.setOneSideExtent(extentDistance, f.ExtentDirections.PositiveExtentDirection)
+        direction = f.ExtentDirections.NegativeExtentDirection if isFlipped else f.ExtentDirections.PositiveExtentDirection
+        extrudeInput.setOneSideExtent(extentDistance, direction)
         if start:
             startFrom = f.FromEntityStartDefinition.create(start, self.parameters.createValue(0))
             extrudeInput.startExtent = startFrom
-
         extruded = extrudes.add(extrudeInput) 
-        # bug: Need to reassign expression
-        extDef = f.DistanceExtentDefinition.cast(extruded.extentOne)
-        extDef.distance.expression = expression
-
         self.colorExtrudedBodies(extruded, expression)
         return extruded
 
