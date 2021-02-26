@@ -58,6 +58,16 @@ class TurtleUICommand():
     def onSelectionEvent(self, eventArgs:core.SelectionEventArgs):
         pass
         
+    def onMouseDown(self, eventArgs:core.MouseEventArgs):
+        pass
+    def onMouseUp(self, eventArgs:core.MouseEventArgs):
+        pass
+
+    def onKeyDown(self, eventArgs:core.KeyboardEventArgs):
+        pass
+    def onKeyUp(self, eventArgs:core.KeyboardEventArgs):
+        pass
+
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
         pass
         
@@ -79,6 +89,18 @@ class TurtleUICommand():
 
     def getSelectionEventHandler(self):
         return BaseSelectionEventHandler(self)
+
+    def getMouseDownHandler(self):
+        return BaseMouseDownHandler(self)
+
+    def getMouseUpHandler(self):
+        return BaseMouseUpHandler(self)
+
+    def getKeyDownHandler(self):
+        return BaseKeyDownHandler(self)
+
+    def getKeyUpHandler(self):
+        return BaseKeyUpHandler(self)
 
     def getInputChangedHandler(self):
         return BaseInputChangedHandler(self)
@@ -122,6 +144,20 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
         #cmd.unselect.add(onSelectionEvent)          
         _handlers.append(onSelectionEvent)
         
+        onMouseDown = self.turtleUICommand.getMouseDownHandler()
+        cmd.mouseDown.add(onMouseDown)
+        _handlers.append(onMouseDown)
+        onMouseUp = self.turtleUICommand.getMouseUpHandler()
+        cmd.mouseUp.add(onMouseUp)
+        _handlers.append(onMouseUp)
+
+        onKeyDown = self.turtleUICommand.getKeyDownHandler()
+        cmd.keyDown.add(onKeyDown)
+        _handlers.append(onKeyDown)
+        onKeyUp = self.turtleUICommand.getKeyUpHandler()
+        cmd.keyUp.add(onKeyUp)
+        _handlers.append(onKeyUp)
+
         onValidateInputs = self.turtleUICommand.getValidateInputsHandler()
         cmd.validateInputs.add(onValidateInputs)
         _handlers.append(onValidateInputs)
@@ -136,6 +172,33 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
 
         self.turtleUICommand.onStartedRunning(eventArgs)
         self.turtleUICommand.onCreateUI(eventArgs)
+
+class BaseMouseDownHandler(core.MouseEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onMouseDown(eventArgs)
+class BaseMouseUpHandler(core.MouseEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onMouseUp(eventArgs)
+
+class BaseKeyUpHandler(core.KeyboardEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onKeyUp(eventArgs)
+class BaseKeyDownHandler(core.KeyboardEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onKeyDown(eventArgs)
+
 
 class BaseInputChangedHandler(core.InputChangedEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):

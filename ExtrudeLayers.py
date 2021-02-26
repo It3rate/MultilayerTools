@@ -30,18 +30,18 @@ class ExtrudeLayersCommand(TurtleUICommand):
             self.thicknessParamNames = ['mat0', 'mat1', 'mat2', 'mat3', 'mat4', 'mat5']
             self.params.addParams(
                 self.thicknessParamNames[0], 2,
-                self.thicknessParamNames[1], 3,
-                self.thicknessParamNames[2], 3.5,
+                self.thicknessParamNames[1], 3.5,
+                self.thicknessParamNames[2], 3,
                 self.thicknessParamNames[3], 4,
-                self.thicknessParamNames[4], 4.5,
-                self.thicknessParamNames[5], 5)
+                self.thicknessParamNames[4], 5,
+                self.thicknessParamNames[5], 6)
             
             self.paramTable = []
             for i in range(len(self.thicknessParamNames)):
                 paramVal = self.params.getValue(self.thicknessParamNames[i])
-                self.paramTable.append([self.thicknessParamNames[i], paramVal, True])
+                self.paramTable.append([self.thicknessParamNames[i], paramVal])
+            self.stateTable = []
 
-            self.layerCount = 0
             # Get the CommandInputs collection associated with the command.
             inputs = eventArgs.command.commandInputs
 
@@ -55,7 +55,9 @@ class ExtrudeLayersCommand(TurtleUICommand):
             #self.flipDirection = inputs.addDirectionCommandInput('bFlip', 'Flip Direction')#, "./resources/Flip/")
             
             # Create table input
-            self.tbLayers = inputs.addTableCommandInput('tbLayers', 'Layers', 3, '6:4:1')
+            self.tbLayers = inputs.addTableCommandInput('tbLayers', 'Layers', 4, '6:4:1')
+             # Note: more items than maxvisiblerows results in text not appearing correctly.
+            self.tbLayers.maximumVisibleRows = 6
             self.addLayer(0)       
             self.addLayer(1)       
             self.addLayer(0)       
@@ -78,32 +80,68 @@ class ExtrudeLayersCommand(TurtleUICommand):
         try:
             inputs = eventArgs.inputs
             cmdInput = eventArgs.input
+            id = cmdInput.id
+            rowIndex = -1
+            print(id)
             
-            if cmdInput.id.startswith("MaterialInput"):
-                inputIndex = int(cmdInput.id[-1])
-                selectedIndex = cmdInput.selectedItem.index
-                thicknessField = cmdInput.parentCommandInput.getInputAtPosition(inputIndex, 1)
-                thicknessValue = self.params.getValue("mat" + str(selectedIndex))
+            if id.startswith("MaterialInput"):
+                rowIndex = int(id[-1])
+                ddIndex = cmdInput.selectedItem.index
+                self.stateTable[rowIndex][0] = ddIndex
+                thicknessField = cmdInput.parentCommandInput.getInputAtPosition(rowIndex, 1)
+                thicknessValue = self.params.getValue("mat" + str(ddIndex))
                 thicknessField.expression = thicknessValue # todo: keep table of thickness expression changes, only commit to params at end. Use lock icon?
-            elif cmdInput.id.startswith("MaterialThickness"):
-                inputIndex = int(cmdInput.id[-1])
-            elif cmdInput.id == 'tableAdd':
-                if self.layerCount < 6:
-                    self.addLayer(self.layerCount)
-                if self.layerCount >= 5:
+            
+            elif id.startswith("MaterialThickness"):
+                rowIndex = int(id[-1])   
+                self.stateTable[rowIndex][1] = cmdInput.expression
+
+            elif id.startswith("Lock"):
+                rowIndex = int(id[-1])
+                self.stateTable[rowIndex][2] = False
+                # ddItem = inputs.itemById("MaterialInput" + str(rowIndex))
+                # ddChoice = ddItem.selectedItem.index
+                self.updateLayer(rowIndex)
+
+            elif id.startswith("Unlock"):
+                rowIndex = int(id[-1])
+                self.stateTable[rowIndex][2] = True
+                # ddItem = inputs.itemById("MaterialInput" + str(rowIndex))
+                # ddChoice = ddItem.selectedItem.index
+                self.updateLayer(rowIndex)
+
+            elif id == 'tableAdd':
+                if len(self.stateTable) < 6:
+                    self.addLayer(len(self.stateTable))
+                if len(self.stateTable) >= 6:
                     cmdInput.isEnabled = False
-            elif cmdInput.id == 'tableDelete':
+
+            elif id == 'tableDelete':
                 if self.tbLayers.selectedRow == -1:
                     ui.messageBox('Select one row to delete.')
                 else:
                     selectedIndex = cmdInput.parentCommandInput.selectedRow
                     self.tbLayers.deleteRow(selectedIndex)
+                    self.stateTable.pop(selectedIndex)
                     cmdInput.isEnabled = True
                     
+            if not id.startswith("MaterialThickness"):
+                self.updateLocks(rowIndex)
+
             self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
         
+    def updateLocks(self, rowIndex = -1):
+        for index, state in enumerate(self.stateTable):
+            if not state[2] and index != rowIndex:
+                state[2] = True
+                self.updateLayer(index)
+
+    def onKeyUp(self, eventArgs:core.KeyboardEventArgs):
+        if eventArgs.keyCode == core.KeyCodes.EnterKeyCode or eventArgs.keyCode == core.KeyCodes.ReturnKeyCode:
+            self.updateLocks()
+
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
             super().onValidateInputs(eventArgs)
         
@@ -129,29 +167,45 @@ class ExtrudeLayersCommand(TurtleUICommand):
         #profiles = self.profilesSelection.selection
         sketch = profiles[0].parentSketch
         comp:TurtleComponent = TurtleComponent.createFromSketch(sketch)
-        return comp.createLayers([profiles], ['3mm', '1mm', '2mm'], 3, self.flipDirection.value)
+        count = len(self.stateTable)
+        distances = self.thicknessParamNames[:count]
+        return comp.createLayers([profiles], distances, count, self.flipDirection.value)
 
-    def addLayer(self, selectedIndex):
+    def addLayer(self, ddChoice):
         cmdInputs:core.CommandInputs = self.tbLayers.commandInputs
-
         materialCount = 6
-        ddMaterial =  cmdInputs.addDropDownCommandInput('MaterialInput{}'.format(self.layerCount), 'ddMaterial', core.DropDownStyles.LabeledIconDropDownStyle)
+        row = self.tbLayers.rowCount 
+        ddMaterial = cmdInputs.addDropDownCommandInput('MaterialInput{}'.format(row), 'ddMaterial', core.DropDownStyles.LabeledIconDropDownStyle)
         ddItems = ddMaterial.listItems
         for i in range(materialCount):
-            ddItems.add('Material ' + str(i + 1), i == selectedIndex, 'resources/ColorChip' + str(i))
-        
-        paramItem = self.paramTable[selectedIndex]
+            ddItems.add('Material ' + str(i + 1), i == ddChoice, 'resources/ColorChip' + str(i))
+            
+        paramItem = self.paramTable[ddChoice]
         thicknessValue = paramItem[1]
-        if paramItem[2]: # Locked
-            valueInput = cmdInputs.addTextBoxCommandInput('MaterialThickness{}'.format(self.layerCount), 'Value', str(thicknessValue), 1, True)
-            lockIcon = cmdInputs.addImageCommandInput('LockThickness{}'.format(self.layerCount), str(thicknessValue), 'resources/Lock/16x24.png')
-        else:
-            valueInput = cmdInputs.addValueInput('MaterialThickness{}'.format(self.layerCount), 'Value', 'mm', self.params.createValue(thicknessValue))
-            lockIcon = cmdInputs.addImageCommandInput('LockThickness{}'.format(self.layerCount), '', 'resources/Unlock/16x24.png')
-        
-        row = self.tbLayers.rowCount
+        valueInput = cmdInputs.addTextBoxCommandInput('MaterialText{}'.format(row), 'Value', str(thicknessValue), 1, True)
+        lockIcon = cmdInputs.addImageCommandInput('Lock{}'.format(row), '', 'resources/Lock/16x24.png')
+ 
         self.tbLayers.addCommandInput(ddMaterial, row, 0)
         self.tbLayers.addCommandInput(valueInput, row, 1)
         self.tbLayers.addCommandInput(lockIcon, row, 2)
+        self.stateTable.append([ddChoice, thicknessValue, True])
+         
+    def updateLayer(self, row):
+        cmdInputs:core.CommandInputs = self.tbLayers.commandInputs
+        ddIndex = self.stateTable[row][0]
+        thicknessValue = self.stateTable[row][1]
+        isLocked = self.stateTable[row][2]
 
-        self.layerCount += 1
+        if isLocked: # Locked
+            valueInput = cmdInputs.addTextBoxCommandInput('MaterialText{}'.format(row), 'Value', str(thicknessValue), 1, True)
+            lockIcon = cmdInputs.addImageCommandInput('Lock{}'.format(row), '', 'resources/Lock/16x24.png')
+        else:
+            valueInput = cmdInputs.addValueInput('MaterialThickness{}'.format(row), 'Value', 'mm', self.params.createValue(thicknessValue))
+            lockIcon = cmdInputs.addImageCommandInput('Unlock{}'.format(row), '', 'resources/Unlock/16x24.png')
+        
+        self.tbLayers.removeInput(row, 1)
+        self.tbLayers.removeInput(row, 2)
+        self.tbLayers.addCommandInput(valueInput, row, 1)
+        self.tbLayers.addCommandInput(lockIcon, row, 2)
+
+            
