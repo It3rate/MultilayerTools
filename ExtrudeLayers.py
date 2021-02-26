@@ -55,18 +55,20 @@ class ExtrudeLayersCommand(TurtleUICommand):
             self.tbLayers = inputs.addTableCommandInput('tbLayers', 'Layers', 4, '6:4:1')
              # Note: more items than maxvisiblerows results in text not appearing correctly.
             self.tbLayers.maximumVisibleRows = 6
-            self.addLayer(0)       
-            self.addLayer(1)       
-            self.addLayer(0)       
+
+            intitalLayers, isFlipped, isReversed = self.readDefaultLayerIndexes()
+            for layerIndex in intitalLayers:
+                self.addLayer(layerIndex)    
+
             btAddItem = inputs.addBoolValueInput('tableAdd', 'Add', False, "resources/Add/", True)
             self.tbLayers.addToolbarCommandInput(btAddItem)
             btDeleteItem = inputs.addBoolValueInput('tableDelete', 'Delete', False, "resources/Remove/", True)
             self.tbLayers.addToolbarCommandInput(btDeleteItem)
             
             # Flip direction
-            self.flipDirection = inputs.addBoolValueInput('bFlip', 'Flip Direction', True, "resources/Flip/", False)
+            self.flipDirection = inputs.addBoolValueInput('bFlip', 'Flip Direction', True, "resources/Flip/", isFlipped)
             # Reverse Order
-            self.reversed = inputs.addBoolValueInput('bReverse', 'ReverseOrder', True, "resources/Reverse/", False)
+            self.reversed = inputs.addBoolValueInput('bReverse', 'ReverseOrder', True, "resources/Reverse/", isReversed)
             #self.flipDirection = inputs.addDirectionCommandInput('bFlip', 'Flip Direction')#, "./resources/Flip/")
 
             # * maybe not: Start (Profile Plane, Offset, Object)
@@ -168,9 +170,10 @@ class ExtrudeLayersCommand(TurtleUICommand):
         for index in range(self.profilesSelection.selectionCount):
             profiles.append(self.profilesSelection.selection(index).entity)
 
-        distances = []
-        for state in self.stateTable:
-            distances.append(state[1])
+        # Probably need to switch to changing paramters for preview and changing them back on cancel.
+        # Other elements are affected by param changes and probably should see that in preview.
+        # For now just use numbers for preview and params for final.
+        distances = [state[1] for state in self.stateTable]
         layers = self.extrude(profiles, distances)
         layers.sketch.isVisible = True
 
@@ -185,10 +188,32 @@ class ExtrudeLayersCommand(TurtleUICommand):
             paramVal = self.params.getValue(self.thicknessParamNames[ddIndex])
             if paramVal != state[1]:
                 self.params.setParam(self.thicknessParamNames[ddIndex], state[1])
-        distances = self.thicknessParamNames[:count]
-
+        distances = []
+        for state in self.stateTable:
+            distances.append(self.thicknessParamNames[state[0]]) # use param names for final extrude thickness
+        
         self.extrude(profiles, distances)
+
+        indexes = [state[0] for state in self.stateTable]
+        attr = self.writeDefaultLayerIndexes(indexes)
         adsk.autoTerminate(False)
+
+    def writeDefaultLayerIndexes(self, layerParamIndexes:list):
+        indexes = "(["
+        comma = ""
+        for index in layerParamIndexes:
+            indexes += comma + str(index)
+            comma = ","
+        indexes += "], " + str(self.flipDirection.value) + "," + str(self.reversed.value) + ")"
+        return app.activeDocument.attributes.add("ExtrudeLayers", "defaultLayerIndexes", indexes)
+
+    def readDefaultLayerIndexes(self):
+        attr = app.activeDocument.attributes.itemByName("ExtrudeLayers", "defaultLayerIndexes")
+        if attr:
+            result = eval(attr.value)
+        else:
+            result = ([0,1,0], False, False)
+        return result
 
     def resetUI(self):
         pass
