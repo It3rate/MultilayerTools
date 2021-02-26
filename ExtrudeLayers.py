@@ -87,11 +87,12 @@ class ExtrudeLayersCommand(TurtleUICommand):
             if id.startswith("MaterialInput"):
                 rowIndex = int(id[-1])
                 ddIndex = cmdInput.selectedItem.index
-                self.stateTable[rowIndex][0] = ddIndex
-                thicknessField = cmdInput.parentCommandInput.getInputAtPosition(rowIndex, 1)
-                thicknessValue = self.params.getValue("mat" + str(ddIndex))
-                thicknessField.expression = thicknessValue # todo: keep table of thickness expression changes, only commit to params at end. Use lock icon?
-            
+                state = self.stateTable[rowIndex]
+                state[0] = ddIndex
+                thicknessValue = self.paramTable[ddIndex][1]
+                state[1] = thicknessValue
+                self.updateLayer(rowIndex)
+
             elif id.startswith("MaterialThickness"):
                 rowIndex = int(id[-1])   
                 if cmdInput.isValidExpression:
@@ -134,7 +135,6 @@ class ExtrudeLayersCommand(TurtleUICommand):
             if not id.startswith("MaterialThickness"):
                 self.updateLocks(rowIndex)
             
-
             self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
