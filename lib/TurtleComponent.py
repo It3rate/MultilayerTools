@@ -31,8 +31,8 @@ class TurtleComponent:
         result = TurtleComponent(component)
         return result
 
-    def createLayers(self,profiles:list, thicknesses:list, layerCount:int = 1, isFlipped = False):
-        return TurtleLayers(self, profiles, thicknesses, layerCount, isFlipped)
+    def createLayers(self,profiles:list, thicknesses:list, layerCount:int = 1, isFlipped = False, appearanceList:list = []):
+        return TurtleLayers(self, profiles, thicknesses, layerCount, isFlipped, appearanceList)
 
     def __wrapExistingSketches(self):
         self._sketches = []
@@ -90,7 +90,6 @@ class TurtleComponent:
             startFrom = f.FromEntityStartDefinition.create(start, self.parameters.createValue(0))
             extrudeInput.startExtent = startFrom
         extruded = extrudes.add(extrudeInput) 
-        self.colorExtrudedBodies(extruded, expression)
         return extruded
 
     def cutComponent(self, profile):
@@ -120,8 +119,13 @@ class TurtleComponent:
         extrude = extrudes.add(cutInput) 
         return extrude
 
-    def colorExtrudedBodies(self, extruded:f.ExtrudeFeature, thickness):
-        appr = self.appearances.getAppearance(thickness)
+    def colorExtrudedBodiesByThickness(self, extruded:f.ExtrudeFeature, thickness):
+        appr = self.appearances.getAppearanceByThickness(thickness)
+        for body in extruded.bodies:
+            body.appearance = appr
+
+    def colorExtrudedBodiesByIndex(self, extruded:f.ExtrudeFeature, index):
+        appr = self.appearances.getAppearanceByIndex(index)
         for body in extruded.bodies:
             body.appearance = appr
 

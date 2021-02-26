@@ -199,7 +199,8 @@ class ExtrudeLayersCommand(TurtleUICommand):
         sketch = profiles[0].parentSketch
         comp:TurtleComponent = TurtleComponent.createFromSketch(sketch)
         count = len(self.stateTable)
-        return comp.createLayers([profiles], distances, count, self.flipDirection.value)
+        appearanceList = [state[0] for state in self.stateTable]
+        return comp.createLayers([profiles], distances, count, self.flipDirection.value, appearanceList)
 
     def addLayer(self, ddChoice):
         cmdInputs:core.CommandInputs = self.tbLayers.commandInputs

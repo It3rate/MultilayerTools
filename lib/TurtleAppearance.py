@@ -20,8 +20,12 @@ class TurtleAppearance(list):
             cls._instance = TurtleAppearance(cls.__useInstance)
         return cls._instance
 
-    def getAppearance(self, thickness):
-       return self._thicknessMap[thickness] if thickness in self._thicknessMap else self._nextAppearance(thickness)
+    def getAppearanceByThickness(self, thickness):
+        return self._thicknessMap[thickness] if thickness in self._thicknessMap else self._nextAppearance(thickness)
+
+    def getAppearanceByIndex(self, index):
+        clamped = max(min(index, len(self.appearances) - 1), 0)
+        return self.appearances[clamped]
 
     def _nextAppearance(self, thickness):
         result = self.appearances[self._counter]

@@ -8,7 +8,7 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
 class TurtleLayers(list):
     # pass lists, or optionally single elements if specifying layerCount. layerCount should match list sizes if one is passed.
-    def __init__(self, tcomponent:'TurtleComponent', profiles:list, thicknesses:list, layerCount:int = -1, isFlipped = False):
+    def __init__(self, tcomponent:'TurtleComponent', profiles:list, thicknesses:list, layerCount:int = -1, isFlipped = False, appearanceList = []):
         self.tcomponent = tcomponent
         self.component = tcomponent.component
         self.parameters = TurtleParams.instance()
@@ -22,6 +22,7 @@ class TurtleLayers(list):
         self.profiles = profiles if isListProfiles else [profiles] * self.layerCount
         self.thicknesses = thicknesses if isListThickness else [thicknesses] * self.layerCount
         self.isFlipped = isFlipped
+        self.appearanceList = appearanceList
         
         self.extrudes = self._extrudeAllLayers()
         self.extend(self.extrudes)
@@ -35,6 +36,11 @@ class TurtleLayers(list):
             layerProfiles = TurtleUtils.ensureObjectCollection(self.profiles[profileIndex])
             self.sketch = layerProfiles[0].parentSketch
             extruded = self.tcomponent.extrude(layerProfiles, startFace, self.thicknesses[thicknessIndex], self.isFlipped)
+            if len(self.appearanceList) > i:
+                self.tcomponent.colorExtrudedBodiesByIndex(extruded, self.appearanceList[i])
+            else:
+                self.tcomponent.colorExtrudedBodiesByThickness(extruded, self.thicknesses[thicknessIndex])
+
             extrudes.append(extruded)
             startFace = extruded.endFaces.item(0)
         return extrudes
