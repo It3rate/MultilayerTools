@@ -133,10 +133,10 @@ class ExtrudeLayersCommand(TurtleUICommand):
             print('Failed:\n{}'.format(traceback.format_exc()))
         
     def updateLocks(self, rowIndex = -1):
-        for index, state in enumerate(self.stateTable):
-            if not state[2] and index != rowIndex:
+        for i, state in enumerate(self.stateTable):
+            if not state[2] and i != rowIndex:
                 state[2] = True
-                self.updateLayer(index)
+                self.updateLayer(i)
 
     def onKeyUp(self, eventArgs:core.KeyboardEventArgs):
         if eventArgs.keyCode == core.KeyCodes.EnterKeyCode or eventArgs.keyCode == core.KeyCodes.ReturnKeyCode:
@@ -146,11 +146,30 @@ class ExtrudeLayersCommand(TurtleUICommand):
             super().onValidateInputs(eventArgs)
         
     def onPreview(self, eventArgs:core.CommandEventArgs):
-        layers = self.extrude()
+        profiles = []
+        for index in range(self.profilesSelection.selectionCount):
+            profiles.append(self.profilesSelection.selection(index).entity)
+
+        distances = []
+        for state in self.stateTable:
+            distances.append(state[1])
+        layers = self.extrude(profiles, distances)
         layers.sketch.isVisible = True
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
-        self.extrude()
+        profiles = []
+        for index in range(self.profilesSelection.selectionCount):
+            profiles.append(self.profilesSelection.selection(index).entity)
+            
+        count = len(self.stateTable)
+        for i, state in enumerate(self.stateTable):
+            ddIndex = self.stateTable[i][0]
+            paramVal = self.params.getValue(self.thicknessParamNames[ddIndex])
+            if paramVal != state[1]:
+                self.params.setParam(self.thicknessParamNames[ddIndex], state[1])
+        distances = self.thicknessParamNames[:count]
+
+        self.extrude(profiles, distances)
         adsk.autoTerminate(False)
 
     def resetUI(self):
@@ -160,15 +179,11 @@ class ExtrudeLayersCommand(TurtleUICommand):
         super().onDestroy(eventArgs)
 
     
-    def extrude(self):
-        profiles = []
-        for index in range(self.profilesSelection.selectionCount):
-            profiles.append(self.profilesSelection.selection(index).entity)
+    def extrude(self, profiles, distances):
         #profiles = self.profilesSelection.selection
         sketch = profiles[0].parentSketch
         comp:TurtleComponent = TurtleComponent.createFromSketch(sketch)
         count = len(self.stateTable)
-        distances = self.thicknessParamNames[:count]
         return comp.createLayers([profiles], distances, count, self.flipDirection.value)
 
     def addLayer(self, ddChoice):

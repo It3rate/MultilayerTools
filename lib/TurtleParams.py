@@ -29,12 +29,23 @@ class TurtleParams:
             result.append(self.addParam(nameValArray[i], nameValArray[i+1]))
         return result
 
+    # Create parameter if it doesn't already exist
     def addParam(self, name, val, unitKind="", msg=""):
         units = self.curUnits if unitKind=="" else unitKind
         result = design.userParameters.itemByName(name)
         if result is None:
             fval = self.createValue(val, units)
             result = design.userParameters.add(name, fval, units, msg)
+        return result
+
+    # Create or change value of parameter
+    def setParam(self, name, val, unitKind="", msg=""):
+        units = self.curUnits if unitKind=="" else unitKind
+        result = design.userParameters.itemByName(name)
+        if not result:
+            result = self.addParam(name, val, units, msg)
+        else:
+            result.expression = val
         return result
 
     def createValue(self, val, unitKind=""):
