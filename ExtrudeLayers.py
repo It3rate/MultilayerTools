@@ -50,9 +50,6 @@ class ExtrudeLayersCommand(TurtleUICommand):
             self.profilesSelection.setSelectionLimits(1,0)
             self.profilesSelection.addSelectionFilter('Profiles')
 
-            # Flip direction
-            self.flipDirection = inputs.addBoolValueInput('bFlip', 'Flip Direction', True, "resources/Flip/", False)
-            #self.flipDirection = inputs.addDirectionCommandInput('bFlip', 'Flip Direction')#, "./resources/Flip/")
             
             # Create table input
             self.tbLayers = inputs.addTableCommandInput('tbLayers', 'Layers', 4, '6:4:1')
@@ -65,6 +62,12 @@ class ExtrudeLayersCommand(TurtleUICommand):
             self.tbLayers.addToolbarCommandInput(btAddItem)
             btDeleteItem = inputs.addBoolValueInput('tableDelete', 'Delete', False, "resources/Remove/", True)
             self.tbLayers.addToolbarCommandInput(btDeleteItem)
+            
+            # Flip direction
+            self.flipDirection = inputs.addBoolValueInput('bFlip', 'Flip Direction', True, "resources/Flip/", False)
+            # Reverse Order
+            self.reversed = inputs.addBoolValueInput('bReverse', 'ReverseOrder', True, "resources/Reverse/", False)
+            #self.flipDirection = inputs.addDirectionCommandInput('bFlip', 'Flip Direction')#, "./resources/Flip/")
 
             # * maybe not: Start (Profile Plane, Offset, Object)
             # Direction (One Side, Two Sides, Symmetric)
@@ -200,6 +203,9 @@ class ExtrudeLayersCommand(TurtleUICommand):
         comp:TurtleComponent = TurtleComponent.createFromSketch(sketch)
         count = len(self.stateTable)
         appearanceList = [state[0] for state in self.stateTable]
+        if self.reversed.value:
+            distances.reverse()
+            appearanceList.reverse()
         return comp.createLayers([profiles], distances, count, self.flipDirection.value, appearanceList)
 
     def addLayer(self, ddChoice):
