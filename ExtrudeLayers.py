@@ -94,7 +94,13 @@ class ExtrudeLayersCommand(TurtleUICommand):
             
             elif id.startswith("MaterialThickness"):
                 rowIndex = int(id[-1])   
-                self.stateTable[rowIndex][1] = cmdInput.expression
+                if cmdInput.isValidExpression:
+                    state = self.stateTable[rowIndex]
+                    state[1] = cmdInput.expression
+                    # When two layers use the same material, an update in thickness should effect both.
+                    changes = self.updateValues(rowIndex, state[0], state[1])
+                    for index in changes:
+                        self.updateLayer(index)
 
             elif id.startswith("Lock"):
                 rowIndex = int(id[-1])
@@ -127,6 +133,7 @@ class ExtrudeLayersCommand(TurtleUICommand):
                     
             if not id.startswith("MaterialThickness"):
                 self.updateLocks(rowIndex)
+            
 
             self.resetUI()
         except:
@@ -136,7 +143,15 @@ class ExtrudeLayersCommand(TurtleUICommand):
         for i, state in enumerate(self.stateTable):
             if not state[2] and i != rowIndex:
                 state[2] = True
-                self.updateLayer(i)
+            self.updateLayer(i)
+
+    def updateValues(self, rowSource, materialIndex, value):
+        changes = []
+        for i, state in enumerate(self.stateTable):
+            if state[0] == materialIndex and i != rowSource:
+                state[1] = value
+                changes.append(i)
+        return changes
 
     def onKeyUp(self, eventArgs:core.KeyboardEventArgs):
         if eventArgs.keyCode == core.KeyCodes.EnterKeyCode or eventArgs.keyCode == core.KeyCodes.ReturnKeyCode:
