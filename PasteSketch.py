@@ -12,7 +12,7 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
 class PasteSketchCommand(TurtleUICommand):
     def __init__(self):
-        cmdId = 'PasteSketchId'
+        cmdId = 'ddwPasteSketchId'
         cmdName = 'Paste Sketch Command'
         cmdDescription = 'Pastes sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow transformed pasting if a guideline was selected while copying.'
         targetPanels = self.getTargetPanels()

@@ -11,7 +11,7 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
 class CopySketchCommand(TurtleUICommand):
     def __init__(self):
-        cmdId = 'CopySketchId'
+        cmdId = 'ddwCopySketchId'
         cmdName = 'Copy Sketch Command'
         cmdDescription = 'Copies sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow relative pasting.'
         targetPanels = self.getTargetPanels()

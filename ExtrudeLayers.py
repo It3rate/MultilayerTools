@@ -13,7 +13,7 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 class ExtrudeLayersCommand(TurtleUICommand):
     def __init__(self):
         self.params = TurtleParams.instance()
-        cmdId = 'ExtrudeLayersId'
+        cmdId = 'ddwExtrudeLayersId'
         cmdName = 'Extrude Layers Command'
         cmdDescription = 'Extrudes a profile into multiple layer bodies of parameterized thicknesses. Can also be used to cut, intersect existing layered components.'
         targetPanels = self.getTargetPanels()
@@ -69,11 +69,9 @@ class ExtrudeLayersCommand(TurtleUICommand):
             self.flipDirection = inputs.addBoolValueInput('bFlip', 'Flip Direction', True, "resources/Flip/", isFlipped)
             # Reverse Order
             self.reversed = inputs.addBoolValueInput('bReverse', 'ReverseOrder', True, "resources/Reverse/", isReversed)
-            #self.flipDirection = inputs.addDirectionCommandInput('bFlip', 'Flip Direction')#, "./resources/Flip/")
 
             # * maybe not: Start (Profile Plane, Offset, Object)
             # Direction (One Side, Two Sides, Symmetric)
-            # Layers (count, auto params or names?)
             # Operation (new bodies --- cut merge into existing, intersect existing)
             #                       --- Objects to cut/merge/intersect
 
@@ -86,8 +84,8 @@ class ExtrudeLayersCommand(TurtleUICommand):
             inputs = eventArgs.inputs
             cmdInput = eventArgs.input
             id = cmdInput.id
+            isLayerTable = cmdInput.parentCommandInput and cmdInput.parentCommandInput.id == "tbLayers"
             rowIndex = -1
-            print(id)
             
             if id.startswith("MaterialInput"):
                 rowIndex = int(id[-1])
@@ -99,14 +97,16 @@ class ExtrudeLayersCommand(TurtleUICommand):
                 self.updateLayer(rowIndex)
 
             elif id.startswith("MaterialThickness"):
-                rowIndex = int(id[-1])   
+                rowIndex = int(id[-1])
                 if cmdInput.isValidExpression:
                     state = self.stateTable[rowIndex]
-                    state[1] = cmdInput.expression
-                    # When two layers use the same material, an update in thickness should effect both.
-                    changes = self.updateValues(rowIndex, state[0], state[1])
-                    for index in changes:
-                        self.updateLayer(index)
+                    val = cmdInput.expression
+                    if val != state[1]:
+                        state[1] = cmdInput.expression
+                        # When two layers use the same material, an update in thickness should effect both.
+                        changes = self.updateValues(rowIndex, state[0], state[1])
+                        for index in changes:
+                            self.updateLayer(index)
 
             elif id.startswith("Lock"):
                 rowIndex = int(id[-1])
@@ -153,7 +153,7 @@ class ExtrudeLayersCommand(TurtleUICommand):
     def updateValues(self, rowSource, materialIndex, value):
         changes = []
         for i, state in enumerate(self.stateTable):
-            if state[0] == materialIndex and i != rowSource:
+            if i != rowSource and state[0] == materialIndex:
                 state[1] = value
                 changes.append(i)
         return changes
@@ -253,6 +253,8 @@ class ExtrudeLayersCommand(TurtleUICommand):
         self.stateTable.append([ddChoice, thicknessValue, True])
          
     def updateLayer(self, row):
+        if row < 0:
+            return
         cmdInputs:core.CommandInputs = self.tbLayers.commandInputs
         ddIndex = self.stateTable[row][0]
         thicknessValue = self.stateTable[row][1]
