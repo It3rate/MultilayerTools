@@ -17,7 +17,7 @@ class ExtrudeLayersCommand(TurtleUICommand):
         cmdName = 'Extrude Layers'
         cmdDescription = 'Extrudes a profile into multiple layer bodies of parameterized thicknesses. Can also be used to cut, intersect existing layered components.'
         targetPanels = self.getTargetPanels()
-        super().__init__(cmdId, cmdName, cmdDescription, targetPanels, True)
+        super().__init__(cmdId, cmdName, cmdDescription, True, targetPanels)
 
     def getTargetPanels(self):
         return ui.allToolbarPanels.itemById('SolidCreatePanel'), ui.allToolbarPanels.itemById('SketchCreatePanel')
@@ -89,7 +89,6 @@ class ExtrudeLayersCommand(TurtleUICommand):
             if not id.startswith("MaterialThickness"):
                 self.updateLocks(rowIndex)
             
-            self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
         
@@ -147,11 +146,6 @@ class ExtrudeLayersCommand(TurtleUICommand):
             result = ([0,1,0], False, False)
         return result
 
-    def resetUI(self):
-        pass
-
-    def onDestroy(self, eventArgs:core.CommandEventArgs):
-        super().onDestroy(eventArgs)
 
     # Custom Feature
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
@@ -159,7 +153,7 @@ class ExtrudeLayersCommand(TurtleUICommand):
         existingDependencies = self._editedCustomFeature.dependencies
         sketchDep = existingDependencies.itemById('sketch')
         sketchDep.entity.isVisible = True
-        self._createDialog(eventArgs.command.commandInputs, True)  
+        #self._createDialog(eventArgs.command.commandInputs, True)  
 
     def onEditExecute(self, eventArgs:core.CommandEventArgs):
         self._execute(eventArgs, True)
@@ -317,7 +311,6 @@ class ExtrudeLayersCommand(TurtleUICommand):
             # Operation (new bodies --- cut merge into existing, intersect existing)
             #                       --- Objects to cut/merge/intersect
 
-            self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
             

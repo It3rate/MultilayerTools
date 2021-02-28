@@ -11,7 +11,7 @@ def baseMethod(method):
   return method
 
 class TurtleUICommand():
-    def __init__(self, cmdId:str, cmdName:str, cmdDesc:str, *targetPanels, isCustomCommand = False):
+    def __init__(self, cmdId:str, cmdName:str, cmdDesc:str, isCustomCommand:bool, *targetPanels):
         super().__init__()
         self.cmdId = cmdId
         self.targetPanels = targetPanels
@@ -226,12 +226,7 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
 
     def notify(self, eventArgs):
         cmd = eventArgs.command
-
-        # This will destroy the command, for single shot use.
-        # onDestroy = self.turtleUICommand.getDestroyHandler()
-        # cmd.destroy.add(onDestroy)
-        # _handlers.append(onDestroy)
-        
+            
         if self.turtleUICommand.hasOverride(self.turtleUICommand.onInputsChanged):
             onInputChanged = self.turtleUICommand.getInputChangedHandler()
             cmd.inputChanged.add(onInputChanged)
@@ -298,6 +293,12 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
             cmd.execute.add(onExecute)
             _handlers.append(onExecute)
 
+        # This will destroy the command, for single shot use.
+        if self.turtleUICommand.hasOverride(self.turtleUICommand.onDestroy):
+            onDestroy = self.turtleUICommand.getDestroyHandler()
+            cmd.destroy.add(onDestroy)
+            _handlers.append(onDestroy)
+
         self.turtleUICommand.onStartedRunning(eventArgs)
         self.turtleUICommand.onCreated(eventArgs)
 
@@ -307,6 +308,7 @@ class BaseMouseDownHandler(core.MouseEventHandler):
         self.turtleUICommand = turtleUICommand
     def notify(self, eventArgs):
         self.turtleUICommand.onMouseDown(eventArgs)
+        
 class BaseMouseUpHandler(core.MouseEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
@@ -402,21 +404,24 @@ class BaseDestroyHandler(core.CommandEventHandler):
         
 # custom command handlers
 
-class BaseEditCreatedHandler(adsk.core.CommandCreatedEventHandler):
+class BaseEditCreatedHandler(BaseCommandCreatedHandler): #adsk.core.CommandCreatedEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
-        super().__init__()
+        super().__init__(turtleUICommand)
         self.turtleUICommand = turtleUICommand
     def notify(self, args):
+        super().notify(args)
         eventArgs:core.CommandCreatedEventArgs = args
         cmd = eventArgs.command
 
-        editActivate = self.turtleUICommand.getEditActivateHandler()
-        cmd.activate.add(editActivate)
-        _handlers.append(editActivate)
+        if self.turtleUICommand.hasOverride(self.turtleUICommand.onEditActivate):
+            onEditActivate = self.turtleUICommand.getEditActivateHandler()
+            cmd.activate.add(onEditActivate)
+            _handlers.append(onEditActivate)
 
-        editExecute = self.turtleUICommand.getEditExecuteHandler()
-        cmd.execute.add(editExecute)
-        _handlers.append(editExecute)
+        if self.turtleUICommand.hasOverride(self.turtleUICommand.onEditExecute):
+            onEditExecute = self.turtleUICommand.getEditExecuteHandler()
+            cmd.execute.add(onEditExecute)
+            _handlers.append(onEditExecute)
 
         self.turtleUICommand.onEditCreated(eventArgs)
 
