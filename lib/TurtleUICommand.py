@@ -15,6 +15,7 @@ class TurtleUICommand():
         super().__init__()
         self.cmdId = cmdId
         self.targetPanels = targetPanels
+        self.isEditMode = False
         try:
             self.resFolder = "resources/" + self.cmdId 
 
@@ -225,6 +226,7 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
         self.turtleUICommand = turtleUICommand
 
     def notify(self, eventArgs):
+        self.turtleUICommand.isEditMode = False
         cmd = eventArgs.command
             
         if self.turtleUICommand.hasOverride(self.turtleUICommand.onInputsChanged):
@@ -410,6 +412,7 @@ class BaseEditCreatedHandler(BaseCommandCreatedHandler): #adsk.core.CommandCreat
         self.turtleUICommand = turtleUICommand
     def notify(self, args):
         super().notify(args)
+        self.turtleUICommand.isEditMode = True
         eventArgs:core.CommandCreatedEventArgs = args
         cmd = eventArgs.command
 

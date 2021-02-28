@@ -129,23 +129,6 @@ class ExtrudeLayersCommand(TurtleUICommand):
         self._execute(eventArgs)
         adsk.autoTerminate(False)
 
-    def writeDefaultLayerIndexes(self, layerParamIndexes:list):
-        indexes = "(["
-        comma = ""
-        for index in layerParamIndexes:
-            indexes += comma + str(index)
-            comma = ","
-        indexes += "], " + str(self.flipDirection.value) + "," + str(self.reversed.value) + ")"
-        return app.activeDocument.attributes.add("ExtrudeLayers", "defaultLayerIndexes", indexes)
-
-    def readDefaultLayerIndexes(self):
-        attr = app.activeDocument.attributes.itemByName("ExtrudeLayers", "defaultLayerIndexes")
-        if attr:
-            result = eval(attr.value)
-        else:
-            result = ([0,1,0], False, False)
-        return result
-
 
     # Custom Feature
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
@@ -163,7 +146,7 @@ class ExtrudeLayersCommand(TurtleUICommand):
 
 
 
-    def _execute(self, eventArgs:core.CommandEventArgs, isEditMode = False):
+    def _execute(self, eventArgs:core.CommandEventArgs):
         profiles = []
         for index in range(self.profilesSelection.selectionCount):
             profiles.append(self.profilesSelection.selection(index).entity)
@@ -180,13 +163,12 @@ class ExtrudeLayersCommand(TurtleUICommand):
         
         tLayers = self._extrude(profiles, distances)
 
-        indexes = [state[0] for state in self.stateTable]
-        attr = self.writeDefaultLayerIndexes(indexes)
+        self._writeDefaultLayerIndexes()
 
-        if self.isCustomCommand: # and not isEditMode:
+        if self.isCustomCommand:
             comp:f.Component = tLayers.tcomponent.component
             customFeatures:f.CustomFeatures = comp.features.customFeatures
-            if isEditMode:
+            if self.isEditMode:
                 # name = self._editedCustomFeature.name
                 # compare = customFeatures.itemByName(name)
                 oldFeatures = []
@@ -201,12 +183,16 @@ class ExtrudeLayersCommand(TurtleUICommand):
                         feature.deleteMe()
                     except:
                         pass
-                # existingDependencies = self._editedCustomFeature.dependencies
-                # sketchDep = existingDependencies.itemById('sketch')
-                # sketchDep.entity = profiles[0].parentSketch
+                existingDependencies = self._editedCustomFeature.dependencies
+                sketchDep = existingDependencies.itemById('sketch')
+                sketchDep.entity = profiles[0].parentSketch
             else:
                 custFeatInput = comp.features.customFeatures.createInput(self.customFeatureDef, tLayers.extrudes[0], tLayers.extrudes[-1])    
                 custFeatInput.addDependency('sketch', profiles[0].parentSketch)
+
+                # custFeatInput.addCustomParameter("profiles", "[0]")
+                # custFeatInput.addDependency('dialogState', self._encodeDialogState) #todo: needs to be parameters.
+
                 comp.features.customFeatures.add(custFeatInput) 
             # lengthInput = adsk.core.ValueInput.createByString(_lengthInput.expression)
             # custFeatInput.addCustomParameter('length', 'Length', lengthInput, defLengthUnits, True)            
@@ -264,7 +250,7 @@ class ExtrudeLayersCommand(TurtleUICommand):
         self.tbLayers.addCommandInput(valueInput, row, 1)
         self.tbLayers.addCommandInput(lockIcon, row, 2)
 
-    def _createDialog(self, inputs, isEditMode = False):
+    def _createDialog(self, inputs):
         try:
             self.thicknessParamNames = ['mat0', 'mat1', 'mat2', 'mat3', 'mat4', 'mat5']
             self.params.addParams(
@@ -292,7 +278,7 @@ class ExtrudeLayersCommand(TurtleUICommand):
              # Note: more items than maxvisiblerows results in text not appearing correctly.
             self.tbLayers.maximumVisibleRows = 6
 
-            intitalLayers, isFlipped, isReversed = self.readDefaultLayerIndexes()
+            intitalLayers, isFlipped, isReversed = self._readDefaultLayerIndexes()
             for layerIndex in intitalLayers:
                 self._addLayer(layerIndex)    
 
@@ -314,3 +300,28 @@ class ExtrudeLayersCommand(TurtleUICommand):
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
             
+
+    def _encodeDialogState(self):
+        layerParamIndexes = [state[0] for state in self.stateTable] 
+        result = "(["
+        comma = ""
+        for index in layerParamIndexes:
+            result += comma + str(index)
+            comma = ","
+        result += "], " + str(self.flipDirection.value) + "," + str(self.reversed.value) + ")"
+        return result
+
+    def _decodeDialogState(self, encoding):
+        return eval(encoding)
+
+    def _writeDefaultLayerIndexes(self):
+        encoding = self._encodeDialogState()
+        return app.activeDocument.attributes.add("ExtrudeLayers", "defaultLayerIndexes", encoding)
+
+    def _readDefaultLayerIndexes(self):
+        attr = app.activeDocument.attributes.itemByName("ExtrudeLayers", "defaultLayerIndexes")
+        if attr:
+            result = self._decodeDialogState(attr.value)
+        else:
+            result = ([0,1,0], False, False)
+        return result
