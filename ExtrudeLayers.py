@@ -17,6 +17,8 @@ class ExtrudeLayersCommand(TurtleUICommand):
         cmdName = 'Extrude Layers'
         cmdDescription = 'Extrudes a profile into multiple layer bodies of parameterized thicknesses. Can also be used to cut, intersect existing layered components.'
         targetPanels = self.getTargetPanels()
+        self.sketch = None
+        self.hideSketchAfterCommand = False
         super().__init__(cmdId, cmdName, cmdDescription, True, targetPanels)
 
     def getTargetPanels(self):
@@ -28,6 +30,9 @@ class ExtrudeLayersCommand(TurtleUICommand):
     def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         self._createDialog(eventArgs.command.commandInputs)  
       
+    # def onSelect(self, eventArgs:core.SelectionEventArgs):
+    #     pass
+
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
         try:
             inputs = eventArgs.inputs
@@ -106,50 +111,115 @@ class ExtrudeLayersCommand(TurtleUICommand):
                 changes.append(i)
         return changes
 
+    # def onMouseDown(self, eventArgs:core.MouseEventArgs):
+    #     print("down")
+    # def onMouseUp(self, eventArgs:core.MouseEventArgs):
+    #     print("up")
+    def onComputeCustomFeature(self, eventArgs:f.CustomFeatureEventArgs):
+        print("compute")
+
     def onKeyUp(self, eventArgs:core.KeyboardEventArgs):
         if eventArgs.keyCode == core.KeyCodes.EnterKeyCode or eventArgs.keyCode == core.KeyCodes.ReturnKeyCode:
             self.updateLocks()
 
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
-            super().onValidateInputs(eventArgs)
+        pass
         
     def onPreview(self, eventArgs:core.CommandEventArgs):
-        profiles = []
-        for index in range(self.profilesSelection.selectionCount):
-            profiles.append(self.profilesSelection.selection(index).entity)
-
-        # Probably need to switch to changing paramters for preview and changing them back on cancel.
-        # Other elements are affected by param changes and probably should see that in preview.
-        # For now just use numbers for preview and params for final.
-        distances = [state[1] for state in self.stateTable]
-        layers = self._extrude(profiles, distances)
-        layers.sketch.isVisible = True
+        self._execute(eventArgs)
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self._execute(eventArgs)
-        adsk.autoTerminate(False)
+        self._writeDefaultLayerIndexes()
+        tLayers.sketch.isVisible = self.hideSketchAfterCommand
 
-
+    
+    def onActivate(self, eventArgs:core.CommandCreatedEventArgs):
+        pass
+    
     # Custom Feature
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
-        super().onEditCreated(eventArgs)
+        self._createDialog(eventArgs.command.commandInputs)  
+    
+    def onEditActivate(self, eventArgs:core.CommandEventArgs):
         existingDependencies = self._editedCustomFeature.dependencies
         sketchDep = existingDependencies.itemById('sketch')
-        sketchDep.entity.isVisible = True
-        #self._createDialog(eventArgs.command.commandInputs, True)  
+        if sketchDep:
+            self.sketch = sketchDep.entity
+            self.sketch.isVisible = True
 
+        if self.profileIndexes and len(self.profileIndexes) > 0:
+            #ui.activeSelections.clear()
+            for index in self.profileIndexes:
+                profile = self.sketch.profiles[index]
+                try:
+                    # this section should here, it adds correctly, but throws an error
+                    self.profilesSelection.addSelection(profile)
+                except:
+                    print("add selection error")
+        self.profileIndexes = None
+        
     def onEditExecute(self, eventArgs:core.CommandEventArgs):
-        self._execute(eventArgs, True)
-        super().onEditExecute(eventArgs)
-        adsk.autoTerminate(False)
+        self._execute(eventArgs)
+        self._writeDefaultLayerIndexes()
     
 
+    def _createDialog(self, inputs):
+        try:
+            self.thicknessParamNames = ['mat0', 'mat1', 'mat2', 'mat3', 'mat4', 'mat5']
+            self.params.addParams(
+                self.thicknessParamNames[0], 2,
+                self.thicknessParamNames[1], 3.5,
+                self.thicknessParamNames[2], 3,
+                self.thicknessParamNames[3], 4,
+                self.thicknessParamNames[4], 5,
+                self.thicknessParamNames[5], 6)
+            
+            self.paramTable = []
+            for i in range(len(self.thicknessParamNames)):
+                paramVal = self.params.getValue(self.thicknessParamNames[i])
+                self.paramTable.append([self.thicknessParamNames[i], paramVal])
+            self.stateTable = []
+            self.selectedProfiles = []
 
+            # Select profiles
+            self.profilesSelection = inputs.addSelectionInput('selProfile', 'Select Profile', 'Select profile to extrude.')
+            self.profilesSelection.setSelectionLimits(1,0)
+            self.profilesSelection.addSelectionFilter('Profiles')
+
+            
+            # Create table input
+            self.tbLayers = inputs.addTableCommandInput('tbLayers', 'Layers', 4, '6:4:1')
+             # Note: more items than maxvisiblerows results in text not appearing correctly.
+            self.tbLayers.maximumVisibleRows = 6
+
+            intitalLayers, isFlipped, isReversed, self.profileIndexes = self._readDefaultLayerIndexes()
+            for layerIndex in intitalLayers:
+                self._addLayer(layerIndex)
+                
+            btAddItem = inputs.addBoolValueInput('tableAdd', 'Add', False, "resources/Add/", True)
+            self.tbLayers.addToolbarCommandInput(btAddItem)
+            btDeleteItem = inputs.addBoolValueInput('tableDelete', 'Delete', False, "resources/Remove/", True)
+            self.tbLayers.addToolbarCommandInput(btDeleteItem)
+            
+            # Flip direction
+            self.flipDirection = inputs.addBoolValueInput('bFlip', 'Flip Direction', True, "resources/Flip/", isFlipped)
+            # Reverse Order
+            self.reversed = inputs.addBoolValueInput('bReverse', 'ReverseOrder', True, "resources/Reverse/", isReversed)
+
+            # * maybe not: Start (Profile Plane, Offset, Object)
+            # Direction (One Side, Two Sides, Symmetric)
+            # Operation (new bodies --- cut merge into existing, intersect existing)
+            #                       --- Objects to cut/merge/intersect
+
+        except:
+            print('Failed:\n{}'.format(traceback.format_exc()))
+            
 
     def _execute(self, eventArgs:core.CommandEventArgs):
-        profiles = []
+        self.selectedProfiles = []
         for index in range(self.profilesSelection.selectionCount):
-            profiles.append(self.profilesSelection.selection(index).entity)
+            self.selectedProfiles.append(self.profilesSelection.selection(index).entity)
             
         count = len(self.stateTable)
         for i, state in enumerate(self.stateTable):
@@ -161,13 +231,13 @@ class ExtrudeLayersCommand(TurtleUICommand):
         for state in self.stateTable:
             distances.append(self.thicknessParamNames[state[0]]) # use param names for final extrude thickness
         
-        tLayers = self._extrude(profiles, distances)
-
-        self._writeDefaultLayerIndexes()
+        tLayers = self._extrude(self.selectedProfiles, distances)
 
         if self.isCustomCommand:
             comp:f.Component = tLayers.tcomponent.component
             customFeatures:f.CustomFeatures = comp.features.customFeatures
+
+
             if self.isEditMode:
                 # name = self._editedCustomFeature.name
                 # compare = customFeatures.itemByName(name)
@@ -185,22 +255,16 @@ class ExtrudeLayersCommand(TurtleUICommand):
                         pass
                 existingDependencies = self._editedCustomFeature.dependencies
                 sketchDep = existingDependencies.itemById('sketch')
-                sketchDep.entity = profiles[0].parentSketch
+                sketchDep.entity = self.selectedProfiles[0].parentSketch
                 customFeature = self._editedCustomFeature
             else:
                 custFeatInput = comp.features.customFeatures.createInput(self.customFeatureDef, tLayers.extrudes[0], tLayers.extrudes[-1])    
-                custFeatInput.addDependency('sketch', profiles[0].parentSketch)
-                #todo: needs to be parameters. Maybe put as attribute on Custom Feature?
-                # custFeatInput.addCustomParameter("profiles", "[0]")
-                # custFeatInput.addDependency('dialogState', self._encodeDialogState)
-
+                custFeatInput.addDependency('sketch', self.selectedProfiles[0].parentSketch)
                 customFeature = comp.features.customFeatures.add(custFeatInput) 
-                # lengthInput = adsk.core.ValueInput.createByString(_lengthInput.expression)
-                # custFeatInput.addCustomParameter('length', 'Length', lengthInput, defLengthUnits, True)            
-                #custFeatInput.addDependency('sketch', profiles[0].parentSketch)
 
             encoding = self._encodeDialogState()
             customFeature.attributes.add("DialogState", "dialogEncoding", encoding)
+
         return tLayers
 
     def _extrude(self, profiles, distances):
@@ -212,7 +276,10 @@ class ExtrudeLayersCommand(TurtleUICommand):
         if self.reversed.value:
             distances.reverse()
             appearanceList.reverse()
-        return comp.createLayers([profiles], distances, count, self.flipDirection.value, appearanceList)
+        result = comp.createLayers([profiles], distances, count, self.flipDirection.value, appearanceList)
+        self.hideSketchAfterCommand = sketch.isVisible
+        sketch.isVisible = True
+        return result
 
     def _addLayer(self, ddChoice):
         cmdInputs:core.CommandInputs = self.tbLayers.commandInputs
@@ -253,57 +320,6 @@ class ExtrudeLayersCommand(TurtleUICommand):
         self.tbLayers.addCommandInput(valueInput, row, 1)
         self.tbLayers.addCommandInput(lockIcon, row, 2)
 
-    def _createDialog(self, inputs):
-        try:
-            self.thicknessParamNames = ['mat0', 'mat1', 'mat2', 'mat3', 'mat4', 'mat5']
-            self.params.addParams(
-                self.thicknessParamNames[0], 2,
-                self.thicknessParamNames[1], 3.5,
-                self.thicknessParamNames[2], 3,
-                self.thicknessParamNames[3], 4,
-                self.thicknessParamNames[4], 5,
-                self.thicknessParamNames[5], 6)
-            
-            self.paramTable = []
-            for i in range(len(self.thicknessParamNames)):
-                paramVal = self.params.getValue(self.thicknessParamNames[i])
-                self.paramTable.append([self.thicknessParamNames[i], paramVal])
-            self.stateTable = []
-
-            # Select profiles
-            self.profilesSelection = inputs.addSelectionInput('selProfile', 'Select Profile', 'Select profile to extrude.')
-            self.profilesSelection.setSelectionLimits(1,0)
-            self.profilesSelection.addSelectionFilter('Profiles')
-
-            
-            # Create table input
-            self.tbLayers = inputs.addTableCommandInput('tbLayers', 'Layers', 4, '6:4:1')
-             # Note: more items than maxvisiblerows results in text not appearing correctly.
-            self.tbLayers.maximumVisibleRows = 6
-
-            intitalLayers, isFlipped, isReversed = self._readDefaultLayerIndexes()
-            for layerIndex in intitalLayers:
-                self._addLayer(layerIndex)    
-
-            btAddItem = inputs.addBoolValueInput('tableAdd', 'Add', False, "resources/Add/", True)
-            self.tbLayers.addToolbarCommandInput(btAddItem)
-            btDeleteItem = inputs.addBoolValueInput('tableDelete', 'Delete', False, "resources/Remove/", True)
-            self.tbLayers.addToolbarCommandInput(btDeleteItem)
-            
-            # Flip direction
-            self.flipDirection = inputs.addBoolValueInput('bFlip', 'Flip Direction', True, "resources/Flip/", isFlipped)
-            # Reverse Order
-            self.reversed = inputs.addBoolValueInput('bReverse', 'ReverseOrder', True, "resources/Reverse/", isReversed)
-
-            # * maybe not: Start (Profile Plane, Offset, Object)
-            # Direction (One Side, Two Sides, Symmetric)
-            # Operation (new bodies --- cut merge into existing, intersect existing)
-            #                       --- Objects to cut/merge/intersect
-
-        except:
-            print('Failed:\n{}'.format(traceback.format_exc()))
-            
-
     def _encodeDialogState(self):
         layerParamIndexes = [state[0] for state in self.stateTable] 
         result = "(["
@@ -311,7 +327,21 @@ class ExtrudeLayersCommand(TurtleUICommand):
         for index in layerParamIndexes:
             result += comma + str(index)
             comma = ","
-        result += "], " + str(self.flipDirection.value) + "," + str(self.reversed.value) + ")"
+        result += "], " + str(self.flipDirection.value) + "," + str(self.reversed.value) + ","
+
+        result += "["
+        comma = ""
+        for profile in self.selectedProfiles:
+            sketch = profile.parentSketch
+            for index in range(sketch.profiles.count):
+                if sketch.profiles[index] == profile: # no skecth
+                    result += comma + str(index)
+                    comma = ","
+                    break
+            sketch.isVisible = True
+        result += "]"
+
+        result += ")"
         return result
 
     def _decodeDialogState(self, encoding):
@@ -330,5 +360,5 @@ class ExtrudeLayersCommand(TurtleUICommand):
         if attr:
             result = self._decodeDialogState(attr.value)
         else:
-            result = ([0,1,0], False, False)
+            result = ([0,1,0], False, False, [])
         return result

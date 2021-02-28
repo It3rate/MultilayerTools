@@ -81,7 +81,6 @@ class CopySketchCommand(TurtleUICommand):
         
     def onExecute(self, eventArgs:core.CommandEventArgs):
         enc = SketchEncoder(self.sketch, self.guideline)
-        adsk.autoTerminate(False)
     
     def resetUI(self):
         if self.guideline or self.isInSketch:

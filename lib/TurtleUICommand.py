@@ -16,7 +16,6 @@ class TurtleUICommand():
         super().__init__()
         self.cmdId = cmdId
         self.targetPanels = targetPanels
-        self.isEditMode = False
         try:
             self.resFolder = "resources/" + self.cmdId 
 
@@ -41,11 +40,11 @@ class TurtleUICommand():
                 _handlers.append(editCreated)
              
                 self.customFeatureDef = f.CustomFeatureDefinition.create(self.cmdId, cmdName,  self.resFolder)
-                self.customFeatureDef .editCommandId = self.cmdId + "_edit"
+                self.customFeatureDef.editCommandId = self.cmdId + "_edit"
 
                 # Connect to the compute event for the custom feature.
                 computeCustomFeature = self.getComputeCustomFeatureHandler()
-                self.customFeatureDef .customFeatureCompute.add(computeCustomFeature)
+                self.customFeatureDef.customFeatureCompute.add(computeCustomFeature)
                 _handlers.append(computeCustomFeature)
 
             adsk.autoTerminate(False)
@@ -81,6 +80,14 @@ class TurtleUICommand():
 
     @baseMethod
     def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
+        pass
+
+    @baseMethod
+    def onActivate(self, eventArgs:core.CommandCreatedEventArgs):
+        pass
+
+    @baseMethod
+    def onDeactivate(self, eventArgs:core.CommandCreatedEventArgs):
         pass
         
     @baseMethod
@@ -137,9 +144,33 @@ class TurtleUICommand():
     def onDestroy(self, eventArgs:core.CommandEventArgs):
         self.destroyAddinUI()
 
+    # custom features
+    @baseMethod
+    def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
+        pass
+    @baseMethod
+    def onEditActivate(self, eventArgs:core.CommandEventArgs):
+        pass
+    @baseMethod
+    def onEditDeactivate(self, eventArgs:core.CommandEventArgs):
+        pass
+    @baseMethod
+    def onEditExecute(self, eventArgs:core.CommandEventArgs):
+        pass
+    @baseMethod
+    def onComputeCustomFeature(self, eventArgs:f.CustomFeatureEventArgs):
+        pass
+
+
     # get handlers, only need to override to inject custom handlers
     def getCreatedHandler(self):
         return BaseCommandCreatedHandler(self)
+
+    def getActivateHandler(self):
+        return BaseActivateHandler(self)
+
+    def getDeactivateHandler(self):
+        return BaseDeactivateHandler(self)
 
     def getSelectHandler(self):
         return BaseSelectHandler(self)
@@ -183,24 +214,13 @@ class TurtleUICommand():
     def getDestroyHandler(self):
         return BaseDestroyHandler(self)
 
-    # custom features
-    # todo: all custom command stuff should probably be in a subclass
-    def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
-        pass
-        
-    def onEditActivate(self, eventArgs:core.CommandEventArgs):
-        pass
-
-    def onEditExecute(self, eventArgs:core.CommandEventArgs):
-        pass
-
-    def onComputeCustomFeature(self, eventArgs:f.CustomFeatureEventArgs):
-        pass
 
     def getEditCreatedHandler(self):
         return BaseEditCreatedHandler(self)
     def getEditActivateHandler(self):
         return BaseEditActivateHandler(self)
+    def getEditDeactivateHandler(self):
+        return BaseEditDeactivateHandler(self)
     def getEditExecuteHandler(self):
         return BaseEditExecuteHandler(self)
     def getComputeCustomFeatureHandler(self):
@@ -211,84 +231,134 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
+        self.turtleUICommand._editedCustomFeature = None
 
     def notify(self, eventArgs):
         cmd = eventArgs.command
-            
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onInputsChanged):
-            onInputChanged = self.turtleUICommand.getInputChangedHandler()
-            cmd.inputChanged.add(onInputChanged)
-            _handlers.append(onInputChanged)    
-    
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onSelect):
-            onSelect = self.turtleUICommand.getSelectHandler()
-            cmd.select.add(onSelect)       
-            _handlers.append(onSelect)
 
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onPreSelect):
-            onPreSelect = self.turtleUICommand.getPreSelectHandler()
-            cmd.preSelect.add(onPreSelect)       
-            _handlers.append(onPreSelect)
+        if type(self) == BaseCommandCreatedHandler:
+            self.turtleUICommand.isEditMode = False
 
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onPreSelectMouseMove):
-            onPreSelectMouseMove = self.turtleUICommand.getPreSelectMouseMoveHandler()
-            cmd.preSelectMouseMove.add(onPreSelectMouseMove)       
-            _handlers.append(onPreSelectMouseMove)
+        try:
+            if self.turtleUICommand.isEditMode:
+                if self.turtleUICommand.hasOverride(self.turtleUICommand.onEditActivate):
+                    onEditActivate = self.turtleUICommand.getEditActivateHandler()
+                    cmd.activate.add(onEditActivate)
+                    _handlers.append(onEditActivate)
 
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onPreSelectEnd):
-            onPreSelectEnd = self.turtleUICommand.getPreSelectEndHandler()
-            cmd.preSelectEnd.add(onPreSelectEnd)       
-            _handlers.append(onPreSelectEnd)
+                if self.turtleUICommand.hasOverride(self.turtleUICommand.onEditExecute):
+                    onEditExecute = self.turtleUICommand.getEditExecuteHandler()
+                    cmd.execute.add(onEditExecute)
+                    _handlers.append(onEditExecute)
 
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onUnselect):
-            onUnselect = self.turtleUICommand.getUnselectHandler()
-            cmd.unselect.add(onUnselect)       
-            _handlers.append(onUnselect)
-            
+                if self.turtleUICommand.hasOverride(self.turtleUICommand.onEditDeactivate):
+                    onEditDeactivate = self.turtleUICommand.getEditDeactivateHandler()
+                    cmd.deactivate.add(onEditDeactivate)
+                    _handlers.append(onEditDeactivate)
+            else:
+                if self.turtleUICommand.hasOverride(self.turtleUICommand.onActivate):
+                    onActivate = self.turtleUICommand.getActivateHandler()
+                    cmd.activate.add(onActivate)
+                    _handlers.append(onActivate)   
+
+                if self.turtleUICommand.hasOverride(self.turtleUICommand.onExecute):
+                    onExecute = self.turtleUICommand.getExecuteHandler()
+                    cmd.execute.add(onExecute)
+                    _handlers.append(onExecute)
+
+                if self.turtleUICommand.hasOverride(self.turtleUICommand.onDeactivate):
+                    onDeactivate = self.turtleUICommand.getDeactivateHandler()
+                    cmd.deactivate.add(onDeactivate)
+                    _handlers.append(onDeactivate) 
+
+
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onInputsChanged):
+                onInputChanged = self.turtleUICommand.getInputChangedHandler()
+                cmd.inputChanged.add(onInputChanged)
+                _handlers.append(onInputChanged)    
         
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onMouseDown):
-            onMouseDown = self.turtleUICommand.getMouseDownHandler()
-            cmd.mouseDown.add(onMouseDown)
-            _handlers.append(onMouseDown)
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onSelect):
+                onSelect = self.turtleUICommand.getSelectHandler()
+                cmd.select.add(onSelect)       
+                _handlers.append(onSelect)
 
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onMouseUp):
-            onMouseUp = self.turtleUICommand.getMouseUpHandler()
-            cmd.mouseUp.add(onMouseUp)
-            _handlers.append(onMouseUp)
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onPreSelect):
+                onPreSelect = self.turtleUICommand.getPreSelectHandler()
+                cmd.preSelect.add(onPreSelect)       
+                _handlers.append(onPreSelect)
 
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onKeyDown):
-            onKeyDown = self.turtleUICommand.getKeyDownHandler()
-            cmd.keyDown.add(onKeyDown)
-            _handlers.append(onKeyDown)
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onPreSelectMouseMove):
+                onPreSelectMouseMove = self.turtleUICommand.getPreSelectMouseMoveHandler()
+                cmd.preSelectMouseMove.add(onPreSelectMouseMove)       
+                _handlers.append(onPreSelectMouseMove)
 
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onKeyUp):
-            onKeyUp = self.turtleUICommand.getKeyUpHandler()
-            cmd.keyUp.add(onKeyUp)
-            _handlers.append(onKeyUp)
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onPreSelectEnd):
+                onPreSelectEnd = self.turtleUICommand.getPreSelectEndHandler()
+                cmd.preSelectEnd.add(onPreSelectEnd)       
+                _handlers.append(onPreSelectEnd)
 
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onValidateInputs):
-            onValidateInputs = self.turtleUICommand.getValidateInputsHandler()
-            cmd.validateInputs.add(onValidateInputs)
-            _handlers.append(onValidateInputs)
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onUnselect):
+                onUnselect = self.turtleUICommand.getUnselectHandler()
+                cmd.unselect.add(onUnselect)       
+                _handlers.append(onUnselect)
+                
+            
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onMouseDown):
+                onMouseDown = self.turtleUICommand.getMouseDownHandler()
+                cmd.mouseDown.add(onMouseDown)
+                _handlers.append(onMouseDown)
 
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onPreview):
-            onPreview = self.turtleUICommand.getPreviewHandler()
-            cmd.executePreview.add(onPreview)
-            _handlers.append(onPreview)
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onMouseUp):
+                onMouseUp = self.turtleUICommand.getMouseUpHandler()
+                cmd.mouseUp.add(onMouseUp)
+                _handlers.append(onMouseUp)
 
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onExecute):
-            onExecute = self.turtleUICommand.getExecuteHandler()
-            cmd.execute.add(onExecute)
-            _handlers.append(onExecute)
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onKeyDown):
+                onKeyDown = self.turtleUICommand.getKeyDownHandler()
+                cmd.keyDown.add(onKeyDown)
+                _handlers.append(onKeyDown)
 
-        # This will destroy the command, for single shot use.
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onDestroy):
-            onDestroy = self.turtleUICommand.getDestroyHandler()
-            cmd.destroy.add(onDestroy)
-            _handlers.append(onDestroy)
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onKeyUp):
+                onKeyUp = self.turtleUICommand.getKeyUpHandler()
+                cmd.keyUp.add(onKeyUp)
+                _handlers.append(onKeyUp)
 
-        self.turtleUICommand.onStartedRunning(eventArgs)
-        self.turtleUICommand.onCreated(eventArgs)
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onValidateInputs):
+                onValidateInputs = self.turtleUICommand.getValidateInputsHandler()
+                cmd.validateInputs.add(onValidateInputs)
+                _handlers.append(onValidateInputs)
+
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onPreview):
+                onPreview = self.turtleUICommand.getPreviewHandler()
+                cmd.executePreview.add(onPreview)
+                _handlers.append(onPreview)
+
+            # This will destroy the command, for single shot use.
+            if self.turtleUICommand.hasOverride(self.turtleUICommand.onDestroy):
+                onDestroy = self.turtleUICommand.getDestroyHandler()
+                cmd.destroy.add(onDestroy)
+                _handlers.append(onDestroy)
+
+            if not self.turtleUICommand.isEditMode:
+                self.turtleUICommand.onStartedRunning(eventArgs)
+                self.turtleUICommand.onCreated(eventArgs)
+        except:
+            eventArgs.executeFailed = True
+            print('Execute: {}\n'.format(traceback.format_exc()))
+
+class BaseActivateHandler(adsk.core.CommandEventHandler):
+    def __init__(self, turtleCommand:TurtleUICommand):
+        super().__init__()
+        self.turtleCommand = turtleCommand
+    def notify(self, eventArgs):
+        self.turtleCommand.onActivate(eventArgs)
+
+class BaseDeactivateHandler(adsk.core.CommandEventHandler):
+    def __init__(self, turtleCommand:TurtleUICommand):
+        super().__init__()
+        self.turtleCommand = turtleCommand
+    def notify(self, eventArgs):
+        self.turtleCommand.onDeactivate(eventArgs)
 
 class BaseMouseDownHandler(core.MouseEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
@@ -330,35 +400,35 @@ class BaseSelectHandler(core.SelectionEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
-    def notify(self, args):
+    def notify(self, eventArgs):
         self.turtleUICommand.onSelect(eventArgs)
 
 class BasePreSelectHandler(core.SelectionEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
-    def notify(self, args):
+    def notify(self, eventArgs):
         self.turtleUICommand.onPreSelect(eventArgs)
 
 class BasePreSelectMouseMoveHandler(core.SelectionEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
-    def notify(self, args):
+    def notify(self, eventArgs):
         self.turtleUICommand.onPreSelectMouseMove(eventArgs)
 
 class BasePreSelectEndHandler(core.SelectionEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
-    def notify(self, args):
+    def notify(self, eventArgs):
         self.turtleUICommand.onPreSelectEnd(eventArgs)
 
 class BaseUnselectHandler(core.SelectionEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
-    def notify(self, args):
+    def notify(self, eventArgs):
         self.turtleUICommand.onUnselect(eventArgs)
 
 class BaseValidateInputsHandler(core.ValidateInputsEventHandler):
@@ -381,6 +451,7 @@ class BaseCommandExecuteHandler(core.CommandEventHandler):
         self.turtleCommand = turtleCommand
     def notify(self, eventArgs):
         self.turtleCommand.onExecute(eventArgs)
+        adsk.autoTerminate(False)
 
 class BaseDestroyHandler(core.CommandEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
@@ -394,6 +465,7 @@ class BaseEditCreatedHandler(BaseCommandCreatedHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__(turtleUICommand)
         self.turtleUICommand = turtleUICommand
+
     def notify(self, args):
         self.turtleUICommand.isEditMode = True
         self.turtleUICommand._editedCustomFeature:f.CustomFeature = ui.activeSelections.item(0).entity
@@ -403,16 +475,6 @@ class BaseEditCreatedHandler(BaseCommandCreatedHandler):
         super().notify(args)
         eventArgs:core.CommandCreatedEventArgs = args
         cmd = eventArgs.command
-
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onEditActivate):
-            onEditActivate = self.turtleUICommand.getEditActivateHandler()
-            cmd.activate.add(onEditActivate)
-            _handlers.append(onEditActivate)
-
-        if self.turtleUICommand.hasOverride(self.turtleUICommand.onEditExecute):
-            onEditExecute = self.turtleUICommand.getEditExecuteHandler()
-            cmd.execute.add(onEditExecute)
-            _handlers.append(onEditExecute)
 
         self.turtleUICommand.onEditCreated(eventArgs)
 
@@ -434,6 +496,13 @@ class BaseEditActivateHandler(adsk.core.CommandEventHandler):
 
         self.turtleUICommand.onEditActivate(eventArgs)
 
+class BaseEditDeactivateHandler(adsk.core.CommandEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, args):
+        self.turtleUICommand.onEditDeactivate(eventArgs)
+
 class BaseEditExecuteHandler(adsk.core.CommandEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
@@ -444,11 +513,15 @@ class BaseEditExecuteHandler(adsk.core.CommandEventHandler):
         
         # automatically roll the timeline back to where it started when edit is complete
         if self.turtleUICommand._isRolledForEdit:
-            self.turtleUICommand._restoreTimelineObject.rollTo(False)
+            try:
+                self.turtleUICommand._restoreTimelineObject.rollTo(False)
+            except:
+                design.timeline.moveToEnd()
             self.turtleUICommand._isRolledForEdit = False
 
         self.turtleUICommand.isEditMode = False
         self.turtleUICommand._editedCustomFeature = None
+        adsk.autoTerminate(False)
 
 class BaseComputeCustomFeature(adsk.fusion.CustomFeatureEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):

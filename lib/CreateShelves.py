@@ -57,6 +57,5 @@ def run(context):
 #         handlers.append(onCommandCreated)
 #         cmdDef.execute()
 #         # Prevent this module from being terminate when the script returns, because we are waiting for event handlers to fire
-#         adsk.autoTerminate(False)
 #     except:
 #         ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))
