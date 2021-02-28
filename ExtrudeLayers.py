@@ -186,18 +186,21 @@ class ExtrudeLayersCommand(TurtleUICommand):
                 existingDependencies = self._editedCustomFeature.dependencies
                 sketchDep = existingDependencies.itemById('sketch')
                 sketchDep.entity = profiles[0].parentSketch
+                customFeature = self._editedCustomFeature
             else:
                 custFeatInput = comp.features.customFeatures.createInput(self.customFeatureDef, tLayers.extrudes[0], tLayers.extrudes[-1])    
                 custFeatInput.addDependency('sketch', profiles[0].parentSketch)
-
+                #todo: needs to be parameters. Maybe put as attribute on Custom Feature?
                 # custFeatInput.addCustomParameter("profiles", "[0]")
-                # custFeatInput.addDependency('dialogState', self._encodeDialogState) #todo: needs to be parameters.
+                # custFeatInput.addDependency('dialogState', self._encodeDialogState)
 
-                comp.features.customFeatures.add(custFeatInput) 
-            # lengthInput = adsk.core.ValueInput.createByString(_lengthInput.expression)
-            # custFeatInput.addCustomParameter('length', 'Length', lengthInput, defLengthUnits, True)            
-            #custFeatInput.addDependency('sketch', profiles[0].parentSketch)
+                customFeature = comp.features.customFeatures.add(custFeatInput) 
+                # lengthInput = adsk.core.ValueInput.createByString(_lengthInput.expression)
+                # custFeatInput.addCustomParameter('length', 'Length', lengthInput, defLengthUnits, True)            
+                #custFeatInput.addDependency('sketch', profiles[0].parentSketch)
 
+            encoding = self._encodeDialogState()
+            customFeature.attributes.add("DialogState", "dialogEncoding", encoding)
         return tLayers
 
     def _extrude(self, profiles, distances):
@@ -319,7 +322,11 @@ class ExtrudeLayersCommand(TurtleUICommand):
         return app.activeDocument.attributes.add("ExtrudeLayers", "defaultLayerIndexes", encoding)
 
     def _readDefaultLayerIndexes(self):
-        attr = app.activeDocument.attributes.itemByName("ExtrudeLayers", "defaultLayerIndexes")
+        if self.isEditMode:
+            attr = self._editedCustomFeature.attributes.itemByName("DialogState","dialogEncoding")
+        else:
+            attr = app.activeDocument.attributes.itemByName("ExtrudeLayers", "defaultLayerIndexes")
+
         if attr:
             result = self._decodeDialogState(attr.value)
         else:

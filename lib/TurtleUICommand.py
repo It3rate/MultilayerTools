@@ -6,6 +6,7 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
 _handlers = []
 
+# used to detect overrides - only hook up events if there is a handler implemented
 def baseMethod(method):
   method.isBaseMethod = True
   return method
@@ -183,29 +184,15 @@ class TurtleUICommand():
         return BaseDestroyHandler(self)
 
     # custom features
+    # todo: all custom command stuff should probably be in a subclass
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
-        self._editedCustomFeature:f.CustomFeature = ui.activeSelections.item(0).entity
-        if self._editedCustomFeature is None:
-            print("No active custom feature.")
+        pass
         
     def onEditActivate(self, eventArgs:core.CommandEventArgs):
-        if not self._editedCustomFeature:
-            return
-        markerPosition = design.timeline.markerPosition
-        self._restoreTimelineObject = design.timeline.item(markerPosition - 1)
-        self._editedCustomFeature.timelineObject.rollTo(True)
-        self._isRolledForEdit = True
-        # Define a transaction marker so the the roll is not aborted with each change.
-        eventArgs.command.beginStep()
-        # Get the point and add it to the selection input.
-        # skPoint = _editedCustomFeature.dependencies.itemById('point').entity
-        # _pointSelectInput.addSelection(skPoint)
+        pass
 
     def onEditExecute(self, eventArgs:core.CommandEventArgs):
-        if self._isRolledForEdit:
-            self._restoreTimelineObject.rollTo(False)
-            self._isRolledForEdit = False
-        self._editedCustomFeature = None
+        pass
 
     def onComputeCustomFeature(self, eventArgs:f.CustomFeatureEventArgs):
         pass
@@ -226,7 +213,6 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
         self.turtleUICommand = turtleUICommand
 
     def notify(self, eventArgs):
-        self.turtleUICommand.isEditMode = False
         cmd = eventArgs.command
             
         if self.turtleUICommand.hasOverride(self.turtleUICommand.onInputsChanged):
@@ -404,15 +390,17 @@ class BaseDestroyHandler(core.CommandEventHandler):
         self.turtleUICommand.onDestroy(eventArgs)
         adsk.terminate()
         
-# custom command handlers
-
-class BaseEditCreatedHandler(BaseCommandCreatedHandler): #adsk.core.CommandCreatedEventHandler):
+class BaseEditCreatedHandler(BaseCommandCreatedHandler): 
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__(turtleUICommand)
         self.turtleUICommand = turtleUICommand
     def notify(self, args):
-        super().notify(args)
         self.turtleUICommand.isEditMode = True
+        self.turtleUICommand._editedCustomFeature:f.CustomFeature = ui.activeSelections.item(0).entity
+        if self.turtleUICommand._editedCustomFeature is None:
+            print("No active custom feature.")
+
+        super().notify(args)
         eventArgs:core.CommandCreatedEventArgs = args
         cmd = eventArgs.command
 
@@ -434,7 +422,16 @@ class BaseEditActivateHandler(adsk.core.CommandEventHandler):
         super().__init__()
         self.turtleUICommand = turtleUICommand
     def notify(self, args):
+        if not self.turtleUICommand._editedCustomFeature:
+            return
         eventArgs:core.CommandEventArgs = args
+        # automatically roll the timeline to just before the edit
+        markerPosition = design.timeline.markerPosition
+        self.turtleUICommand._restoreTimelineObject = design.timeline.item(markerPosition - 1)
+        self.turtleUICommand._editedCustomFeature.timelineObject.rollTo(True)
+        self.turtleUICommand._isRolledForEdit = True
+        eventArgs.command.beginStep()
+
         self.turtleUICommand.onEditActivate(eventArgs)
 
 class BaseEditExecuteHandler(adsk.core.CommandEventHandler):
@@ -444,6 +441,14 @@ class BaseEditExecuteHandler(adsk.core.CommandEventHandler):
     def notify(self, args):
         eventArgs:core.CommandEventArgs.cast = args
         self.turtleUICommand.onEditExecute(eventArgs)
+        
+        # automatically roll the timeline back to where it started when edit is complete
+        if self.turtleUICommand._isRolledForEdit:
+            self.turtleUICommand._restoreTimelineObject.rollTo(False)
+            self.turtleUICommand._isRolledForEdit = False
+
+        self.turtleUICommand.isEditMode = False
+        self.turtleUICommand._editedCustomFeature = None
 
 class BaseComputeCustomFeature(adsk.fusion.CustomFeatureEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
