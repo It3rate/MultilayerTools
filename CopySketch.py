@@ -12,7 +12,7 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 class CopySketchCommand(TurtleUICommand):
     def __init__(self):
         cmdId = 'ddwCopySketchId'
-        cmdName = 'Copy Sketch Command'
+        cmdName = 'Copy Sketch'
         cmdDescription = 'Copies sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow relative pasting.'
         targetPanels = self.getTargetPanels()
         super().__init__(cmdId, cmdName, cmdDescription, targetPanels)
@@ -23,7 +23,7 @@ class CopySketchCommand(TurtleUICommand):
     def onStartedRunning(self, eventArgs:core.CommandCreatedEventArgs):
         super().onStartedRunning(eventArgs)
 
-    def onCreateUI(self, eventArgs:core.CommandCreatedEventArgs):
+    def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         try:
             self.isInSketch = app.activeEditObject.classType == f.Sketch.classType
             self.guideline:f.SketchLine = TurtleUtils.getSelectedTypeOrNone(f.SketchLine)

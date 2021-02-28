@@ -13,7 +13,7 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 class PasteSketchCommand(TurtleUICommand):
     def __init__(self):
         cmdId = 'ddwPasteSketchId'
-        cmdName = 'Paste Sketch Command'
+        cmdName = 'Paste Sketch'
         cmdDescription = 'Pastes sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow transformed pasting if a guideline was selected while copying.'
         targetPanels = self.getTargetPanels()
         super().__init__(cmdId, cmdName, cmdDescription, targetPanels)
@@ -24,7 +24,7 @@ class PasteSketchCommand(TurtleUICommand):
     def onStartedRunning(self, eventArgs:core.CommandCreatedEventArgs):
         super().onStartedRunning(eventArgs)
 
-    def onCreateUI(self, eventArgs:core.CommandCreatedEventArgs):
+    def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         try:
             self.isInSketch = app.activeEditObject.classType == f.Sketch.classType
             self.guideline:f.SketchLine = TurtleUtils.getSelectedTypeOrNone(f.SketchLine)
