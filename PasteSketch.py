@@ -108,7 +108,6 @@ class PasteSketchCommand(TurtleUICommand):
             SketchDecoder.createWithGuideline(data, self.guideline, flipX, flipY)
         else:
             SketchDecoder.createWithSketch(data, self.sketch, flipX, flipY)
-        adsk.autoTerminate(False)
 
     def getSketchData(self):
         result = TurtleUtils.getClipboardText()
@@ -134,6 +133,4 @@ class PasteSketchCommand(TurtleUICommand):
             self.flipHSelection.isEnabled = False
             self.flipVSelection.isEnabled = False
 
-    def onDestroy(self, eventArgs:core.CommandEventArgs):
-        super().onDestroy(eventArgs)
 

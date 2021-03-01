@@ -90,6 +90,3 @@ class CopySketchCommand(TurtleUICommand):
         else:
             self.sketchSelection.isVisible = True
             self.sketchText.isVisible = False
-
-    def onDestroy(self, eventArgs:core.CommandEventArgs):
-        super().onDestroy(eventArgs)
