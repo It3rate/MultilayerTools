@@ -131,7 +131,8 @@ class ExtrudeLayersCommand(TurtleUICommand):
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self._execute(eventArgs)
         self._writeDefaultLayerIndexes()
-        tLayers.sketch.isVisible = self.hideSketchAfterCommand
+        if len(self.selectedProfiles) > 0:
+            self.selectedProfiles[0].parentSketch.isVisible = self.hideSketchAfterCommand
 
     
     def onActivate(self, eventArgs:core.CommandCreatedEventArgs):
@@ -148,16 +149,16 @@ class ExtrudeLayersCommand(TurtleUICommand):
             self.sketch = sketchDep.entity
             self.sketch.isVisible = True
 
-        if self.profileIndexes and len(self.profileIndexes) > 0:
-            #ui.activeSelections.clear()
-            for index in self.profileIndexes:
-                profile = self.sketch.profiles[index]
-                try:
-                    # this section should here, it adds correctly, but throws an error
-                    self.profilesSelection.addSelection(profile)
-                except:
-                    print("add selection error")
-        self.profileIndexes = None
+        for feature in self._editedCustomFeature.features:
+            if type(feature) == f.ExtrudeFeature:
+                profiles = feature.profile
+                for profile in profiles:
+                    try:
+                        # this should be here, it adds correctly, but throws an error
+                        self.profilesSelection.addSelection(profile)
+                    except:
+                        pass
+                        #print("add selection error")
         
     def onEditExecute(self, eventArgs:core.CommandEventArgs):
         self._execute(eventArgs)
@@ -193,7 +194,7 @@ class ExtrudeLayersCommand(TurtleUICommand):
              # Note: more items than maxvisiblerows results in text not appearing correctly.
             self.tbLayers.maximumVisibleRows = 6
 
-            intitalLayers, isFlipped, isReversed, self.profileIndexes = self._readDefaultLayerIndexes()
+            intitalLayers, isFlipped, isReversed = self._readDefaultLayerIndexes()
             for layerIndex in intitalLayers:
                 self._addLayer(layerIndex)
                 
@@ -256,10 +257,14 @@ class ExtrudeLayersCommand(TurtleUICommand):
                 existingDependencies = self._editedCustomFeature.dependencies
                 sketchDep = existingDependencies.itemById('sketch')
                 sketchDep.entity = self.selectedProfiles[0].parentSketch
+                #profilesDep = existingDependencies.itemById('profiles')
+                #profilesDep.entity = TurtleUtils.ensureObjectCollection(self.selectedProfiles)
                 customFeature = self._editedCustomFeature
             else:
                 custFeatInput = comp.features.customFeatures.createInput(self.customFeatureDef, tLayers.extrudes[0], tLayers.extrudes[-1])    
                 custFeatInput.addDependency('sketch', self.selectedProfiles[0].parentSketch)
+                for i, profile in enumerate(self.selectedProfiles):
+                    custFeatInput.addDependency('profile_' + str(i), profile)
                 customFeature = comp.features.customFeatures.add(custFeatInput) 
 
             encoding = self._encodeDialogState()
@@ -329,17 +334,17 @@ class ExtrudeLayersCommand(TurtleUICommand):
             comma = ","
         result += "], " + str(self.flipDirection.value) + "," + str(self.reversed.value) + ","
 
-        result += "["
-        comma = ""
-        for profile in self.selectedProfiles:
-            sketch = profile.parentSketch
-            for index in range(sketch.profiles.count):
-                if sketch.profiles[index] == profile: # no skecth
-                    result += comma + str(index)
-                    comma = ","
-                    break
-            sketch.isVisible = True
-        result += "]"
+        # result += "["
+        # comma = ""
+        # for profile in self.selectedProfiles:
+        #     sketch = profile.parentSketch
+        #     for index in range(sketch.profiles.count):
+        #         if sketch.profiles[index] == profile: # no skecth
+        #             result += comma + str(index)
+        #             comma = ","
+        #             break
+        #     sketch.isVisible = True
+        # result += "]"
 
         result += ")"
         return result
@@ -360,5 +365,5 @@ class ExtrudeLayersCommand(TurtleUICommand):
         if attr:
             result = self._decodeDialogState(attr.value)
         else:
-            result = ([0,1,0], False, False, [])
+            result = ([0,1,0], False, False)
         return result
