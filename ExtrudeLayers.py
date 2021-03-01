@@ -7,10 +7,11 @@ from .lib.TurtleUICommand import TurtleUICommand
 from .lib.TurtleSketch import TurtleSketch
 from .lib.TurtleParams import TurtleParams
 from .lib.TurtleComponent import TurtleComponent
+from .lib.TurtleCustomCommand import TurtleCustomCommand
 
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
-class ExtrudeLayersCommand(TurtleUICommand):
+class ExtrudeLayersCommand(TurtleCustomCommand):
     def __init__(self):
         self.params = TurtleParams.instance()
         cmdId = 'ddwExtrudeLayersId'

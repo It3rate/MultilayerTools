@@ -133,4 +133,3 @@ class PasteSketchCommand(TurtleUICommand):
             self.flipHSelection.isEnabled = False
             self.flipVSelection.isEnabled = False
 
-

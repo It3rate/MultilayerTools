@@ -110,3 +110,14 @@ class TurtleUtils:
             else:
                 result.add(itemList)
         return result
+
+
+
+# used to detect overrides - only hook up events if there is a handler implemented
+def baseMethod(method):
+  method.isBaseMethod = True
+  return method
+
+def hasOverride(method):
+    return not hasattr(method, 'isBaseMethod')
+    
