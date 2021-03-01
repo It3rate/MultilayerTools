@@ -21,9 +21,6 @@ class PasteSketchCommand(TurtleUICommand):
     def getTargetPanels(self):
         return ui.allToolbarPanels.itemById('SolidCreatePanel'), ui.allToolbarPanels.itemById('SketchCreatePanel')
 
-    def onStartedRunning(self, eventArgs:core.CommandCreatedEventArgs):
-        super().onStartedRunning(eventArgs)
-
     def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         try:
             self.isInSketch = app.activeEditObject.classType == f.Sketch.classType

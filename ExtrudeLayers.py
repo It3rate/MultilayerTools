@@ -25,15 +25,9 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
     def getTargetPanels(self):
         return ui.allToolbarPanels.itemById('SolidCreatePanel'), ui.allToolbarPanels.itemById('SketchCreatePanel')
 
-    # def onStartedRunning(self, eventArgs:core.CommandCreatedEventArgs):
-    #     super().onStartedRunning(eventArgs)
-
     def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         self._createDialog(eventArgs.command.commandInputs)  
       
-    # def onSelect(self, eventArgs:core.SelectionEventArgs):
-    #     pass
-
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
         try:
             inputs = eventArgs.inputs

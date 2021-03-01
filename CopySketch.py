@@ -20,11 +20,9 @@ class CopySketchCommand(TurtleUICommand):
     def getTargetPanels(self):
         return ui.allToolbarPanels.itemById('SolidCreatePanel'), ui.allToolbarPanels.itemById('SketchCreatePanel')
 
-    def onStartedRunning(self, eventArgs:core.CommandCreatedEventArgs):
-        super().onStartedRunning(eventArgs)
-
     def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         try:
+            self.namedProfiles = []
             self.isInSketch = app.activeEditObject.classType == f.Sketch.classType
             self.guideline:f.SketchLine = TurtleUtils.getSelectedTypeOrNone(f.SketchLine)
             if self.guideline:
@@ -54,10 +52,48 @@ class CopySketchCommand(TurtleUICommand):
                     self.guideline = lines[0]
                     
 
+            self.profileGroup = inputs.addGroupCommandInput('profileGroup', 'Named Profiles')
+            groupInput = self.profileGroup.children
+            self.profileInput:core.SelectionCommandInput = groupInput.addSelectionInput('selProfile', 'Named Profiles', 'Select named profile.')
+            self.profileInput.setSelectionLimits(1,0)
+            self.profileInput.addSelectionFilter('Profiles')
+
+            # Create table input
+            self.tbProfiles:f.addTableCommandInput = groupInput.addTableCommandInput('tbProfiles', 'Profiles', 3, '4,4,1')
+            self.tbProfiles.maximumVisibleRows = 6
+            self.tbProfiles.tablePresentationStyle = core.TablePresentationStyles.transparentBackgroundTablePresentationStyle
+            self.tbProfiles.isFullWidth = True
+
+            # btAddRemoveGroup = groupInput.addButtonRowCommandInput('brAddRemoveGroup', 'Add or Remove Profiles', False)
+            # btAddRemoveGroup.listItems.add('profileAdd', False, "resources/Add/")
+            # btAddRemoveGroup.listItems.add('profileDelete', False, "resources/Remove/")
+
+            btAddItem = groupInput.addBoolValueInput('profileAdd', '', False, "resources/Add/", True)
+            self.tbProfiles.addToolbarCommandInput(btAddItem)
+            btDeleteItem = groupInput.addBoolValueInput('profileDelete', '', False, "resources/Remove/", True)
+            self.tbProfiles.addToolbarCommandInput(btDeleteItem)
+
             self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
         
+    def _addLayer(self, name):
+        cmdInputs:core.CommandInputs = self.tbProfiles.commandInputs
+        row = len(self.namedProfiles)
+        
+        #profileIcon = cmdInputs.addImageCommandInput('Profile{}'.format(row), '', 'resources/Profile/32x32.png')
+        profileIcon = cmdInputs.addImageCommandInput('Profile{}'.format(row), '', 'resources/Lock/16x24.png')
+        #nameInput = cmdInputs.addTextBoxCommandInput('profileName{}'.format(row), 'Name', name)
+        nameInput = cmdInputs.addStringValueInput('profileName{}'.format(row), 'Name', name)
+        indexesInput = cmdInputs.addTextBoxCommandInput('profileIndexes{}'.format(row), 'Profile Indexes', name, 1, True)
+        # self.tbProfiles.removeInput(row, 0)
+        # self.tbProfiles.removeInput(row, 1)
+        self.tbProfiles.addCommandInput(nameInput, row, 0)
+        self.tbProfiles.addCommandInput(indexesInput, row, 1)
+        self.tbProfiles.addCommandInput(profileIcon, row, 2)
+        self.namedProfiles.append({"test", "value"})
+ 
+         
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
         try:
             inputs = eventArgs.inputs
@@ -71,6 +107,20 @@ class CopySketchCommand(TurtleUICommand):
                         self.sketchSelection.addSelection(self.sketch)
                 else:
                     self.guideline = None
+            elif cmdInput.id == 'profileAdd':
+                if len(self.namedProfiles) < 6:
+                    self._addLayer("test")
+                if len(self.namedProfiles) >= 6:
+                    cmdInput.isEnabled = False
+
+            elif cmdInput.id == 'profileDelete':
+                if self.tbProfiles.selectedRow == -1:
+                    ui.messageBox('Select one row to delete.')
+                else:
+                    selectedIndex = cmdInput.parentCommandInput.selectedRow
+                    self.tbProfiles.deleteRow(selectedIndex)
+                    cmdInput.isEnabled = True
+                    
             self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
