@@ -111,12 +111,12 @@ class ExtrudeLayersCommand(TurtleUICommand):
                 changes.append(i)
         return changes
 
-    # def onMouseDown(self, eventArgs:core.MouseEventArgs):
-    #     print("down")
+    def onMouseDown(self, eventArgs:core.MouseEventArgs):
+        print("down")
     # def onMouseUp(self, eventArgs:core.MouseEventArgs):
     #     print("up")
-    def onComputeCustomFeature(self, eventArgs:f.CustomFeatureEventArgs):
-        print("compute")
+    # def onComputeCustomFeature(self, eventArgs:f.CustomFeatureEventArgs):
+    #     print("compute")
 
     def onKeyUp(self, eventArgs:core.KeyboardEventArgs):
         if eventArgs.keyCode == core.KeyCodes.EnterKeyCode or eventArgs.keyCode == core.KeyCodes.ReturnKeyCode:
@@ -152,13 +152,14 @@ class ExtrudeLayersCommand(TurtleUICommand):
         for feature in self._editedCustomFeature.features:
             if type(feature) == f.ExtrudeFeature:
                 profiles = feature.profile
+                # single profiles are not in a collection
+                profiles = profiles if type(profiles) == core.ObjectCollection else [profiles]
                 for profile in profiles:
                     try:
                         # this should be here, it adds correctly, but throws an error
                         self.profilesSelection.addSelection(profile)
                     except:
                         pass
-                        #print("add selection error")
         
     def onEditExecute(self, eventArgs:core.CommandEventArgs):
         self._execute(eventArgs)
