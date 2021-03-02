@@ -59,14 +59,9 @@ class CopySketchCommand(TurtleUICommand):
             self.profileInput.addSelectionFilter('Profiles')
 
             # Create table input
-            self.tbProfiles:f.addTableCommandInput = groupInput.addTableCommandInput('tbProfiles', 'Profiles', 3, '4,4,1')
+            self.tbProfiles:f.addTableCommandInput = groupInput.addTableCommandInput('tbProfiles', 'Profiles', 3, '1:6:6')
             self.tbProfiles.maximumVisibleRows = 6
-            self.tbProfiles.tablePresentationStyle = core.TablePresentationStyles.transparentBackgroundTablePresentationStyle
-            self.tbProfiles.isFullWidth = True
-
-            # btAddRemoveGroup = groupInput.addButtonRowCommandInput('brAddRemoveGroup', 'Add or Remove Profiles', False)
-            # btAddRemoveGroup.listItems.add('profileAdd', False, "resources/Add/")
-            # btAddRemoveGroup.listItems.add('profileDelete', False, "resources/Remove/")
+            self.tbProfiles.tablePresentationStyle = core.TablePresentationStyles.itemBorderTablePresentationStyle
 
             btAddItem = groupInput.addBoolValueInput('profileAdd', '', False, "resources/Add/", True)
             self.tbProfiles.addToolbarCommandInput(btAddItem)
@@ -77,20 +72,21 @@ class CopySketchCommand(TurtleUICommand):
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
         
-    def _addLayer(self, name):
+    def onMouseDown(self, eventArgs:core.MouseEventArgs):
+        print("down")
+
+    def _addLayer(self, name = ''):
         cmdInputs:core.CommandInputs = self.tbProfiles.commandInputs
         row = len(self.namedProfiles)
+        name = "Profile_" + str(row) if name == '' else name
         
-        #profileIcon = cmdInputs.addImageCommandInput('Profile{}'.format(row), '', 'resources/Profile/32x32.png')
-        profileIcon = cmdInputs.addImageCommandInput('Profile{}'.format(row), '', 'resources/Lock/16x24.png')
-        #nameInput = cmdInputs.addTextBoxCommandInput('profileName{}'.format(row), 'Name', name)
+        profileIcon = cmdInputs.addImageCommandInput('ProfileIcon{}'.format(row), '', 'resources/Profile/16x24.png')
         nameInput = cmdInputs.addStringValueInput('profileName{}'.format(row), 'Name', name)
-        indexesInput = cmdInputs.addTextBoxCommandInput('profileIndexes{}'.format(row), 'Profile Indexes', name, 1, True)
-        # self.tbProfiles.removeInput(row, 0)
-        # self.tbProfiles.removeInput(row, 1)
-        self.tbProfiles.addCommandInput(nameInput, row, 0)
-        self.tbProfiles.addCommandInput(indexesInput, row, 1)
-        self.tbProfiles.addCommandInput(profileIcon, row, 2)
+        indexesInput = cmdInputs.addTextBoxCommandInput('profileIndexes{}'.format(row), 'Profile Indexes', '[  ]', 1, True)
+        
+        self.tbProfiles.addCommandInput(profileIcon, row, 0)
+        self.tbProfiles.addCommandInput(nameInput, row, 1)
+        self.tbProfiles.addCommandInput(indexesInput, row, 2)
         self.namedProfiles.append({"test", "value"})
  
          
@@ -107,9 +103,17 @@ class CopySketchCommand(TurtleUICommand):
                         self.sketchSelection.addSelection(self.sketch)
                 else:
                     self.guideline = None
+                    
+            elif cmdInput.id.startswith('ProfileIcon'):
+                print(cmdInput)
+            elif cmdInput.id.startswith('profileName'):
+                print(cmdInput)
+            elif cmdInput.id.startswith('profileIndexes'):
+                print(cmdInput)
+
             elif cmdInput.id == 'profileAdd':
                 if len(self.namedProfiles) < 6:
-                    self._addLayer("test")
+                    self._addLayer()
                 if len(self.namedProfiles) >= 6:
                     cmdInput.isEnabled = False
 

@@ -19,9 +19,48 @@ class TurtleUICommand():
                 self.commandDefinition = ui.commandDefinitions.addButtonDefinition(self.cmdId + "_create", cmdName, cmdDesc, self.resFolder)
             self.createAddinUI()
 
+            # Events
+            uiCmd = self.commandDefinition
+            
             onCommandCreated = self.getCreatedHandler()
-            self.commandDefinition.commandCreated.add(onCommandCreated)
+            uiCmd.commandCreated.add(onCommandCreated)
             _handlers.append(onCommandCreated)
+
+            if hasOverride(self.onCommandStarting):
+                onCommandStarting = self.getEditExecuteHandler()
+                uiCmd.commandStarting.add(onCommandStarting)
+                _handlers.append(onCommandStarting)
+            
+            if hasOverride(self.onCommandTerminated):
+                onCommandTerminated = self.getEditExecuteHandler()
+                uiCmd.commandTerminated.add(onCommandTerminated)
+                _handlers.append(onCommandTerminated)
+
+            # ui
+            if hasOverride(self.onActiveSelectionChanged):
+                onActiveSelectionChanged = self.getActiveSelectionChangedHandler()
+                ui.activeSelectionChanged.add(onActiveSelectionChanged)
+                _handlers.append(onActiveSelectionChanged)
+
+            # app
+            # todo: Custom Event https://help.autodesk.com/view/fusion360/ENU/?guid=GUID-85edd118-c2a4-11e6-b401-3417ebc87622
+            if hasOverride(self.onFusionStartupCompleted):
+                onFusionStartupCompleted = self.getFusionStartupCompletedHandler()
+                app.startupCompleted.add(onFusionStartupCompleted)
+                _handlers.append(onFusionStartupCompleted)
+
+            if hasOverride(self.onOnlineStatusChanged):
+                onOnlineStatusChanged = self.getOnlineStatusChangedHandler()
+                app.onlineStatusChanged.add(onOnlineStatusChanged)
+                _handlers.append(onOnlineStatusChanged)
+
+            if hasOverride(self.onCameraChanged):
+                onCameraChanged = self.getCameraChangedHandler()
+                app.cameraChanged.add(onCameraChanged)
+                _handlers.append(onCameraChanged)
+            
+            # todo: document events
+
             self.isCustomCommand = False
             adsk.autoTerminate(False)
         except:
@@ -47,10 +86,34 @@ class TurtleUICommand():
             if buttonControl:
                 buttonControl.deleteMe()
 
+    # Fusion life cycle
+    @baseMethod
+    def onFusionStartupCompleted(self, eventArgs:core.ApplicationEventArgs):
+        pass
+    @baseMethod
+    def onOnlineStatusChanged(self, eventArgs:core.ApplicationEventArgs):
+        pass
+    @baseMethod
+    def onCameraChanged(self, eventArgs:core.CameraEventArgs):
+        pass
+
+    # Component life cycle
     @baseMethod
     def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         pass
+    @baseMethod
+    def onCommandStarting(self, eventArgs:core.ApplicationCommandEventArgs):
+        pass
+    @baseMethod
+    def onCommandTerminated(self, eventArgs:core.ApplicationCommandEventArgs):
+        pass
+    
+    # UI Selection
+    @baseMethod
+    def onActiveSelectionChanged(self, eventArgs:core.ActiveSelectionEventArgs):
+        pass
 
+    # Command session lifecycle
     @baseMethod
     def onActivate(self, eventArgs:core.CommandCreatedEventArgs):
         pass
@@ -114,8 +177,27 @@ class TurtleUICommand():
         self.destroyAddinUI()
 
     # get handlers, only need to override to inject custom handlers
+    def getFusionStartupCompletedHandler(self):
+        return BaseFusionStartupCompletedHandler(self)
+
+    def getOnlineStatusChangedHandler(self):
+        return BaseOnlineStatusChangedHandler(self)
+
+    def getCameraChangedHandler(self):
+        return BaseCameraChangedHandler(self)
+
     def getCreatedHandler(self):
         return BaseCommandCreatedHandler(self)
+
+    def getCommandStartingHandler(self):
+        return BaseCommandStartingHandler(self)
+
+    def getCommandTerminatedHandler(self):
+        return BaseCommandTerminatedHandler(self)
+
+    def getActiveSelectionChangedHandler(self):
+        return BaseActiveSelectionChangedHandler(self)
+
 
     def getActivateHandler(self):
         return BaseActivateHandler(self)
@@ -165,7 +247,44 @@ class TurtleUICommand():
     def getDestroyHandler(self):
         return BaseDestroyHandler(self)
 
-class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
+# app
+class BaseFusionStartupCompletedHandler(core.ApplicationEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onFusionStartupCompleted(eventArgs)
+
+class BaseOnlineStatusChangedHandler(core.ApplicationEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onOnlineStatusChanged(eventArgs)
+
+class BaseCameraChangedHandler(core.CameraEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onCameraChanged(eventArgs)
+
+# UI
+class BaseCommandStartingHandler(core.ApplicationCommandEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onCommandStarting(eventArgs)
+
+class BaseCommandTerminatedHandler(core.ApplicationCommandEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onCommandTerminated(eventArgs)
+
+class BaseCommandCreatedHandler(core.CommandCreatedEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
@@ -283,19 +402,20 @@ class BaseCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):
             eventArgs.executeFailed = True
             print('Execute: {}\n'.format(traceback.format_exc()))
 
-class BaseActivateHandler(adsk.core.CommandEventHandler):
-    def __init__(self, turtleCommand:TurtleUICommand):
+# Command
+class BaseActivateHandler(core.CommandEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
-        self.turtleCommand = turtleCommand
+        self.turtleUICommand = turtleUICommand
     def notify(self, eventArgs):
-        self.turtleCommand.onActivate(eventArgs)
+        self.turtleUICommand.onActivate(eventArgs)
 
-class BaseDeactivateHandler(adsk.core.CommandEventHandler):
-    def __init__(self, turtleCommand:TurtleUICommand):
+class BaseDeactivateHandler(core.CommandEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
-        self.turtleCommand = turtleCommand
+        self.turtleUICommand = turtleUICommand
     def notify(self, eventArgs):
-        self.turtleCommand.onDeactivate(eventArgs)
+        self.turtleUICommand.onDeactivate(eventArgs)
 
 class BaseMouseDownHandler(core.MouseEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
@@ -369,25 +489,25 @@ class BaseUnselectHandler(core.SelectionEventHandler):
         self.turtleUICommand.onUnselect(eventArgs)
 
 class BaseValidateInputsHandler(core.ValidateInputsEventHandler):
-    def __init__(self, turtleCommand:TurtleUICommand):
+    def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
-        self.turtleCommand = turtleCommand
+        self.turtleUICommand = turtleUICommand
     def notify(self, eventArgs):
-        self.turtleCommand.onValidateInputs(eventArgs)
+        self.turtleUICommand.onValidateInputs(eventArgs)
 
 class BasePreviewHandler(adsk.core.CommandEventHandler):
-    def __init__(self, turtleCommand:TurtleUICommand):
+    def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
-        self.turtleCommand = turtleCommand
+        self.turtleUICommand = turtleUICommand
     def notify(self, eventArgs):
-        self.turtleCommand.onPreview(eventArgs)
+        self.turtleUICommand.onPreview(eventArgs)
 
 class BaseCommandExecuteHandler(core.CommandEventHandler):
-    def __init__(self, turtleCommand:TurtleUICommand):
+    def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
-        self.turtleCommand = turtleCommand
+        self.turtleUICommand = turtleUICommand
     def notify(self, eventArgs):
-        self.turtleCommand.onExecute(eventArgs)
+        self.turtleUICommand.onExecute(eventArgs)
         adsk.autoTerminate(False)
 
 class BaseDestroyHandler(core.CommandEventHandler):

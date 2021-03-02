@@ -106,8 +106,10 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                 changes.append(i)
         return changes
 
-    def onMouseDown(self, eventArgs:core.MouseEventArgs):
-        print("down")
+    # def onCameraChanged(self, eventArgs:core.CameraEventArgs):
+    #     print("camera")
+    # def onMouseDown(self, eventArgs:core.MouseEventArgs):
+    #     print("down")
     # def onMouseUp(self, eventArgs:core.MouseEventArgs):
     #     print("up")
     # def onComputeCustomFeature(self, eventArgs:f.CustomFeatureEventArgs):
