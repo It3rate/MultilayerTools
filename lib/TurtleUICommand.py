@@ -142,11 +142,33 @@ class TurtleUICommand():
     def onUnselect(self, eventArgs:core.SelectionEventArgs):
         pass
         
+    # mouse events
+    @baseMethod
+    def onMouseClick(self, eventArgs:core.MouseEventArgs):
+        pass
+    @baseMethod
+    def onMouseDoubleClick(self, eventArgs:core.MouseEventArgs):
+        pass
     @baseMethod
     def onMouseDown(self, eventArgs:core.MouseEventArgs):
         pass
     @baseMethod
+    def onMouseDrag(self, eventArgs:core.MouseEventArgs):
+        pass
+    @baseMethod
+    def onMouseDragBegin(self, eventArgs:core.MouseEventArgs):
+        pass
+    @baseMethod
+    def onMouseDragEnd(self, eventArgs:core.MouseEventArgs):
+        pass
+    @baseMethod
+    def onMouseMove(self, eventArgs:core.MouseEventArgs):
+        pass
+    @baseMethod
     def onMouseUp(self, eventArgs:core.MouseEventArgs):
+        pass
+    @baseMethod
+    def onMouseWheel(self, eventArgs:core.MouseEventArgs):
         pass
 
     @baseMethod
@@ -220,11 +242,24 @@ class TurtleUICommand():
     def getUnselectHandler(self):
         return BaseUnselectHandler(self)
 
+    def getMouseClickHandler(self):
+        return BaseMouseClickHandler(self)
+    def getMouseDoubleClickHandler(self):
+        return BaseMouseDoubleClickHandler(self)
     def getMouseDownHandler(self):
         return BaseMouseDownHandler(self)
-
+    def getMouseDragHandler(self):
+        return BaseMouseDragHandler(self)
+    def getMouseDragBeginHandler(self):
+        return BaseMouseDragBeginHandler(self)
+    def getMouseDragEndHandler(self):
+        return BaseMouseDragEndHandler(self)
+    def getMouseMoveHandler(self):
+        return BaseMouseMoveHandler(self)
     def getMouseUpHandler(self):
         return BaseMouseUpHandler(self)
+    def getMouseWheelHandler(self):
+        return BaseMouseWheelHandler(self)
 
     def getKeyDownHandler(self):
         return BaseKeyDownHandler(self)
@@ -360,15 +395,53 @@ class BaseCommandCreatedHandler(core.CommandCreatedEventHandler):
                 _handlers.append(onUnselect)
                 
             
+            if hasOverride(self.turtleUICommand.onMouseClick):
+                onMouseClick = self.turtleUICommand.getMouseClickHandler()
+                cmd.mouseClick.add(onMouseClick)
+                _handlers.append(onMouseClick)
+
+            if hasOverride(self.turtleUICommand.onMouseDoubleClick):
+                onMouseDoubleClick = self.turtleUICommand.getMouseDoubleClickHandler()
+                cmd.mouseDoubleClick.add(onMouseDoubleClick)
+                _handlers.append(onMouseDoubleClick)
+
             if hasOverride(self.turtleUICommand.onMouseDown):
                 onMouseDown = self.turtleUICommand.getMouseDownHandler()
                 cmd.mouseDown.add(onMouseDown)
                 _handlers.append(onMouseDown)
 
+            if hasOverride(self.turtleUICommand.onMouseDrag):
+                onMouseDrag = self.turtleUICommand.getMouseDragHandler()
+                cmd.mouseDrag.add(onMouseDrag)
+                _handlers.append(onMouseDrag)
+
+            if hasOverride(self.turtleUICommand.onMouseDragBegin):
+                onMouseDragBegin = self.turtleUICommand.getMouseDragBeginHandler()
+                cmd.mouseDragBegin.add(onMouseDragBegin)
+                _handlers.append(onMouseDragBegin)
+
+            if hasOverride(self.turtleUICommand.onMouseDragEnd):
+                onMouseDragEnd = self.turtleUICommand.getMouseDragEndHandler()
+                cmd.mouseDragEnd.add(onMouseDragEnd)
+                _handlers.append(onMouseDragEnd)
+
+            if hasOverride(self.turtleUICommand.onMouseMove):
+                onMouseMove = self.turtleUICommand.getMouseMoveHandler()
+                cmd.mouseMove.add(onMouseMove)
+                _handlers.append(onMouseMove)
+
             if hasOverride(self.turtleUICommand.onMouseUp):
                 onMouseUp = self.turtleUICommand.getMouseUpHandler()
                 cmd.mouseUp.add(onMouseUp)
                 _handlers.append(onMouseUp)
+
+            if hasOverride(self.turtleUICommand.onMouseWheel):
+                onMouseWheel = self.turtleUICommand.getMouseWheelHandler()
+                cmd.mouseWheel.add(onMouseWheel)
+                _handlers.append(onMouseWheel)
+
+
+
 
             if hasOverride(self.turtleUICommand.onKeyDown):
                 onKeyDown = self.turtleUICommand.getKeyDownHandler()
@@ -417,19 +490,69 @@ class BaseDeactivateHandler(core.CommandEventHandler):
     def notify(self, eventArgs):
         self.turtleUICommand.onDeactivate(eventArgs)
 
+class BaseMouseClickHandler(core.MouseEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onMouseClick(eventArgs)
+
+class BaseMouseDoubleClickHandler(core.MouseEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onMouseDoubleClick(eventArgs)
+
 class BaseMouseDownHandler(core.MouseEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
     def notify(self, eventArgs):
         self.turtleUICommand.onMouseDown(eventArgs)
-        
+
+class BaseMouseDragHandler(core.MouseEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onMouseDrag(eventArgs)
+
+class BaseMouseDragBeginHandler(core.MouseEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onMouseDragBegin(eventArgs)
+
+class BaseMouseDragEndHandler(core.MouseEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onMouseDragEnd(eventArgs)
+
+class BaseMouseMoveHandler(core.MouseEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onMouseMove(eventArgs)
+
 class BaseMouseUpHandler(core.MouseEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
     def notify(self, eventArgs):
         self.turtleUICommand.onMouseUp(eventArgs)
+
+class BaseMouseWheelHandler(core.MouseEventHandler):
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__()
+        self.turtleUICommand = turtleUICommand
+    def notify(self, eventArgs):
+        self.turtleUICommand.onMouseWheel(eventArgs)
+
 
 class BaseKeyUpHandler(core.KeyboardEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):

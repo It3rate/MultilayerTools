@@ -62,32 +62,50 @@ class CopySketchCommand(TurtleUICommand):
             self.tbProfiles:f.addTableCommandInput = groupInput.addTableCommandInput('tbProfiles', 'Profiles', 3, '1:6:6')
             self.tbProfiles.maximumVisibleRows = 6
             self.tbProfiles.tablePresentationStyle = core.TablePresentationStyles.itemBorderTablePresentationStyle
+            self.tbProfiles.columnSpacing = 1
+            self.tbProfiles.rowSpacing = 1
+            self.tbProfiles.hasGrid = False   
 
             btAddItem = groupInput.addBoolValueInput('profileAdd', '', False, "resources/Add/", True)
             self.tbProfiles.addToolbarCommandInput(btAddItem)
             btDeleteItem = groupInput.addBoolValueInput('profileDelete', '', False, "resources/Remove/", True)
             self.tbProfiles.addToolbarCommandInput(btDeleteItem)
 
+            self._addLayer(inputs, "fullProfile")
+
             self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
-        
-    def onMouseDown(self, eventArgs:core.MouseEventArgs):
-        print("down")
 
-    def _addLayer(self, name = ''):
+    # def onMouseClick(self, eventArgs:core.MouseEventArgs):
+    #     print("click")
+    # def onMouseDown(self, eventArgs:core.MouseEventArgs):
+    #     print("down")
+
+    def _addLayer(self, inputs, name = ''):
         cmdInputs:core.CommandInputs = self.tbProfiles.commandInputs
         row = len(self.namedProfiles)
         name = "Profile_" + str(row) if name == '' else name
         
-        profileIcon = cmdInputs.addImageCommandInput('ProfileIcon{}'.format(row), '', 'resources/Profile/16x24.png')
-        nameInput = cmdInputs.addStringValueInput('profileName{}'.format(row), 'Name', name)
-        indexesInput = cmdInputs.addTextBoxCommandInput('profileIndexes{}'.format(row), 'Profile Indexes', '[  ]', 1, True)
-        
-        self.tbProfiles.addCommandInput(profileIcon, row, 0)
-        self.tbProfiles.addCommandInput(nameInput, row, 1)
-        self.tbProfiles.addCommandInput(indexesInput, row, 2)
-        self.namedProfiles.append({"test", "value"})
+    # text = inputs.addStringValueInput('texta' + str(textBoxCount), 'Text ' + str(textBoxCount), 'Text ' + str(textBoxCount))
+    # text.isReadOnly = True
+    # table.addCommandInput(text, j, 0, False, False)
+
+        profileIcon = inputs.addImageCommandInput('ProfileIcon{}'.format(row), '', 'resources/Profile/16x24.png')
+        self.tbProfiles.addCommandInput(profileIcon, row, 0, False, False)
+
+        nameInput = inputs.addStringValueInput('profileName{}'.format(row), 'Name', name)
+        self.tbProfiles.addCommandInput(nameInput, row, 1, False, False)
+
+        info = ('readOnly', True)
+        indexesInput = inputs.addStringValueInput('profileIndexes{}'.format(row), 'Indexes', info[0])
+        #indexesInput = inputs.addBoolValueInput('profileIndexes{}'.format(row), 'Indexes', False)
+        indexesInput.isReadOnly = info[1]
+        # indexesInput.isFullWidth = True
+        #indexesInput = cmdInputs.addTextBoxCommandInput('profileIndexes{}'.format(row), 'Profile Indexes', '[  ]', 1, True)
+        self.tbProfiles.addCommandInput(indexesInput, row, 2, False, False)
+
+        self.namedProfiles.append(['profileName{}'.format(row), [], []])
  
          
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
@@ -104,16 +122,21 @@ class CopySketchCommand(TurtleUICommand):
                 else:
                     self.guideline = None
                     
+            elif cmdInput.id == 'selProfile':
+                if self.tbProfiles.selectedRow > -1:
+                    pass
+
+
             elif cmdInput.id.startswith('ProfileIcon'):
-                print(cmdInput)
+                print(cmdInput.id)
             elif cmdInput.id.startswith('profileName'):
-                print(cmdInput)
+                print(cmdInput.id)
             elif cmdInput.id.startswith('profileIndexes'):
-                print(cmdInput)
+                print(cmdInput.id)
 
             elif cmdInput.id == 'profileAdd':
                 if len(self.namedProfiles) < 6:
-                    self._addLayer()
+                    self._addLayer(inputs)
                 if len(self.namedProfiles) >= 6:
                     cmdInput.isEnabled = False
 
