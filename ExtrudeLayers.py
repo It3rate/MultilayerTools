@@ -157,6 +157,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                         self.profilesSelection.addSelection(profile)
                     except:
                         pass
+                        #print('Adding extrude error:\n{}'.format(traceback.format_exc()))
         
     def onEditExecute(self, eventArgs:core.CommandEventArgs):
         self._execute(eventArgs)

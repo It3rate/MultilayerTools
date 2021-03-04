@@ -62,22 +62,37 @@ class TurtleCustomCommand(TurtleUICommand):
 class BaseEditCreatedHandler(BaseCommandCreatedHandler): 
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__(turtleUICommand)
-        self.turtleUICommand = turtleUICommand
 
     def notify(self, args):
-        self.turtleUICommand.isEditMode = True
         self.turtleUICommand._editedCustomFeature:f.CustomFeature = ui.activeSelections.item(0).entity
         if self.turtleUICommand._editedCustomFeature is None:
             print("No active custom feature.")
+        self.turtleUICommand.isEditMode = True
 
         super().notify(args)
+
         eventArgs:core.CommandCreatedEventArgs = args
         cmd = eventArgs.command
+        if hasOverride(self.turtleUICommand.onEditActivate):
+            onEditActivate = self.turtleUICommand.getEditActivateHandler()
+            cmd.activate.add(onEditActivate)
+            _handlers.append(onEditActivate)
+
+        if hasOverride(self.turtleUICommand.onEditExecute):
+            onEditExecute = self.turtleUICommand.getEditExecuteHandler()
+            cmd.execute.add(onEditExecute)
+            _handlers.append(onEditExecute)
+
+        if hasOverride(self.turtleUICommand.onEditDeactivate):
+            onEditDeactivate = self.turtleUICommand.getEditDeactivateHandler()
+            cmd.deactivate.add(onEditDeactivate)
+            _handlers.append(onEditDeactivate)
+            
 
         self.turtleUICommand.onEditCreated(eventArgs)
 
 
-class BaseEditActivateHandler(adsk.core.CommandEventHandler):
+class BaseEditActivateHandler(core.CommandEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
@@ -94,14 +109,14 @@ class BaseEditActivateHandler(adsk.core.CommandEventHandler):
 
         self.turtleUICommand.onEditActivate(eventArgs)
 
-class BaseEditDeactivateHandler(adsk.core.CommandEventHandler):
+class BaseEditDeactivateHandler(core.CommandEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
     def notify(self, args):
         self.turtleUICommand.onEditDeactivate(eventArgs)
 
-class BaseEditExecuteHandler(adsk.core.CommandEventHandler):
+class BaseEditExecuteHandler(core.CommandEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
@@ -121,7 +136,7 @@ class BaseEditExecuteHandler(adsk.core.CommandEventHandler):
         self.turtleUICommand._editedCustomFeature = None
         adsk.autoTerminate(False)
 
-class BaseComputeCustomFeature(adsk.fusion.CustomFeatureEventHandler):
+class BaseComputeCustomFeature(f.CustomFeatureEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand

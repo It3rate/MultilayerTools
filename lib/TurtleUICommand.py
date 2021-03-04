@@ -27,12 +27,12 @@ class TurtleUICommand():
             _handlers.append(onCommandCreated)
 
             if hasOverride(self.onCommandStarting):
-                onCommandStarting = self.getEditExecuteHandler()
+                onCommandStarting = self.getCommandStartingHandler()
                 uiCmd.commandStarting.add(onCommandStarting)
                 _handlers.append(onCommandStarting)
             
             if hasOverride(self.onCommandTerminated):
-                onCommandTerminated = self.getEditExecuteHandler()
+                onCommandTerminated = self.getCommandTerminatedHandler()
                 uiCmd.commandTerminated.add(onCommandTerminated)
                 _handlers.append(onCommandTerminated)
 
@@ -323,45 +323,27 @@ class BaseCommandCreatedHandler(core.CommandCreatedEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
+        self.turtleUICommand.isEditMode = False
         self.turtleUICommand._editedCustomFeature = None
 
     def notify(self, eventArgs):
         cmd = eventArgs.command
 
-        if type(self) == BaseCommandCreatedHandler:
-            self.turtleUICommand.isEditMode = False
-
         try:
-            if self.turtleUICommand.isEditMode:
-                if hasOverride(self.turtleUICommand.onEditActivate):
-                    onEditActivate = self.turtleUICommand.getEditActivateHandler()
-                    cmd.activate.add(onEditActivate)
-                    _handlers.append(onEditActivate)
+            if hasOverride(self.turtleUICommand.onActivate):
+                onActivate = self.turtleUICommand.getActivateHandler()
+                cmd.activate.add(onActivate)
+                _handlers.append(onActivate)   
 
-                if hasOverride(self.turtleUICommand.onEditExecute):
-                    onEditExecute = self.turtleUICommand.getEditExecuteHandler()
-                    cmd.execute.add(onEditExecute)
-                    _handlers.append(onEditExecute)
+            if hasOverride(self.turtleUICommand.onExecute):
+                onExecute = self.turtleUICommand.getExecuteHandler()
+                success = cmd.execute.add(onExecute)
+                _handlers.append(onExecute)
 
-                if hasOverride(self.turtleUICommand.onEditDeactivate):
-                    onEditDeactivate = self.turtleUICommand.getEditDeactivateHandler()
-                    cmd.deactivate.add(onEditDeactivate)
-                    _handlers.append(onEditDeactivate)
-            else:
-                if hasOverride(self.turtleUICommand.onActivate):
-                    onActivate = self.turtleUICommand.getActivateHandler()
-                    cmd.activate.add(onActivate)
-                    _handlers.append(onActivate)   
-
-                if hasOverride(self.turtleUICommand.onExecute):
-                    onExecute = self.turtleUICommand.getExecuteHandler()
-                    cmd.execute.add(onExecute)
-                    _handlers.append(onExecute)
-
-                if hasOverride(self.turtleUICommand.onDeactivate):
-                    onDeactivate = self.turtleUICommand.getDeactivateHandler()
-                    cmd.deactivate.add(onDeactivate)
-                    _handlers.append(onDeactivate) 
+            if hasOverride(self.turtleUICommand.onDeactivate):
+                onDeactivate = self.turtleUICommand.getDeactivateHandler()
+                cmd.deactivate.add(onDeactivate)
+                _handlers.append(onDeactivate) 
 
 
             if hasOverride(self.turtleUICommand.onInputsChanged):
@@ -469,7 +451,8 @@ class BaseCommandCreatedHandler(core.CommandCreatedEventHandler):
                 cmd.destroy.add(onDestroy)
                 _handlers.append(onDestroy)
 
-            if not self.turtleUICommand.isEditMode:
+            #if not self.turtleUICommand.isEditMode:
+            if type(self) == BaseCommandCreatedHandler: # subclasses need to know how to start themselves (eg onEditCreated)
                 self.turtleUICommand.onCreated(eventArgs)
         except:
             eventArgs.executeFailed = True
@@ -618,7 +601,7 @@ class BaseValidateInputsHandler(core.ValidateInputsEventHandler):
     def notify(self, eventArgs):
         self.turtleUICommand.onValidateInputs(eventArgs)
 
-class BasePreviewHandler(adsk.core.CommandEventHandler):
+class BasePreviewHandler(core.CommandEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand

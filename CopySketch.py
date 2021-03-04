@@ -55,7 +55,7 @@ class CopySketchCommand(TurtleUICommand):
             self.profileGroup = inputs.addGroupCommandInput('profileGroup', 'Named Profiles')
             groupInput = self.profileGroup.children
             self.profileInput:core.SelectionCommandInput = groupInput.addSelectionInput('selProfile', 'Named Profiles', 'Select named profile.')
-            self.profileInput.setSelectionLimits(1,0)
+            self.profileInput.setSelectionLimits(0,0)
             self.profileInput.addSelectionFilter('Profiles')
 
             # Create table input
@@ -77,37 +77,18 @@ class CopySketchCommand(TurtleUICommand):
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
 
+    def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
+            # print("isValid: " + str(eventArgs.areInputsValid))
+            super().onValidateInputs(eventArgs)
+        
+    def onExecute(self, eventArgs:core.CommandEventArgs):
+        enc = SketchEncoder(self.sketch, self.guideline)
+    
     # def onMouseClick(self, eventArgs:core.MouseEventArgs):
     #     print("click")
     # def onMouseDown(self, eventArgs:core.MouseEventArgs):
     #     print("down")
 
-    def _addLayer(self, inputs, name = ''):
-        cmdInputs:core.CommandInputs = self.tbProfiles.commandInputs
-        row = len(self.namedProfiles)
-        name = "Profile_" + str(row) if name == '' else name
-        
-    # text = inputs.addStringValueInput('texta' + str(textBoxCount), 'Text ' + str(textBoxCount), 'Text ' + str(textBoxCount))
-    # text.isReadOnly = True
-    # table.addCommandInput(text, j, 0, False, False)
-
-        profileIcon = inputs.addImageCommandInput('ProfileIcon{}'.format(row), '', 'resources/Profile/16x24.png')
-        self.tbProfiles.addCommandInput(profileIcon, row, 0, False, False)
-
-        nameInput = inputs.addStringValueInput('profileName{}'.format(row), 'Name', name)
-        self.tbProfiles.addCommandInput(nameInput, row, 1, False, False)
-
-        info = ('readOnly', True)
-        indexesInput = inputs.addStringValueInput('profileIndexes{}'.format(row), 'Indexes', info[0])
-        #indexesInput = inputs.addBoolValueInput('profileIndexes{}'.format(row), 'Indexes', False)
-        indexesInput.isReadOnly = info[1]
-        # indexesInput.isFullWidth = True
-        #indexesInput = cmdInputs.addTextBoxCommandInput('profileIndexes{}'.format(row), 'Profile Indexes', '[  ]', 1, True)
-        self.tbProfiles.addCommandInput(indexesInput, row, 2, False, False)
-
-        self.namedProfiles.append(['profileName{}'.format(row), [], []])
- 
-         
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
         try:
             inputs = eventArgs.inputs
@@ -152,13 +133,31 @@ class CopySketchCommand(TurtleUICommand):
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
         
-    def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
-            # print("isValid: " + str(eventArgs.areInputsValid))
-            super().onValidateInputs(eventArgs)
+    def _addLayer(self, inputs, name = ''):
+        cmdInputs:core.CommandInputs = self.tbProfiles.commandInputs
+        row = len(self.namedProfiles)
+        name = "Profile_" + str(row) if name == '' else name
         
-    def onExecute(self, eventArgs:core.CommandEventArgs):
-        enc = SketchEncoder(self.sketch, self.guideline)
-    
+    # text = inputs.addStringValueInput('texta' + str(textBoxCount), 'Text ' + str(textBoxCount), 'Text ' + str(textBoxCount))
+    # text.isReadOnly = True
+    # table.addCommandInput(text, j, 0, False, False)
+
+        profileIcon = inputs.addImageCommandInput('ProfileIcon{}'.format(row), '', 'resources/Profile/16x24.png')
+        self.tbProfiles.addCommandInput(profileIcon, row, 0, False, False)
+
+        nameInput = inputs.addStringValueInput('profileName{}'.format(row), 'Name', name)
+        self.tbProfiles.addCommandInput(nameInput, row, 1, False, False)
+
+        indexesInput = inputs.addStringValueInput('profileIndexes{}'.format(row), 'Indexes', '[ ]')
+        #indexesInput = inputs.addBoolValueInput('profileIndexes{}'.format(row), 'Indexes', False)
+        indexesInput.isReadOnly = True
+        # indexesInput.isFullWidth = True
+        #indexesInput = cmdInputs.addTextBoxCommandInput('profileIndexes{}'.format(row), 'Profile Indexes', '[  ]', 1, True)
+        self.tbProfiles.addCommandInput(indexesInput, row, 2, False, False)
+
+        self.namedProfiles.append(['profileName{}'.format(row), [], []])
+ 
+         
     def resetUI(self):
         if self.guideline or self.isInSketch:
             self.sketchSelection.isVisible = False
