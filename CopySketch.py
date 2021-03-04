@@ -15,6 +15,7 @@ class CopySketchCommand(TurtleUICommand):
         cmdName = 'Copy Sketch'
         cmdDescription = 'Copies sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow relative pasting.'
         targetPanels = self.getTargetPanels()
+        self.idIndex = 0
         super().__init__(cmdId, cmdName, cmdDescription, False, targetPanels)
 
     def getTargetPanels(self):
@@ -59,11 +60,14 @@ class CopySketchCommand(TurtleUICommand):
             self.profileInput.addSelectionFilter('Profiles')
 
             # Create table input
-            self.tbProfiles:f.addTableCommandInput = groupInput.addTableCommandInput('tbProfiles', 'Profiles', 3, '1:6:6')
+            self.profileIndex = 0
+            self.currentEditIndex = -1
+            self.tbProfiles:f.addTableCommandInput = groupInput.addTableCommandInput('tbProfiles', 'Profiles', 4, '1:6:6:1')
             self.tbProfiles.maximumVisibleRows = 6
             self.tbProfiles.tablePresentationStyle = core.TablePresentationStyles.itemBorderTablePresentationStyle
             self.tbProfiles.columnSpacing = 1
             self.tbProfiles.rowSpacing = 1
+            self.tbProfiles.numberOfColumns = 4
             self.tbProfiles.hasGrid = False   
 
             btAddItem = groupInput.addBoolValueInput('profileAdd', '', False, "resources/Add/", True)
@@ -71,7 +75,8 @@ class CopySketchCommand(TurtleUICommand):
             btDeleteItem = groupInput.addBoolValueInput('profileDelete', '', False, "resources/Remove/", True)
             self.tbProfiles.addToolbarCommandInput(btDeleteItem)
 
-            self._addLayer(inputs, "fullProfile")
+            for i in range(20):
+                self._createLayer(inputs, "Profile " + str(i))
 
             self.resetUI()
         except:
@@ -102,61 +107,128 @@ class CopySketchCommand(TurtleUICommand):
                         self.sketchSelection.addSelection(self.sketch)
                 else:
                     self.guideline = None
-                    
+
             elif cmdInput.id == 'selProfile':
-                if self.tbProfiles.selectedRow > -1:
+                row = self.tbProfiles.selectedRow
+                if row > -1:
+                    selCount = cmdInput.selectionCount
+                    profile = cmdInput.selection(selCount - 1).entity
+                    self.sketch = profile.parentSketch
+                    profileIndex = -1
+                    for i, p in enumerate(self.sketch.profiles):
+                        if p == profile:
+                            profileIndex = i
+                            break
+                    if profileIndex != -1:
+                        self.namedProfiles[row].append([profileIndex, profile])
+                        self.tbProfiles.getInputAtPosition(row, 2).value += " " + str(profileIndex)
+                    self._changeProfileInput(row)
+
+            elif cmdInput.parentCommandInput == self.tbProfiles:
+                success, row, col, addcol, addrow = self.tbProfiles.getPosition(cmdInput)
+
+                if cmdInput.id.startswith('ProfileIcon'):
                     pass
 
+                if cmdInput.id.startswith('ClearIcon'):
+                    self.namedProfiles[row] = []
+                    
+                if cmdInput.id.startswith('editText'):
+                    pass
+                    
+                elif cmdInput.id.startswith('profileName'):
+                    if self.currentEditIndex != -1:
+                        formerEdit = self.tbProfiles.getInputAtPosition(self.currentEditIndex, col)
+                        formerEdit.isReadOnly = True
+                    self._createTextInput("editText", cmdInput.value, False, row, col)
+                    self.currentEditIndex = row
+                    
+                elif cmdInput.id.startswith('profileIndexes'):
+                    pass
 
-            elif cmdInput.id.startswith('ProfileIcon'):
-                print(cmdInput.id)
-            elif cmdInput.id.startswith('profileName'):
-                print(cmdInput.id)
-            elif cmdInput.id.startswith('profileIndexes'):
-                print(cmdInput.id)
+                elif cmdInput.id == 'profileAdd':
+                    if self.profileIndex < 20:
+                        self._setTableRowVisibility(self.profileIndex, True)
+                        row = self.profileIndex
+                        self.tbProfiles.selectedRow = row
+                        self.profileIndex += 1
+                    else:
+                        cmdInput.isEnabled = False
 
-            elif cmdInput.id == 'profileAdd':
-                if len(self.namedProfiles) < 6:
-                    self._addLayer(inputs)
-                if len(self.namedProfiles) >= 6:
-                    cmdInput.isEnabled = False
-
-            elif cmdInput.id == 'profileDelete':
-                if self.tbProfiles.selectedRow == -1:
-                    ui.messageBox('Select one row to delete.')
-                else:
-                    selectedIndex = cmdInput.parentCommandInput.selectedRow
-                    self.tbProfiles.deleteRow(selectedIndex)
-                    cmdInput.isEnabled = True
+                elif cmdInput.id == 'profileDelete':
+                    if self.tbProfiles.selectedRow == -1:
+                        ui.messageBox('Select one row to delete.')
+                    else:
+                        selectedIndex = cmdInput.parentCommandInput.selectedRow
+                        self.tbProfiles.deleteRow(selectedIndex)
+                        cmdInput.isEnabled = True
+                        row = -1
+                
+                self._changeProfileInput(row)
                     
             self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
-        
-    def _addLayer(self, inputs, name = ''):
+
+    def _changeProfileInput(self, toIndex):
+        if toIndex >= 0: #and toIndex != self.currentEditIndex:
+            self.profileInput.clearSelection()
+            selected = self.namedProfiles[toIndex]
+            text = "["
+            comma = ""
+            for item in selected:
+                self.profileInput.addSelection(item[1])
+                text += comma + str(item[0])
+                comma = ", "
+            text = "" if len(selected) == 0 else text + "]"
+            self.tbProfiles.getInputAtPosition(toIndex, 2).value = text
+
+            self.profileInput.hasFocus = True
+
+    def _createLayer(self, inputs, name = ''):
         cmdInputs:core.CommandInputs = self.tbProfiles.commandInputs
         row = len(self.namedProfiles)
-        name = "Profile_" + str(row) if name == '' else name
-        
-    # text = inputs.addStringValueInput('texta' + str(textBoxCount), 'Text ' + str(textBoxCount), 'Text ' + str(textBoxCount))
-    # text.isReadOnly = True
-    # table.addCommandInput(text, j, 0, False, False)
 
-        profileIcon = inputs.addImageCommandInput('ProfileIcon{}'.format(row), '', 'resources/Profile/16x24.png')
+        profileIcon = cmdInputs.addImageCommandInput('ProfileIcon{}'.format(row), '', 'resources/Profile/16x24.png')
         self.tbProfiles.addCommandInput(profileIcon, row, 0, False, False)
 
-        nameInput = inputs.addStringValueInput('profileName{}'.format(row), 'Name', name)
-        self.tbProfiles.addCommandInput(nameInput, row, 1, False, False)
+        name = "Profile " + str(row) if name == '' else name
+        self._createTextInput('profileName', name, True, row, 1)
+        # editable = self._createTextInput('profileName{}'.format(row), name, False, row, 2)
+        # editable.isVisible = False
+        # nameInput = inputs.addStringValueInput('profileName{}'.format(row), 'Name', name)
+        # nameInput.isReadOnly = True
+        # self.tbProfiles.addCommandInput(nameInput, row, 1, False, False)
 
-        indexesInput = inputs.addStringValueInput('profileIndexes{}'.format(row), 'Indexes', '[ ]')
-        #indexesInput = inputs.addBoolValueInput('profileIndexes{}'.format(row), 'Indexes', False)
+        indexesInput = inputs.addStringValueInput('profileIndexes{}'.format(row), 'Indexes', '')
         indexesInput.isReadOnly = True
-        # indexesInput.isFullWidth = True
-        #indexesInput = cmdInputs.addTextBoxCommandInput('profileIndexes{}'.format(row), 'Profile Indexes', '[  ]', 1, True)
         self.tbProfiles.addCommandInput(indexesInput, row, 2, False, False)
 
-        self.namedProfiles.append(['profileName{}'.format(row), [], []])
+        profileIcon = cmdInputs.addImageCommandInput('ClearIcon{}'.format(row), '', 'resources/Remove/16x24.png')
+        self.tbProfiles.addCommandInput(profileIcon, row, 3, False, False)
+
+        self._setTableRowVisibility(row, False)
+
+        self.namedProfiles.append([])
+    
+    def _createTextInput(self, idRoot:str, value:str, isReadOnly:bool, row:int, col:int):
+        idName = idRoot + " " + str(self.idIndex)
+        self.idIndex += 1
+        nameInput = self.tbProfiles.commandInputs.addStringValueInput(idName, '', value)
+        nameInput.isReadOnly = isReadOnly
+        if self.tbProfiles.getInputAtPosition(row, col):
+            self.tbProfiles.removeInput(row, col)
+        self.tbProfiles.addCommandInput(nameInput, row, col, False, False)
+        return self.tbProfiles.getInputAtPosition(row, col)
  
+    def _setTableRowVisibility(self, row:int, isVisible:bool):
+        cols = 8
+        for col in range(cols):
+            item = self.tbProfiles.getInputAtPosition(row, col)
+            if item:
+                item.isVisible = isVisible
+            else:
+                break
          
     def resetUI(self):
         if self.guideline or self.isInSketch:
