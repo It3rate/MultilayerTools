@@ -25,6 +25,7 @@ class SketchDecoder:
         decoder = SketchDecoder()
         decoder.guideline = self.tsketch.getSingleConstructionLine()
         decoder.run(data)
+        return decoder
 
     @classmethod
     def createWithTransform(cls, data, transform:core.Matrix3D, flipX = False, flipY = False):
@@ -34,12 +35,14 @@ class SketchDecoder:
         decoder.transform = transform
         decoder.guideline = self.tsketch.getSingleConstructionLine()
         decoder.run(data)
+        return decoder
 
     @classmethod
     def createWithSketch(cls, data, sketch:f.Sketch, flipX = False, flipY = False):
         decoder = SketchDecoder(flipX, flipY)
         decoder.sketch = sketch
         decoder.run(data)
+        return decoder
 
     @classmethod
     def createWithGuideline(cls, data, guideline:f.SketchLine, flipX = False, flipY = False):
@@ -47,6 +50,7 @@ class SketchDecoder:
         decoder.guideline = guideline
         decoder.sketch:f.Sketch = guideline.parentSketch
         decoder.run(data)
+        return decoder
 
     def run(self, data):
         if not self.sketch:
@@ -76,6 +80,7 @@ class SketchDecoder:
         self.chainValues = data["Chains"] if "Chains" in data else []
         self.constraintValues = data["Constraints"] if "Constraints" in data else []
         self.dimensionValues = data["Dimensions"] if "Dimensions" in data else []
+        self.namedProfiles = data["NamedProfiles"] if "NamedProfiles" in data else {}
         self.assessDimensionNames()
 
     def decodeFromSketch(self):
@@ -83,6 +88,7 @@ class SketchDecoder:
         self.forwardExpressions = {}
         self.points = self.generatePoints(self.pointValues)
         self.curves = self.generateCurves(self.chainValues)
+
         self.constraints = self.generateConstraints(self.constraintValues)
         for name in self.params:
             self.addUserParam(name)

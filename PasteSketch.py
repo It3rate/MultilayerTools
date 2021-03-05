@@ -29,7 +29,7 @@ class PasteSketchCommand(TurtleUICommand):
                 self.sketch = self.guideline.parentSketch
             else:
                 self.sketch:f.Sketch = TurtleUtils.getTargetSketch(f.Sketch, False)
-
+                
             # Get the CommandInputs collection associated with the command.
             inputs = eventArgs.command.commandInputs
 
@@ -54,7 +54,22 @@ class PasteSketchCommand(TurtleUICommand):
                 lines = tSketch.getSingleLines()
                 if(len(lines) == 1):
                     self.guideline = lines[0]
-                    
+
+
+            data = self.getSketchData()
+            if self.guideline:
+                self.decoder = SketchDecoder.createWithGuideline(data, self.guideline, self.flipHSelection.value, self.flipVSelection.value)
+            elif self.sketch:
+                self.decoder = SketchDecoder.createWithSketch(data, self.sketch, self.flipHSelection.value, self.flipVSelection.value)
+            
+            if self.decoder and len(self.decoder.namedProfiles) > 0:
+                # self.profileGroup = inputs.addGroupCommandInput('profileGroup', 'Named Profiles')
+                # groupInput = self.profileGroup.children 
+                self.ddProfiles = inputs.addDropDownCommandInput('Profiles', 'Named Profiles', core.DropDownStyles.TextListDropDownStyle)
+                ddItems = self.ddProfiles.listItems
+                for i, name in enumerate(self.decoder.namedProfiles):
+                    ddItems.add(name, i == 0, 'resources/Profile/16x24.png')
+            
 
             if self.sketch:
                 self.sketchSelection.addSelection(self.sketch)
@@ -95,16 +110,24 @@ class PasteSketchCommand(TurtleUICommand):
         
     def onPreview(self, eventArgs:core.CommandEventArgs):
         data = self.getSketchData()
-        enc = SketchDecoder.createWithGuideline(data, self.guideline, self.flipHSelection.value, self.flipVSelection.value)
+        self.decoder = SketchDecoder.createWithGuideline(data, self.guideline, self.flipHSelection.value, self.flipVSelection.value)
+
+        # ui.activeSelections.clear()
+        # # ui.activeSelections.add(self.sketch.profiles[0])
+        # profile = design.findEntityByToken(self.decoder.savedProfile)
+        # ui.activeSelections.add(profile[0])
+        # # return
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         data = self.getSketchData()
         flipX = self.flipHSelection.value
         flipY = self.flipVSelection.value
         if self.guideline:
-            SketchDecoder.createWithGuideline(data, self.guideline, flipX, flipY)
+            self.decoder = SketchDecoder.createWithGuideline(data, self.guideline, flipX, flipY)
         else:
-            SketchDecoder.createWithSketch(data, self.sketch, flipX, flipY)
+            self.decoder = SketchDecoder.createWithSketch(data, self.sketch, flipX, flipY)
+
+
 
     def getSketchData(self):
         result = TurtleUtils.getClipboardText()
