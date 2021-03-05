@@ -12,7 +12,7 @@ from .TurtleLayers import TurtleLayers
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
 class SketchEncoder:
-    def __init__(self, sketch:f.Sketch = None, guideline:f.SketchLine = None):
+    def __init__(self, sketch:f.Sketch = None, guideline:f.SketchLine = None, namedProfiles = {}):
         
         self.guideline = guideline
         self.autoGuideline = (sketch == None) # only autodetect guidelines if this isn't a UI command
@@ -22,6 +22,7 @@ class SketchEncoder:
         if not self.sketch:
             return
         
+        self.namedProfiles = namedProfiles
         self.points = {}
         self.pointKeys = []
         self.pointValues = []
@@ -82,9 +83,12 @@ class SketchEncoder:
             result += "\'Dimensions\':" + self.encodeList(self.data["Dimensions"]) + ",\n" #             [\n\'" + "\',\'".join(self.data["Dimensions"]) + "\'\n],\n")
         if self.guideline:
             guidePoints = self.getSortedPoints(self.guideline)
-            result += "\'Guideline\':[" + self.encodePoints(*guidePoints) + ",\'" + self.encodeEntity(self.guideline) + "\']\n"
+            result += "\'Guideline\':[" + self.encodePoints(*guidePoints) + ",\'" + self.encodeEntity(self.guideline) + "\'],\n"
         else: 
-            result += "\'Guideline\':[]\n" 
+            result += "\'Guideline\':[],\n" 
+            
+        result += "\'NamedProfiles\':{\n" + self.encodeNamedProfiles() + "\n}\n"
+
         result += "}\n\n"
 
 
@@ -92,7 +96,7 @@ class SketchEncoder:
         
         print(result)
         print("\n\nSketch data is now on clipboard.")
-    
+
     def assessDimensionNames(self):
         self.dimensionNameMap = {}
         dimensions:f.SketchDimensions = self.sketch.sketchDimensions
@@ -454,3 +458,17 @@ class SketchEncoder:
             s += "\', # " + rng
             result.append(s)
         return "\n".join(result)
+        
+    def encodeNamedProfiles(self):
+        result = ""
+        comma = ""
+        for p in self.namedProfiles:
+            result += comma + "    '" + p + "'" + ":["
+            comma2 = ""
+            for index in self.namedProfiles[p]:
+                result += comma2 + str(index)
+                comma2 = ", "
+            result += "]"
+            comma = ",\n"
+
+        return result

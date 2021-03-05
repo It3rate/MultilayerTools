@@ -163,7 +163,6 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         self._execute(eventArgs)
         self._writeDefaultLayerIndexes()
     
-
     def _createDialog(self, inputs):
         try:
             self.thicknessParamNames = ['mat0', 'mat1', 'mat2', 'mat3', 'mat4', 'mat5']

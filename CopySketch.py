@@ -87,8 +87,23 @@ class CopySketchCommand(TurtleUICommand):
             super().onValidateInputs(eventArgs)
         
     def onExecute(self, eventArgs:core.CommandEventArgs):
-        enc = SketchEncoder(self.sketch, self.guideline)
+        np = self._getNamedProfiles()
+        enc = SketchEncoder(self.sketch, self.guideline, np)
     
+    def _getNamedProfiles(self):
+        result = {}
+        #for i, item in enumerate(self.namedProfiles):
+        for i in range(self.tbProfiles.rowCount):
+            profiles = self.namedProfiles[i]
+            tableItem = self.tbProfiles.getInputAtPosition(i, 1)
+            if tableItem.isVisible and len(profiles) > 0:
+                name = tableItem.value
+                indexes = []
+                for p in profiles:
+                    indexes.append(p[0])
+                result[name] = indexes
+        return result
+
     # def onMouseClick(self, eventArgs:core.MouseEventArgs):
     #     print("click")
     # def onMouseDown(self, eventArgs:core.MouseEventArgs):
@@ -114,6 +129,9 @@ class CopySketchCommand(TurtleUICommand):
                     selCount = cmdInput.selectionCount
                     profile = cmdInput.selection(selCount - 1).entity
                     self.sketch = profile.parentSketch
+                    if self.sketchSelection.selection != self.sketch:
+                        self.sketchSelection.clearSelection()
+                        self.sketchSelection.addSelection(self.sketch)
                     profileIndex = -1
                     for i, p in enumerate(self.sketch.profiles):
                         if p == profile:
