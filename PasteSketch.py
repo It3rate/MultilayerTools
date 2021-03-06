@@ -36,12 +36,12 @@ class PasteSketchCommand(TurtleUICommand):
             # Get the CommandInputs collection associated with the command.
             topLevelInputs = eventArgs.command.commandInputs
 
-            tabCmdInput1 = topLevelInputs.addTabCommandInput('tabSelection', 'Target')
-            inputs = tabCmdInput1.children
+            tabPaste = topLevelInputs.addTabCommandInput('tabSelection', 'Paste')
+            inputs = tabPaste.children
 
             # Select optional guideline.
             self.guidelineSelection = inputs.addSelectionInput('selGuideline', 'Select Guideline', 'Optional reference guideline used if transforming sketch.')
-            self.guidelineSelection.setSelectionLimits(0, 0)
+            self.guidelineSelection.setSelectionLimits(0,0)
             self.guidelineSelection.addSelectionFilter('SketchLines')
 
             # Select sketch.
@@ -60,12 +60,22 @@ class PasteSketchCommand(TurtleUICommand):
                 lines = tSketch.getSingleLines()
                 if(len(lines) == 1):
                     self.guideline = lines[0]
+            
+            loadGroup = inputs.addGroupCommandInput("slider_configuration", "Configuration")
+            btLoadText = loadGroup.commandInputs.addButtonRowCommandInput("btLoadText", "Load Sketch", False)
+            btLoadText.listItems.add('Load Sketch', False, 'resources/ddwPasteSketchId')
 
             # use a separate tab for profiles, this should solve the multiple kinds of selections issues
-            tabCmdInput2 = topLevelInputs.addTabCommandInput('tabProfiles', 'Profiles')
-            inputs = tabCmdInput2.children
+            tabProfiles = topLevelInputs.addTabCommandInput('tabProfiles', 'Inspect Profiles')
+            inputs = tabProfiles.children
             self.radioProfiles = inputs.addRadioButtonGroupCommandInput('radioProfiles', 'Named Profiles')
             self.radioProfiles.isFullWidth = True
+
+            # self.profileSelection = inputs.addSelectionInput('selProfiles', 'Select Profiles', '')
+            # self.profileSelection.setSelectionLimits(0,0)
+            # self.profileSelection.addSelectionFilter('Profiles')
+            
+            # tabLoadSketch = topLevelInputs.addTabCommandInput('tabLoadSketch', 'Load Sketch')
 
             if self.sketch:
                 self.sketchSelection.addSelection(self.sketch)
@@ -107,7 +117,7 @@ class PasteSketchCommand(TurtleUICommand):
                     self.guidelineSelection.clearSelection() # required to trigger preview
                     self.guidelineSelection.addSelection(self.guideline)
                 else:
-                    self.guidelineSelection.clearSelection() 
+                    self.guidelineSelection.clearSelection() # required to trigger preview
 
             elif cmdInput.id == 'APITabBar':
                 self.tabIndex = 1 if self.tabIndex == 0 else 0 # not sure to tell which tab was clicked?
@@ -116,6 +126,9 @@ class PasteSketchCommand(TurtleUICommand):
                     self.resetUI()
                 else:
                     self._updateProfiles()
+                    
+            elif cmdInput.id == 'btLoadText':
+                ui.messageBox("Load here")
                 
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
@@ -142,9 +155,11 @@ class PasteSketchCommand(TurtleUICommand):
         
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.onExecute(eventArgs)
-        ui.activeSelections.clear()
-        self._resetSelections()
+        # ui.activeSelections.clear()
+        # self._resetSelections()
         if self.tabIndex == 1 and self.decoder and len(self.decoder.namedProfiles) > 0:
+            # self.profileSelection.hasFocus = True
+            # self.profileSelection.clearSelection()
             indexList = list(self.decoder.namedProfiles.values())
             for profileIndex in indexList[self.selectedProfileIndex]:
                 ui.activeSelections.add(self.sketch.profiles[profileIndex])
@@ -155,10 +170,8 @@ class PasteSketchCommand(TurtleUICommand):
         flipY = self.flipVSelection.value
         if self.guideline:
             self.decoder = SketchDecoder.createWithGuideline(data, self.guideline, flipX, flipY)
-        else:
+        elif self.sketch:
             self.decoder = SketchDecoder.createWithSketch(data, self.sketch, flipX, flipY)
-
-
 
     def getSketchData(self):
         result = TurtleUtils.getClipboardText()
