@@ -29,18 +29,24 @@ class PasteSketchCommand(TurtleUICommand):
                 self.sketch = self.guideline.parentSketch
             else:
                 self.sketch:f.Sketch = TurtleUtils.getTargetSketch(f.Sketch, False)
+            self.decoder = None
+            self.selectedProfileIndex = 0
+            self.tabIndex = 0
                 
             # Get the CommandInputs collection associated with the command.
-            inputs = eventArgs.command.commandInputs
+            topLevelInputs = eventArgs.command.commandInputs
+
+            tabCmdInput1 = topLevelInputs.addTabCommandInput('tabSelection', 'Target')
+            inputs = tabCmdInput1.children
 
             # Select optional guideline.
             self.guidelineSelection = inputs.addSelectionInput('selGuideline', 'Select Guideline', 'Optional reference guideline used if transforming sketch.')
-            self.guidelineSelection.setSelectionLimits(0, 1)
+            self.guidelineSelection.setSelectionLimits(0, 0)
             self.guidelineSelection.addSelectionFilter('SketchLines')
 
             # Select sketch.
             self.sketchSelection = inputs.addSelectionInput('selSketch', 'Select Sketch', 'Select sketch to copy.')
-            self.sketchSelection.setSelectionLimits(0,1)
+            self.sketchSelection.setSelectionLimits(0,0)
             self.sketchSelection.addSelectionFilter('Sketches')
 
             self.sketchText = inputs.addTextBoxCommandInput('txSketch', 'Select Sketch', '<b>Auto selected.</b>', 1, True)
@@ -55,24 +61,15 @@ class PasteSketchCommand(TurtleUICommand):
                 if(len(lines) == 1):
                     self.guideline = lines[0]
 
-
-            data = self.getSketchData()
-            if self.guideline:
-                self.decoder = SketchDecoder.createWithGuideline(data, self.guideline, self.flipHSelection.value, self.flipVSelection.value)
-            elif self.sketch:
-                self.decoder = SketchDecoder.createWithSketch(data, self.sketch, self.flipHSelection.value, self.flipVSelection.value)
-            
-            if self.decoder and len(self.decoder.namedProfiles) > 0:
-                # self.profileGroup = inputs.addGroupCommandInput('profileGroup', 'Named Profiles')
-                # groupInput = self.profileGroup.children 
-                self.ddProfiles = inputs.addDropDownCommandInput('Profiles', 'Named Profiles', core.DropDownStyles.TextListDropDownStyle)
-                ddItems = self.ddProfiles.listItems
-                for i, name in enumerate(self.decoder.namedProfiles):
-                    ddItems.add(name, i == 0, 'resources/Profile/16x24.png')
-            
+            # use a separate tab for profiles, this should solve the multiple kinds of selections issues
+            tabCmdInput2 = topLevelInputs.addTabCommandInput('tabProfiles', 'Profiles')
+            inputs = tabCmdInput2.children
+            self.radioProfiles = inputs.addRadioButtonGroupCommandInput('radioProfiles', 'Named Profiles')
+            self.radioProfiles.isFullWidth = True
 
             if self.sketch:
                 self.sketchSelection.addSelection(self.sketch)
+
             self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
@@ -90,6 +87,8 @@ class PasteSketchCommand(TurtleUICommand):
                         self.sketchSelection.addSelection(self.sketch)
                 else:
                     self.guideline = None
+                self.resetUI()
+
             elif cmdInput.id == 'selSketch':
                 if self.sketchSelection.selectionCount > 0:
                     self.sketch = cmdInput.selection(0).entity
@@ -100,23 +99,55 @@ class PasteSketchCommand(TurtleUICommand):
                     self.sketch = None
                     self.guideline = None
                     self.guidelineSelection.clearSelection()
+                self.resetUI()
 
-            self.resetUI()
+            elif cmdInput.id == 'radioProfiles':
+                self.selectedProfileIndex = cmdInput.selectedItem.index
+                if self.guideline:
+                    self.guidelineSelection.clearSelection() # required to trigger preview
+                    self.guidelineSelection.addSelection(self.guideline)
+                else:
+                    self.guidelineSelection.clearSelection() 
+
+            elif cmdInput.id == 'APITabBar':
+                self.tabIndex = 1 if self.tabIndex == 0 else 0 # not sure to tell which tab was clicked?
+                if self.tabIndex == 0:
+                    self._resetSelections()
+                    self.resetUI()
+                else:
+                    self._updateProfiles()
+                
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
-        
+      
+    def _resetSelections(self):
+        ui.activeSelections.clear()
+        self.guidelineSelection.clearSelection()
+        self.sketchSelection.clearSelection()
+        if self.guideline:
+            self.guidelineSelection.addSelection(self.guideline)
+        elif self.sketch:
+            self.sketchSelection.addSelection(self.sketch)
+
+    def _updateProfiles(self):
+        radioItems = self.radioProfiles.listItems
+        if len(radioItems) == 0:
+            radioItems.clear()
+            if self.decoder and len(self.decoder.namedProfiles) > 0: 
+                for i, name in enumerate(self.decoder.namedProfiles):
+                    item = radioItems.add(name, i == self.selectedProfileIndex, 'resources/Profile/16x24.png')
+
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
-            eventArgs.areInputsValid = True if self.sketch else False
+        eventArgs.areInputsValid = True if self.sketch else False
         
     def onPreview(self, eventArgs:core.CommandEventArgs):
-        data = self.getSketchData()
-        self.decoder = SketchDecoder.createWithGuideline(data, self.guideline, self.flipHSelection.value, self.flipVSelection.value)
-
-        # ui.activeSelections.clear()
-        # # ui.activeSelections.add(self.sketch.profiles[0])
-        # profile = design.findEntityByToken(self.decoder.savedProfile)
-        # ui.activeSelections.add(profile[0])
-        # # return
+        self.onExecute(eventArgs)
+        ui.activeSelections.clear()
+        self._resetSelections()
+        if self.tabIndex == 1 and self.decoder and len(self.decoder.namedProfiles) > 0:
+            indexList = list(self.decoder.namedProfiles.values())
+            for profileIndex in indexList[self.selectedProfileIndex]:
+                ui.activeSelections.add(self.sketch.profiles[profileIndex])
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         data = self.getSketchData()

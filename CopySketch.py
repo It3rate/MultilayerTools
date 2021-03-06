@@ -122,6 +122,7 @@ class CopySketchCommand(TurtleUICommand):
                         self.sketchSelection.addSelection(self.sketch)
                 else:
                     self.guideline = None
+                self.resetUI()
 
             elif cmdInput.id == 'selProfile':
                 row = self.tbProfiles.selectedRow
@@ -184,7 +185,6 @@ class CopySketchCommand(TurtleUICommand):
                 
                 self._changeProfileInput(row)
                     
-            self.resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
 
