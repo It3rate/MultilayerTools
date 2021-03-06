@@ -28,7 +28,8 @@ class PasteSketchCommand(TurtleUICommand):
             if self.guideline:
                 self.sketch = self.guideline.parentSketch
             else:
-                self.sketch:f.Sketch = TurtleUtils.getTargetSketch(f.Sketch, False)
+                self.sketch = TurtleUtils.getTargetSketch(f.Sketch, False)
+            self.data = None
             self.decoder = None
             self.selectedProfileIndex = 0
             self.tabIndex = 0
@@ -61,26 +62,20 @@ class PasteSketchCommand(TurtleUICommand):
                 if(len(lines) == 1):
                     self.guideline = lines[0]
             
-            loadGroup = inputs.addGroupCommandInput("slider_configuration", "Configuration")
-            btLoadText = loadGroup.commandInputs.addButtonRowCommandInput("btLoadText", "Load Sketch", False)
-            btLoadText.listItems.add('Load Sketch', False, 'resources/ddwPasteSketchId')
+            loadGroup = inputs.addGroupCommandInput("loadGroup", "Load From Disk")
+            self.btLoadText = loadGroup.children.addButtonRowCommandInput("btLoadText", "Load Sketch", False)
+            self.btLoadText.listItems.add('Load Sketch', False, 'resources/ddwCopySketchId')
 
-            # use a separate tab for profiles, this should solve the multiple kinds of selections issues
+            # use a separate tab for profiles, this almost solves the multiple kinds of selections issues
             tabProfiles = topLevelInputs.addTabCommandInput('tabProfiles', 'Inspect Profiles')
             inputs = tabProfiles.children
             self.radioProfiles = inputs.addRadioButtonGroupCommandInput('radioProfiles', 'Named Profiles')
             self.radioProfiles.isFullWidth = True
 
-            # self.profileSelection = inputs.addSelectionInput('selProfiles', 'Select Profiles', '')
-            # self.profileSelection.setSelectionLimits(0,0)
-            # self.profileSelection.addSelectionFilter('Profiles')
-            
-            # tabLoadSketch = topLevelInputs.addTabCommandInput('tabLoadSketch', 'Load Sketch')
-
             if self.sketch:
                 self.sketchSelection.addSelection(self.sketch)
 
-            self.resetUI()
+            self._resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
         
@@ -97,7 +92,7 @@ class PasteSketchCommand(TurtleUICommand):
                         self.sketchSelection.addSelection(self.sketch)
                 else:
                     self.guideline = None
-                self.resetUI()
+                self._resetUI()
 
             elif cmdInput.id == 'selSketch':
                 if self.sketchSelection.selectionCount > 0:
@@ -109,7 +104,7 @@ class PasteSketchCommand(TurtleUICommand):
                     self.sketch = None
                     self.guideline = None
                     self.guidelineSelection.clearSelection()
-                self.resetUI()
+                self._resetUI()
 
             elif cmdInput.id == 'radioProfiles':
                 self.selectedProfileIndex = cmdInput.selectedItem.index
@@ -118,21 +113,54 @@ class PasteSketchCommand(TurtleUICommand):
                     self.guidelineSelection.addSelection(self.guideline)
                 else:
                     self.guidelineSelection.clearSelection() # required to trigger preview
+                    if self.sketch:
+                        self.sketchSelection.clearSelection()
+                        self.sketchSelection = self.sketchSelection
+                    else:
+                        self.sketchSelection.clearSelection()
 
             elif cmdInput.id == 'APITabBar':
                 self.tabIndex = 1 if self.tabIndex == 0 else 0 # not sure to tell which tab was clicked?
                 if self.tabIndex == 0:
                     self._resetSelections()
-                    self.resetUI()
+                    self._resetUI()
                 else:
                     self._updateProfiles()
                     
             elif cmdInput.id == 'btLoadText':
-                ui.messageBox("Load here")
+                if len(self.btLoadText.listItems) == 0: # elaborate hack to re-enable load button
+                    self.btLoadText.listItems.add('Load Sketch', False, 'resources/ddwCopySketchId')
+                else:
+                    filename = self._loadSketch()
+                    if filename != "":
+                        textData = SketchData.loadData(filename)
+                        self.data = eval(textData)
+                    self.btLoadText.listItems.clear()
                 
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
       
+    def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
+        eventArgs.areInputsValid = True if self.sketch else False
+        print("isValid: " + str(eventArgs.areInputsValid))
+        
+    def onPreview(self, eventArgs:core.CommandEventArgs):
+        self.onExecute(eventArgs)
+        if self.tabIndex == 1 and self.decoder and len(self.decoder.namedProfiles) > 0:
+            indexList = list(self.decoder.namedProfiles.values())
+            for profileIndex in indexList[self.selectedProfileIndex]:
+                ui.activeSelections.add(self.sketch.profiles[profileIndex])
+
+    def onExecute(self, eventArgs:core.CommandEventArgs):
+        print("exe")
+        self._ensureSketchData()
+        flipX = self.flipHSelection.value
+        flipY = self.flipVSelection.value
+        if self.guideline:
+            self.decoder = SketchDecoder.createWithGuideline(self.data, self.guideline, flipX, flipY)
+        elif self.sketch:
+            self.decoder = SketchDecoder.createWithSketch(self.data, self.sketch, flipX, flipY)
+
     def _resetSelections(self):
         ui.activeSelections.clear()
         self.guidelineSelection.clearSelection()
@@ -150,38 +178,15 @@ class PasteSketchCommand(TurtleUICommand):
                 for i, name in enumerate(self.decoder.namedProfiles):
                     item = radioItems.add(name, i == self.selectedProfileIndex, 'resources/Profile/16x24.png')
 
-    def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
-        eventArgs.areInputsValid = True if self.sketch else False
-        
-    def onPreview(self, eventArgs:core.CommandEventArgs):
-        self.onExecute(eventArgs)
-        # ui.activeSelections.clear()
-        # self._resetSelections()
-        if self.tabIndex == 1 and self.decoder and len(self.decoder.namedProfiles) > 0:
-            # self.profileSelection.hasFocus = True
-            # self.profileSelection.clearSelection()
-            indexList = list(self.decoder.namedProfiles.values())
-            for profileIndex in indexList[self.selectedProfileIndex]:
-                ui.activeSelections.add(self.sketch.profiles[profileIndex])
-
-    def onExecute(self, eventArgs:core.CommandEventArgs):
-        data = self.getSketchData()
-        flipX = self.flipHSelection.value
-        flipY = self.flipVSelection.value
-        if self.guideline:
-            self.decoder = SketchDecoder.createWithGuideline(data, self.guideline, flipX, flipY)
-        elif self.sketch:
-            self.decoder = SketchDecoder.createWithSketch(data, self.sketch, flipX, flipY)
-
-    def getSketchData(self):
-        result = TurtleUtils.getClipboardText()
-        if result == None or not (result.startswith("#Turtle Generated Data")):
-            result = SketchData.getTestData()
-        else:
-            result = eval(result)
-        return result
+    def _ensureSketchData(self):
+        if not self.data:
+            clip = TurtleUtils.getClipboardText()
+            if clip == None or not (clip.startswith("#Turtle Generated Data")):
+                self.data = SketchData.getTestData()
+            else:
+                self.data = eval(clip)
     
-    def resetUI(self):
+    def _resetUI(self):
         if self.guideline or self.isInSketch:
             self.sketchSelection.isVisible = False
             self.sketchText.isVisible = True
@@ -197,3 +202,14 @@ class PasteSketchCommand(TurtleUICommand):
             self.flipHSelection.isEnabled = False
             self.flipVSelection.isEnabled = False
 
+    def _loadSketch(self):
+        result = ""
+        fileDialog = ui.createFileDialog()
+        fileDialog.isMultiSelectEnabled = False
+        fileDialog.title = "Load Sketch"
+        fileDialog.filter = 'Turtle Sketch Files (*.tsk)'
+        fileDialog.filterIndex = 0
+        dialogResult = fileDialog.showOpen()
+        if dialogResult == core.DialogResults.DialogOK:
+            result = fileDialog.filename
+        return result

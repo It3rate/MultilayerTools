@@ -6,6 +6,7 @@ from .lib.TurtleUtils import TurtleUtils
 from .lib.TurtleUICommand import TurtleUICommand
 from .lib.TurtleSketch import TurtleSketch
 from .lib.SketchEncoder import SketchEncoder
+from .lib.data.SketchData import SketchData
 
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
@@ -36,12 +37,12 @@ class CopySketchCommand(TurtleUICommand):
 
             # Select optional guideline.
             self.guidelineSelection = inputs.addSelectionInput('selGuideline', 'Select Guideline', 'Optional reference guideline used if transforming sketch.')
-            self.guidelineSelection.setSelectionLimits(0, 1)
+            self.guidelineSelection.setSelectionLimits(0, 0)
             self.guidelineSelection.addSelectionFilter('SketchLines')
 
             # Select sketch.
             self.sketchSelection = inputs.addSelectionInput('selSketch', 'Select Sketch', 'Select sketch to copy.')
-            self.sketchSelection.setSelectionLimits(1,1)
+            self.sketchSelection.setSelectionLimits(0,0)
             self.sketchSelection.addSelectionFilter('Sketches')
 
             self.sketchText = inputs.addTextBoxCommandInput('txSketch', 'Select Sketch', '<b>Auto selected.</b>', 1, True)
@@ -78,36 +79,13 @@ class CopySketchCommand(TurtleUICommand):
             for i in range(20):
                 self._createLayer(inputs, "Profile " + str(i))
 
-            self.resetUI()
+            loadGroup = inputs.addGroupCommandInput("saveGroup", "Save To Disk")
+            self.btSaveText = loadGroup.children.addButtonRowCommandInput("btSaveText", "Save Sketch", False)
+            self.btSaveText.listItems.add('Save Sketch', False, 'resources/ddwPasteSketchId')
+
+            self._resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
-
-    def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
-            # print("isValid: " + str(eventArgs.areInputsValid))
-            super().onValidateInputs(eventArgs)
-        
-    def onExecute(self, eventArgs:core.CommandEventArgs):
-        np = self._getNamedProfiles()
-        enc = SketchEncoder(self.sketch, self.guideline, np)
-    
-    def _getNamedProfiles(self):
-        result = {}
-        #for i, item in enumerate(self.namedProfiles):
-        for i in range(self.tbProfiles.rowCount):
-            profiles = self.namedProfiles[i]
-            tableItem = self.tbProfiles.getInputAtPosition(i, 1)
-            if tableItem.isVisible and len(profiles) > 0:
-                name = tableItem.value
-                indexes = []
-                for p in profiles:
-                    indexes.append(p[0])
-                result[name] = indexes
-        return result
-
-    # def onMouseClick(self, eventArgs:core.MouseEventArgs):
-    #     print("click")
-    # def onMouseDown(self, eventArgs:core.MouseEventArgs):
-    #     print("down")
 
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
         try:
@@ -122,7 +100,7 @@ class CopySketchCommand(TurtleUICommand):
                         self.sketchSelection.addSelection(self.sketch)
                 else:
                     self.guideline = None
-                self.resetUI()
+                self._resetUI()
 
             elif cmdInput.id == 'selProfile':
                 row = self.tbProfiles.selectedRow
@@ -142,7 +120,18 @@ class CopySketchCommand(TurtleUICommand):
                         self.namedProfiles[row].append([profileIndex, profile])
                         self.tbProfiles.getInputAtPosition(row, 2).value += " " + str(profileIndex)
                     self._changeProfileInput(row)
-
+                            
+            elif cmdInput.id == 'btSaveText':
+                if len(self.btSaveText.listItems) == 0: # elaborate hack to re-enable save button
+                    self.btSaveText.listItems.add('Save Sketch', False, 'resources/ddwPasteSketchId')
+                else:
+                    filename = self._saveSketch()
+                    if filename != "":
+                        np = self._getNamedProfiles()
+                        enc = SketchEncoder(self.sketch, self.guideline, np)
+                        SketchData.saveData(filename, enc.encodedSketch)
+                    self.btSaveText.listItems.clear()
+                
             elif cmdInput.parentCommandInput == self.tbProfiles:
                 success, row, col, addcol, addrow = self.tbProfiles.getPosition(cmdInput)
 
@@ -182,11 +171,36 @@ class CopySketchCommand(TurtleUICommand):
                         self.tbProfiles.deleteRow(selectedIndex)
                         cmdInput.isEnabled = True
                         row = -1
-                
+
                 self._changeProfileInput(row)
                     
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
+
+    def onExecute(self, eventArgs:core.CommandEventArgs):
+        np = self._getNamedProfiles()
+        enc = SketchEncoder(self.sketch, self.guideline, np)
+    
+    def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
+        eventArgs.areInputsValid = self.sketch
+    # def onMouseClick(self, eventArgs:core.MouseEventArgs):
+    #     print("click")
+    # def onMouseDown(self, eventArgs:core.MouseEventArgs):
+    #     print("down")
+
+
+    def _getNamedProfiles(self):
+        result = {}
+        for i in range(self.tbProfiles.rowCount):
+            profiles = self.namedProfiles[i]
+            tableItem = self.tbProfiles.getInputAtPosition(i, 1)
+            if tableItem.isVisible and len(profiles) > 0:
+                name = tableItem.value
+                indexes = []
+                for p in profiles:
+                    indexes.append(p[0])
+                result[name] = indexes
+        return result
 
     def _changeProfileInput(self, toIndex):
         if toIndex >= 0: #and toIndex != self.currentEditIndex:
@@ -212,11 +226,6 @@ class CopySketchCommand(TurtleUICommand):
 
         name = "Profile " + str(row) if name == '' else name
         self._createTextInput('profileName', name, True, row, 1)
-        # editable = self._createTextInput('profileName{}'.format(row), name, False, row, 2)
-        # editable.isVisible = False
-        # nameInput = inputs.addStringValueInput('profileName{}'.format(row), 'Name', name)
-        # nameInput.isReadOnly = True
-        # self.tbProfiles.addCommandInput(nameInput, row, 1, False, False)
 
         indexesInput = inputs.addStringValueInput('profileIndexes{}'.format(row), 'Indexes', '')
         indexesInput.isReadOnly = True
@@ -248,7 +257,7 @@ class CopySketchCommand(TurtleUICommand):
             else:
                 break
          
-    def resetUI(self):
+    def _resetUI(self):
         if self.guideline or self.isInSketch:
             self.sketchSelection.isVisible = False
             self.sketchText.isVisible = True
@@ -256,3 +265,15 @@ class CopySketchCommand(TurtleUICommand):
         else:
             self.sketchSelection.isVisible = True
             self.sketchText.isVisible = False
+
+    def _saveSketch(self):
+        result = ""
+        fileDialog = ui.createFileDialog()
+        fileDialog.isMultiSelectEnabled = False
+        fileDialog.title = "Save Sketch"
+        fileDialog.filter = 'Turtle Sketch Files (*.tsk)'
+        fileDialog.filterIndex = 0
+        dialogResult = fileDialog.showSave()
+        if dialogResult == core.DialogResults.DialogOK:
+            result = fileDialog.filename
+        return result

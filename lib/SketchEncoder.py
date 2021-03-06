@@ -38,7 +38,7 @@ class SketchEncoder:
         self.offsetParams = []
 
         self.parseSketchData()
-        self.encodeAll()
+        self.encodedSketch = self.encodeAll()
         TurtleUtils.selectEntity(self.sketch)
 
     def parseSketchData(self):
@@ -96,6 +96,7 @@ class SketchEncoder:
         
         print(result)
         print("\n\nSketch data is now on clipboard.")
+        return result
 
     def assessDimensionNames(self):
         self.dimensionNameMap = {}
