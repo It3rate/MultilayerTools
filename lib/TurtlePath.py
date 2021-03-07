@@ -302,10 +302,18 @@ class TurtlePath:
 
     @classmethod
     def isEquivalentCurve(cls, a:f.SketchCurve, b:f.SketchCurve, maxDist = tolerance):
+        result = False
         if type(a) == f.SketchCircle:
             result = abs(a.geometry.center.x - b.geometry.center.x) <= maxDist and \
                 abs(a.geometry.center.y - b.geometry.center.y) <= maxDist and \
                 abs(a.geometry.radius - b.geometry.radius) <= maxDist 
+        elif type(a) == f.SketchFittedSpline and type(b) == f.SketchFittedSpline:
+            ptsA = a.fitPoints
+            ptsB = a.fitPoints 
+            result = abs(ptsA[0].geometry.x - ptsB[0].geometry.x) <= maxDist and \
+            abs(ptsA[0].geometry.y - ptsB[0].geometry.y) <= maxDist and \
+            abs(ptsA[1].geometry.x - ptsB[1].geometry.x) <= maxDist and \
+            abs(ptsA[1].geometry.y - ptsB[1].geometry.y) <= maxDist
         else:            
             result = abs(a.geometry.startPoint.x - b.geometry.startPoint.x) <= maxDist and \
                 abs(a.geometry.startPoint.y - b.geometry.startPoint.y) <= maxDist and \

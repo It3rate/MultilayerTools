@@ -1,4 +1,4 @@
-import adsk.core, adsk.fusion, adsk.cam, traceback
+import adsk.core, adsk.fusion, adsk.cam, traceback, os
 import tkinter as tk
 
 __decimalPlaces__ = 6
@@ -65,6 +65,7 @@ class TurtleUtils:
 
     @classmethod
     def getClipboardText(cls):
+        result = ""
         # f = open("sketchData.txt", "w")
         # f.write(result)
         # f.close()
@@ -73,13 +74,15 @@ class TurtleUtils:
         root = tk.Tk()
         root.withdraw()
         try:
+            #result = root.selection_get(selection = "CLIPBOARD") 
             result = root.clipboard_get()
+            root.update()
             # this clipboard is quite flakey, without this text can be on the clipboard but not detected
-            #cls.clearClipboardText()
+            # cls.clearClipboardText()
             #cls.setClipboardText(result) 
         except tk.TclError:
-            #print(traceback.format_exc())
-            result = ""
+            #pass
+            print(traceback.format_exc())
         return result
 
     @classmethod

@@ -142,7 +142,6 @@ class PasteSketchCommand(TurtleUICommand):
       
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
         eventArgs.areInputsValid = True if self.sketch else False
-        print("isValid: " + str(eventArgs.areInputsValid))
         
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.onExecute(eventArgs)
@@ -152,7 +151,6 @@ class PasteSketchCommand(TurtleUICommand):
                 ui.activeSelections.add(self.sketch.profiles[profileIndex])
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
-        print("exe")
         self._ensureSketchData()
         flipX = self.flipHSelection.value
         flipY = self.flipVSelection.value
