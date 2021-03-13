@@ -3,13 +3,12 @@ import adsk.core, adsk.fusion, adsk.cam, traceback
 import os, math, re, sys
 from collections.abc import Iterable
 from .TurtleUtils import TurtleUtils
-from .TurtleComponent import TurtleComponent
 from .TurtleSketch import TurtleSketch
 from .TurtleParams import TurtleParams
 from .TurtlePath import TurtlePath
-from .TurtleLayers import TurtleLayers
 
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
+
 
 class SketchEncoder:
     def __init__(self, sketch:f.Sketch = None, guideline:f.SketchLine = None, namedProfiles = {}):
@@ -32,6 +31,7 @@ class SketchEncoder:
         self.chains = []
         self.constraints = {}
         self.dimensions = {}
+        self.profiles = {}
         
         # python seems to not compare sys.float_info.min well
         self.bounds = [core.Point2D.create(float("inf"), float("inf")), core.Point2D.create(float("-inf"), float("-inf"))]
@@ -61,6 +61,7 @@ class SketchEncoder:
 
         self.parseAllConstraints()
         self.parseAllDimensions()
+        self.parseAllProfiles()
 
 
     def encodeAll(self):
@@ -70,6 +71,7 @@ class SketchEncoder:
         self.data["Chains"] = self.chains
         self.data["Constraints"] = self.constraints.values()
         self.data["Dimensions"] = self.dimensions.values()
+        self.data["ProfileCentroids"] = self.profiles.values()
 
         result = "#Turtle Generated Data\n{\n"
         result += "\'CoordinateSystem\':" + self.encodeList(self.sketch.transform.asArray(), False, 4) + ",\n"
@@ -87,6 +89,8 @@ class SketchEncoder:
         else: 
             result += "\'Guideline\':[],\n" 
             
+        #result += "\'ProfileCentroids\':" + self.encodeList(self.data["ProfileCentroids"]) + ",\n" 
+        result += "\'ProfileCentroids\':[\n" + self.encodePoints(*self.data["ProfileCentroids"]) + "\n],\n"
         result += "\'NamedProfiles\':{\n" + self.encodeNamedProfiles() + "\n}\n"
 
         result += "}\n\n"
@@ -141,7 +145,11 @@ class SketchEncoder:
             if edim != "":
                 self.dimensions[dim.entityToken] = edim
     
-
+    def parseAllProfiles(self):
+        for profile in self.sketch.profiles:
+            enc = self.encodeProfile(profile)
+            if enc != "":
+                self.profiles[profile.entityToken] = enc
 
     def appendConnectedCurves(self, baseLine:f.SketchLine, tokens:list):
         connected = self.sketch.findConnectedCurves(baseLine)
@@ -183,10 +191,13 @@ class SketchEncoder:
             result += "C" + self.encodeEntities(curve.centerSketchPoint) + self.encodeExpression(curve.radius)
         elif tp is f.SketchEllipse:
             result += "E" + self.encodeEntities(curve.centerSketchPoint, curve.majorAxisLine.startSketchPoint, curve.minorAxisLine.startSketchPoint)
+        elif tp is f.SketchEllipticalArc:
+            # todo: only way to do this in the API is create an ellipse and trim
+            result += "P" + self.encodeEntities(curve.centerSketchPoint, curve.majorAxis, curve.startSketchPoint)
         elif tp is f.SketchConicCurve:
             result += "O" + self.encodeEntities(curve.startSketchPoint, curve.apexSketchPoint, curve.endSketchPoint) + self.encodeExpressions(curve.length)
         elif tp is f.SketchFittedSpline:
-            #note: control point splines are not supported, only fixed point splines work.
+            #note: control point splines are not supported in the Fusion API, so only fixed point splines will work here.
             result += "S" + self.encodeEntities(curve.fitPoints) + self.encodeEnum(curve.isClosed) 
         else: 
             print("*** Curve not parsed: " + str(tp))
@@ -282,6 +293,10 @@ class SketchEncoder:
             print("*** Dimension not parsed: " + str(tp))
 
         return result
+
+    def encodeProfile(self, profile:f.Profile):
+        centroid:core.Point3D = profile.areaProperties().centroid
+        return centroid
 
     def encodeList(self, items, asStrings = True, lineStep = 5):
         result = "[" if lineStep == 0 else "[\n"
@@ -461,6 +476,8 @@ class SketchEncoder:
         return "\n".join(result)
         
     def encodeNamedProfiles(self):
+        # This encodes by index, which 'usually' works, but need a more robust system.
+        # todo: try adding centroid information to the profile - that should be valid until adding dimensions.
         result = ""
         comma = ""
         for p in self.namedProfiles:

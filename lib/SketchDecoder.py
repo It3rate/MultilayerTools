@@ -3,11 +3,9 @@ import adsk.core, adsk.fusion, adsk.cam, traceback
 import os, math, re, ast
 from collections.abc import Iterable
 from .TurtleUtils import TurtleUtils
-from .TurtleComponent import TurtleComponent
 from .TurtleSketch import TurtleSketch
 from .TurtleParams import TurtleParams
 from .TurtlePath import TurtlePath
-from .TurtleLayers import TurtleLayers
 
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
@@ -59,8 +57,7 @@ class SketchDecoder:
             return
         
         self.sketch.isComputeDeferred = True
-        self.tcomponent = TurtleComponent.createFromSketch(self.sketch)
-        self.tsketch = self.tcomponent.activeSketch
+        self.tsketch = TurtleSketch.createWithSketch(self.sketch)
         self.tparams = TurtleParams.instance()
 
         self.guideIndex = -1
@@ -80,7 +77,9 @@ class SketchDecoder:
         self.chainValues = data["Chains"] if "Chains" in data else []
         self.constraintValues = data["Constraints"] if "Constraints" in data else []
         self.dimensionValues = data["Dimensions"] if "Dimensions" in data else []
-        self.namedProfiles = data["NamedProfiles"] if "NamedProfiles" in data else {}
+        self.profileCentroids = data["ProfileCentroids"] if "ProfileCentroids" in data else []
+        self.orgNamedProfiles = data["NamedProfiles"] if "NamedProfiles" in data else {}
+        self.namedProfiles = self.orgNamedProfiles.copy()
         self.assessDimensionNames()
 
     def decodeFromSketch(self):
@@ -92,6 +91,8 @@ class SketchDecoder:
         self.constraints = self.generateConstraints(self.constraintValues)
         for name in self.params:
             self.addUserParam(name)
+
+        self.profileMap = self.mapProfiles(self.profileCentroids)
 
         self.dimensions = self.generateDimensions(self.dimensionValues)
     
@@ -355,6 +356,40 @@ class SketchDecoder:
                 print("Unable to generate constraint: " + con)
             index += 1
         return result
+
+
+    def mapProfiles(self, profileCentroids):
+        if len(profileCentroids) != len(self.sketch.profiles):
+            return
+        # map data centroids to current transform, preserve data indexes
+        dataCentroids = self.pt = self.asPoint3Ds(profileCentroids)
+        # make indexed table of current sketch profile centroids
+        # map two tables based on distance diff of centroids
+        # adjust namedProfile indexes to reflect new sketch indexes. 
+        # Convert to entity IDs rather than indexes if final parm transforms are too disruptive (if helpful)
+        dataToSketchMap = [-1] * len(dataCentroids)
+        for sketchProfileIndex, profile in enumerate(self.sketch.profiles):
+            centroid = profile.areaProperties().centroid
+            minDist = 99999.0
+            mapIndex = 0
+            for i, dc in enumerate(dataCentroids):
+                if dc:
+                    dist = centroid.distanceTo(dc)
+                    if dist < minDist:
+                        mapIndex = i
+                        minDist = dist
+            dataToSketchMap[mapIndex] = sketchProfileIndex
+            dataCentroids[mapIndex] = None
+        
+        print(dataToSketchMap)
+        self.namedProfiles = self.orgNamedProfiles.copy()
+        for indexArray in self.namedProfiles.values():
+            for i, index in enumerate(indexArray):
+                indexArray[i] = dataToSketchMap[index]
+
+        return dataToSketchMap
+
+
 
 
 
