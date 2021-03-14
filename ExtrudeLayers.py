@@ -32,12 +32,12 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         try:
             inputs = eventArgs.inputs
             cmdInput = eventArgs.input
-            id = cmdInput.id
+            cmdId = cmdInput.id
             isLayerTable = cmdInput.parentCommandInput and cmdInput.parentCommandInput.id == "tbLayers"
             rowIndex = -1
             
-            if id.startswith("MaterialInput"):
-                rowIndex = int(id[-1])
+            if cmdId.startswith("MaterialInput"):
+                rowIndex = int(cmdId[-1])
                 ddIndex = cmdInput.selectedItem.index
                 state = self.stateTable[rowIndex]
                 state[0] = ddIndex
@@ -45,39 +45,41 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                 state[1] = thicknessValue
                 self._updateLayer(rowIndex)
 
-            elif id.startswith("MaterialThickness"):
-                rowIndex = int(id[-1])
+            elif cmdId.startswith("MaterialThickness"):
+                rowIndex = int(cmdId[-1])
                 if cmdInput.isValidExpression:
                     state = self.stateTable[rowIndex]
+                    _ = cmdInput.value # Note: expression is not updated until value is read
                     val = cmdInput.expression
                     if val != state[1]:
-                        state[1] = cmdInput.expression
+                        state[1] = val
                         # When two layers use the same material, an update in thickness should effect both.
                         changes = self.updateValues(rowIndex, state[0], state[1])
                         for index in changes:
                             self._updateLayer(index)
+                #eventArgs.inputs.command.doExecutePreview()
 
-            elif id.startswith("Lock"):
-                rowIndex = int(id[-1])
+            elif cmdId.startswith("Lock"):
+                rowIndex = int(cmdId[-1])
                 self.stateTable[rowIndex][2] = False
                 # ddItem = inputs.itemById("MaterialInput" + str(rowIndex))
                 # ddChoice = ddItem.selectedItem.index
                 self._updateLayer(rowIndex)
 
-            elif id.startswith("Unlock"):
-                rowIndex = int(id[-1])
+            elif cmdId.startswith("Unlock"):
+                rowIndex = int(cmdId[-1])
                 self.stateTable[rowIndex][2] = True
                 # ddItem = inputs.itemById("MaterialInput" + str(rowIndex))
                 # ddChoice = ddItem.selectedItem.index
                 self._updateLayer(rowIndex)
 
-            elif id == 'tableAdd':
+            elif cmdId == 'tableAdd':
                 if len(self.stateTable) < 6:
                     self._addLayer(len(self.stateTable))
                 if len(self.stateTable) >= 6:
                     cmdInput.isEnabled = False
 
-            elif id == 'tableDelete':
+            elif cmdId == 'tableDelete':
                 if self.tbLayers.selectedRow == -1:
                     ui.messageBox('Select one row to delete.')
                 else:
@@ -86,7 +88,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                     self.stateTable.pop(selectedIndex)
                     cmdInput.isEnabled = True
                     
-            if not id.startswith("MaterialThickness"):
+            if not cmdId.startswith("MaterialThickness"):
                 self.updateLocks(rowIndex)
             
         except:
@@ -114,16 +116,19 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
     #     print("up")
     # def onComputeCustomFeature(self, eventArgs:f.CustomFeatureEventArgs):
     #     print("compute")
-
+    # def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
+    #     pass
+    # def onActivate(self, eventArgs:core.CommandCreatedEventArgs):
+    #     pass
+    
     def onKeyUp(self, eventArgs:core.KeyboardEventArgs):
         if eventArgs.keyCode == core.KeyCodes.EnterKeyCode or eventArgs.keyCode == core.KeyCodes.ReturnKeyCode:
             self.updateLocks()
 
-    def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
-        pass
-        
     def onPreview(self, eventArgs:core.CommandEventArgs):
+        print("preview")
         self._execute(eventArgs)
+        eventArgs.isValidResult = True
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self._execute(eventArgs)
@@ -131,9 +136,6 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         if len(self.selectedProfiles) > 0:
             self.selectedProfiles[0].parentSketch.isVisible = self.hideSketchAfterCommand
 
-    
-    def onActivate(self, eventArgs:core.CommandCreatedEventArgs):
-        pass
     
     # Custom Feature
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):

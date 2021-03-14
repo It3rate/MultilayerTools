@@ -51,13 +51,13 @@ class TurtleParams:
     def createValue(self, val, unitKind=""):
         units = self.curUnits if unitKind=="" else unitKind
         if isinstance(val, str):
-            return adsk.core.ValueInput.createByString(val)
+            return core.ValueInput.createByString(val)
         elif isinstance(val, (int, float)):
-            return adsk.core.ValueInput.createByString(str(val) + units)
+            return core.ValueInput.createByString(str(val) + units)
         elif isinstance(val, bool):
-            return adsk.core.ValueInput.createByBoolean(val)
+            return core.ValueInput.createByBoolean(val)
         else:
-            return adsk.core.ValueInput.createByObject(val)
+            return core.ValueInput.createByObject(val)
 
     def getUserParams(self):
         result = {}

@@ -145,6 +145,7 @@ class PasteSketchCommand(TurtleUICommand):
             indexList = list(self.decoder.namedProfiles.values())
             for profileIndex in indexList[self.selectedProfileIndex]:
                 ui.activeSelections.add(self.sketch.profiles[profileIndex])
+        eventArgs.isValidResult = True
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self._ensureSketchData()
