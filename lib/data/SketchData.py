@@ -51,9 +51,9 @@ class SketchData:
 [2.956457,-3.130049],	[3.212078,-3.53174]
 ],
 'NamedProfiles':{
-    'Profile 0':[1, 0, 5],
-    'Profile 1':[4, 3, 6],
-    'Profile 2':[1, 2, 0, 3]
+    'Insides':[1, 0, 5],
+    'Outsides':[4, 3, 6],
+    '4P Circle':[1, 2, 0, 3]
 }
 }
 

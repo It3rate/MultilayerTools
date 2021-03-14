@@ -10,7 +10,7 @@ from .TurtlePath import TurtlePath
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
 
-class SketchEncoder:
+class TurtleEncoder:
     def __init__(self, sketch:f.Sketch = None, guideline:f.SketchLine = None, namedProfiles = {}):
         
         self.guideline = guideline

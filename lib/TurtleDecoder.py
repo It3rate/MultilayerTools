@@ -9,7 +9,7 @@ from .TurtlePath import TurtlePath
 
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
-class SketchDecoder:
+class TurtleDecoder:
 
     def __init__(self, flipX = False, flipY = False):
         self.flipX = flipX
@@ -20,14 +20,14 @@ class SketchDecoder:
 
     @classmethod
     def create(cls, data, flipX = False, flipY = False):
-        decoder = SketchDecoder()
+        decoder = TurtleDecoder()
         decoder.guideline = self.tsketch.getSingleConstructionLine()
         decoder.run(data)
         return decoder
 
     @classmethod
     def createWithTransform(cls, data, transform:core.Matrix3D, flipX = False, flipY = False):
-        decoder = SketchDecoder(flipX, flipY)
+        decoder = TurtleDecoder(flipX, flipY)
         # It doesn't make sense to map transforms, as the sketch transform in fusion isn't constant.
         # Tt will be based on where the camera is when entering the sketch, so just use identity, and allow flipping.
         decoder.transform = transform
@@ -37,14 +37,14 @@ class SketchDecoder:
 
     @classmethod
     def createWithSketch(cls, data, sketch:f.Sketch, flipX = False, flipY = False):
-        decoder = SketchDecoder(flipX, flipY)
+        decoder = TurtleDecoder(flipX, flipY)
         decoder.sketch = sketch
         decoder.run(data)
         return decoder
 
     @classmethod
     def createWithGuideline(cls, data, guideline:f.SketchLine, flipX = False, flipY = False):
-        decoder = SketchDecoder(flipX, flipY)
+        decoder = TurtleDecoder(flipX, flipY)
         decoder.guideline = guideline
         decoder.sketch:f.Sketch = guideline.parentSketch
         decoder.run(data)
@@ -92,9 +92,8 @@ class SketchDecoder:
         for name in self.params:
             self.addUserParam(name)
 
-        self.profileMap = self.mapProfiles(self.profileCentroids)
-
         self.dimensions = self.generateDimensions(self.dimensionValues)
+        self.profileMap = self.mapProfiles(self.profileCentroids)
     
     def addUserParam(self, name, currentDimIndex:int = -1):
         forwardRefs = []
@@ -246,6 +245,8 @@ class SketchDecoder:
                         curve.isConstruction = isConstruction
                         curve.isFixed = isFixed
                         result.append(curve)
+                        if curve != self.guideline:
+                             curve.attributes.add("Turtle", "generated", str(len(result) - 1))
                 except:
                     print(seg + ' Curve Generation Failed:\n{}'.format(traceback.format_exc()))
         return result
@@ -368,6 +369,7 @@ class SketchDecoder:
         # adjust namedProfile indexes to reflect new sketch indexes. 
         # Convert to entity IDs rather than indexes if final parm transforms are too disruptive (if helpful)
         dataToSketchMap = [-1] * len(dataCentroids)
+        logMinDists = []
         for sketchProfileIndex, profile in enumerate(self.sketch.profiles):
             centroid = profile.areaProperties().centroid
             minDist = 99999.0
@@ -380,12 +382,14 @@ class SketchDecoder:
                         minDist = dist
             dataToSketchMap[mapIndex] = sketchProfileIndex
             dataCentroids[mapIndex] = None
+            logMinDists.append(minDist)
         
-        print(dataToSketchMap)
-        self.namedProfiles = self.orgNamedProfiles.copy()
-        for indexArray in self.namedProfiles.values():
-            for i, index in enumerate(indexArray):
-                indexArray[i] = dataToSketchMap[index]
+        self.namedProfiles = {}
+        for key in self.orgNamedProfiles:
+            mappedIndexes = []
+            for index in self.orgNamedProfiles[key]:
+                mappedIndexes.append(dataToSketchMap[index])
+            self.namedProfiles[key] = mappedIndexes
 
         return dataToSketchMap
 

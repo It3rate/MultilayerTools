@@ -5,7 +5,7 @@ import adsk.core, adsk.fusion, traceback
 from .lib.TurtleUtils import TurtleUtils
 from .lib.TurtleUICommand import TurtleUICommand
 from .lib.TurtleSketch import TurtleSketch
-from .lib.SketchDecoder import SketchDecoder
+from .lib.TurtleDecoder import TurtleDecoder
 from .lib.data.SketchData import SketchData
 
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
@@ -85,45 +85,31 @@ class PasteSketchCommand(TurtleUICommand):
             cmdInput = eventArgs.input
             if cmdInput.id == 'selGuideline':
                 if cmdInput.selectionCount > 0:
-                    self.guideline = cmdInput.selection(0).entity
-                    self.sketch = self.guideline.parentSketch
-                    if self.sketchSelection.selectionCount == 0 or self.sketchSelection.selection(0) != self.sketch:
-                        self.sketchSelection.clearSelection()
-                        self.sketchSelection.addSelection(self.sketch)
+                    guide = cmdInput.selection(0).entity
+                    if not guide.attributes.itemByName("Turtle", "generated"): # can use own drawn line as guideline
+                        self.guideline = cmdInput.selection(0).entity
+                        self.sketch = self.guideline.parentSketch
+                    else:
+                        self.guideline = None
                 else:
                     self.guideline = None
-                self._resetUI()
 
             elif cmdInput.id == 'selSketch':
                 if self.sketchSelection.selectionCount > 0:
                     self.sketch = cmdInput.selection(0).entity
                     if(self.guideline and self.guideline.parentSketch != self.sketch):
                         self.guideline = None
-                        self.guidelineSelection.clearSelection()
                 else:
                     self.sketch = None
                     self.guideline = None
-                    self.guidelineSelection.clearSelection()
-                self._resetUI()
 
             elif cmdInput.id == 'radioProfiles':
                 self.selectedProfileIndex = cmdInput.selectedItem.index
-                if self.guideline:
-                    self.guidelineSelection.clearSelection() # required to trigger preview
-                    self.guidelineSelection.addSelection(self.guideline)
-                else:
-                    self.guidelineSelection.clearSelection() # required to trigger preview
-                    if self.sketch:
-                        self.sketchSelection.clearSelection()
-                        self.sketchSelection = self.sketchSelection
-                    else:
-                        self.sketchSelection.clearSelection()
 
             elif cmdInput.id == 'APITabBar':
                 self.tabIndex = 1 if self.tabIndex == 0 else 0 # not sure to tell which tab was clicked?
                 if self.tabIndex == 0:
                     self._resetSelections()
-                    self._resetUI()
                 else:
                     self._updateProfiles()
                     
@@ -136,13 +122,23 @@ class PasteSketchCommand(TurtleUICommand):
                         textData = SketchData.loadData(filename)
                         self.data = eval(textData)
                     self.btLoadText.listItems.clear()
+            
+            self._resetUI()
                 
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
       
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
-        eventArgs.areInputsValid = True if self.sketch else False
-        
+        # Can't turn off OK button here or preview won't run
+        eventArgs.areInputsValid = True if self.sketch else False # and self.tabIndex == 0 else False
+
+    def onPreSelect(self, eventArgs:core.SelectionEventArgs):
+        sel = eventArgs.selection.entity
+        # never allow selecting guidelines that are self drawn
+        if type(sel) == f.SketchLine and sel.attributes.itemByName("Turtle", "generated"):
+            eventArgs.isSelectable = False
+            eventArgs.additionalEntities.add(sel)
+
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.onExecute(eventArgs)
         if self.tabIndex == 1 and self.decoder and len(self.decoder.namedProfiles) > 0:
@@ -155,14 +151,18 @@ class PasteSketchCommand(TurtleUICommand):
         flipX = self.flipHSelection.value
         flipY = self.flipVSelection.value
         if self.guideline:
-            self.decoder = SketchDecoder.createWithGuideline(self.data, self.guideline, flipX, flipY)
+            self.decoder = TurtleDecoder.createWithGuideline(self.data, self.guideline, flipX, flipY)
         elif self.sketch:
-            self.decoder = SketchDecoder.createWithSketch(self.data, self.sketch, flipX, flipY)
+            self.decoder = TurtleDecoder.createWithSketch(self.data, self.sketch, flipX, flipY)
+
 
     def _resetSelections(self):
         ui.activeSelections.clear()
         self.guidelineSelection.clearSelection()
         self.sketchSelection.clearSelection()
+        if self.guideline and not self.guideline.isValid:
+            self.guideline = None
+
         if self.guideline:
             self.guidelineSelection.addSelection(self.guideline)
         elif self.sketch:
@@ -199,6 +199,19 @@ class PasteSketchCommand(TurtleUICommand):
         else:
             self.flipHSelection.isEnabled = False
             self.flipVSelection.isEnabled = False
+
+        # not sure of a better way to do this...
+        # on the second tab, the first tab's selection is still updated and deselected etc, so things will not redraw without this
+        if self.guideline:
+            self.guidelineSelection.clearSelection() 
+            self.guidelineSelection.addSelection(self.guideline)
+        else:
+            self.guidelineSelection.clearSelection() 
+            if self.sketch:
+                self.sketchSelection.clearSelection()
+                self.sketchSelection.addSelection(self.sketch)
+            else:
+                self.sketchSelection.clearSelection()
 
     def _loadSketch(self):
         result = ""

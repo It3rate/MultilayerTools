@@ -5,7 +5,7 @@ import adsk.core, adsk.fusion, traceback
 from .lib.TurtleUtils import TurtleUtils
 from .lib.TurtleUICommand import TurtleUICommand
 from .lib.TurtleSketch import TurtleSketch
-from .lib.SketchEncoder import SketchEncoder
+from .lib.TurtleEncoder import TurtleEncoder
 from .lib.data.SketchData import SketchData
 
 f,core,app,ui,design,root = TurtleUtils.initGlobals()
@@ -79,8 +79,8 @@ class CopySketchCommand(TurtleUICommand):
             for i in range(20):
                 self._createLayer(inputs, "Profile " + str(i))
 
-            loadGroup = inputs.addGroupCommandInput("saveGroup", "Save To Disk")
-            self.btSaveText = loadGroup.children.addButtonRowCommandInput("btSaveText", "Save Sketch", False)
+            saveGroup = inputs.addGroupCommandInput("saveGroup", "Save To Disk")
+            self.btSaveText = saveGroup.children.addButtonRowCommandInput("btSaveText", "Save Sketch", False)
             self.btSaveText.listItems.add('Save Sketch', False, 'resources/ddwPasteSketchId')
 
             self._resetUI()
@@ -128,7 +128,7 @@ class CopySketchCommand(TurtleUICommand):
                     filename = self._saveSketch()
                     if filename != "":
                         np = self._getNamedProfiles()
-                        enc = SketchEncoder(self.sketch, self.guideline, np)
+                        enc = TurtleEncoder(self.sketch, self.guideline, np)
                         SketchData.saveData(filename, enc.encodedSketch)
                     self.btSaveText.listItems.clear()
                 
@@ -179,7 +179,7 @@ class CopySketchCommand(TurtleUICommand):
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         np = self._getNamedProfiles()
-        enc = SketchEncoder(self.sketch, self.guideline, np)
+        enc = TurtleEncoder(self.sketch, self.guideline, np)
     
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
         eventArgs.areInputsValid = self.sketch
