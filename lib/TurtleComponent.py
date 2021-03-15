@@ -22,6 +22,12 @@ class TurtleComponent:
         self.__wrapExistingSketches()
 
     @classmethod
+    def createFromParent(cls, parentComponent:f.Component, name:str):
+        comp = cls.createComponent(parentComponent, name) 
+        result = cls(comp)
+        return result
+
+    @classmethod
     def createFromSketch(cls, sketch:f.Sketch):
         result = cls(sketch.parentComponent)
         return result

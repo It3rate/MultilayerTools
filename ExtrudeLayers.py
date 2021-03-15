@@ -20,6 +20,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         targetPanels = self.getTargetPanels()
         self.sketch = None
         self.hideSketchAfterCommand = False
+        self.isPreview = False
         super().__init__(cmdId, cmdName, cmdDescription, True, targetPanels)
 
     def getTargetPanels(self):
@@ -87,7 +88,11 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                     self.tbLayers.deleteRow(selectedIndex)
                     self.stateTable.pop(selectedIndex)
                     cmdInput.isEnabled = True
-                    
+
+            elif cmdId == 'ddOperation':
+                self.opType = cmdInput.selectedItem.index
+                print(str(self.opType) + " : " + cmdInput.selectedItem.name)
+
             if not cmdId.startswith("MaterialThickness"):
                 self.updateLocks(rowIndex)
             
@@ -126,9 +131,10 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             self.updateLocks()
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
-        print("preview")
+        self.isPreview = True
         self._execute(eventArgs)
         eventArgs.isValidResult = True
+        self.isPreview = False
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self._execute(eventArgs)
@@ -225,6 +231,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             ddOperation.listItems.add("Intersect", False, 'resources/BooleanIntersect')
             ddOperation.listItems.add("New Body", True, 'resources/BooleanNewBody')
             ddOperation.listItems.add("New Component", False, 'resources/BooleanNewComponent')
+            self.opType = 3
             #                       --- Objects to cut/merge/intersect
 
             grObjectToCut = inputs.addGroupCommandInput("grObjectsToCut", "Objects to Cut")
@@ -249,7 +256,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         for state in self.stateTable:
             distances.append(self.thicknessParamNames[state[0]]) # use param names for final extrude thickness
         
-        tLayers = self._extrude(self.selectedProfiles, distances)
+        tLayers = self._extrude(distances)
 
         if self.isCustomCommand:
             comp:f.Component = tLayers.tcomponent.component
@@ -289,16 +296,29 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
 
         return tLayers
 
-    def _extrude(self, profiles, distances):
-        #profiles = self.profilesSelection.selection
-        sketch = profiles[0].parentSketch
-        comp:TurtleComponent = TurtleComponent.createFromSketch(sketch)
+    def _getComponent(self):
+        tComp = None
+        sketch = None
+        if len(self.selectedProfiles) > 0:
+            sketch = self.selectedProfiles[0].parentSketch
+            if self.opType <= 3: # new bodies
+                tComp = TurtleComponent.createFromSketch(sketch)
+            elif self.opType == 4: # new Component
+                comp = design.activeComponent
+                nextIndex = comp.occurrences.count + 1
+                tComp = TurtleComponent.createFromParent(comp, "LayeredComp" + str(nextIndex)) 
+        return sketch, tComp
+
+    def _extrude(self, distances):
+        sketch, comp = self._getComponent()
+        # sketch = self.selectedProfiles[0].parentSketch
+        # comp:TurtleComponent = self. TurtleComponent.createFromSketch(sketch)
         count = len(self.stateTable)
         appearanceList = [state[0] for state in self.stateTable]
         if self.reversed.value:
             distances.reverse()
             appearanceList.reverse()
-        result = comp.createLayers([profiles], distances, count, self.flipDirection.value, appearanceList)
+        result = comp.createLayers([self.selectedProfiles], distances, count, self.flipDirection.value, appearanceList)
         self.hideSketchAfterCommand = sketch.isVisible
         sketch.isVisible = True
         return result
