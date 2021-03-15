@@ -210,8 +210,25 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
 
             # * maybe not: Start (Profile Plane, Offset, Object)
             # Direction (One Side, Two Sides, Symmetric)
-            # Operation (new bodies --- cut merge into existing, intersect existing)
+
+            img = inputs.addImageCommandInput("sep0", "-", 'resources/Separator/sep.png')
+            img.isFullWidth = True
+            # grOperation = inputs.addGroupCommandInput("grOperation", "")
+            # grOperation.isEnabledCheckBoxChecked = False
+            # grOperation.isEnabledCheckBoxDisplayed = False
+            # grOperation.isFullWidth = True
+            # grOperation.isEnabled = False
+
+            ddOperation = inputs.addDropDownCommandInput("ddOperation", "Operation",  core.DropDownStyles.LabeledIconDropDownStyle)
+            ddOperation.listItems.add("Join", False, 'resources/BooleanAdd')
+            ddOperation.listItems.add("Cut", False, 'resources/BooleanSubtract')
+            ddOperation.listItems.add("Intersect", False, 'resources/BooleanIntersect')
+            ddOperation.listItems.add("New Body", True, 'resources/BooleanNewBody')
+            ddOperation.listItems.add("New Component", False, 'resources/BooleanNewComponent')
             #                       --- Objects to cut/merge/intersect
+
+            grObjectToCut = inputs.addGroupCommandInput("grObjectsToCut", "Objects to Cut")
+            grObjectToCut.isVisible = False
 
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))

@@ -77,7 +77,7 @@ class TurtleComponent:
         result = self.component.constructionPlanes.add(planeInput)
         return result
 
-    def extrude(self, profile, start, expression, isFlipped = False):
+    def extrude(self, profile, start, expression, isFlipped = False) -> f.ExtrudeFeature:
         if profile is None:
             return
         extrudes = self.component.features.extrudeFeatures

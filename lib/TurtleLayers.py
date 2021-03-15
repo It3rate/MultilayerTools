@@ -27,19 +27,28 @@ class TurtleLayers(list):
         self.extrudes = self._extrudeAllLayers()
         self.extend(self.extrudes)
 
+        self.component.attributes.add("Turtle", "layers", str(self.layerCount))
+
     def _extrudeAllLayers(self):
         extrudes = []
         startFace = 0
+        bodyCount = self.component.bRepBodies.count
         for i in range(self.layerCount):
             profileIndex = i if len(self.profiles) > i else len(self.profiles) - 1
             thicknessIndex = i if len(self.thicknesses) > i else len(self.thicknesses) - 1
             layerProfiles = TurtleUtils.ensureObjectCollection(self.profiles[profileIndex])
             self.sketch = layerProfiles[0].parentSketch
-            extruded = self.tcomponent.extrude(layerProfiles, startFace, self.thicknesses[thicknessIndex], self.isFlipped)
+            extruded:f.ExtrudeFeature = self.tcomponent.extrude(layerProfiles, startFace, self.thicknesses[thicknessIndex], self.isFlipped)
             if len(self.appearanceList) > i:
                 self.tcomponent.colorExtrudedBodiesByIndex(extruded, self.appearanceList[i])
             else:
                 self.tcomponent.colorExtrudedBodiesByThickness(extruded, self.thicknesses[thicknessIndex])
+
+            # mark layers with extrude index and body map
+            for body in extruded.bodies:
+                body.name = "L" + str(i) + "Body" + str(bodyCount)
+                body.attributes.add("Turtle", "layerBody", str(i)+ "_" + str(bodyCount))
+                bodyCount += 1
 
             extrudes.append(extruded)
             startFace = extruded.endFaces.item(0)
