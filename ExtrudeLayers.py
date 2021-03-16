@@ -153,21 +153,24 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         sketchDep = existingDependencies.itemById('sketch')
         if sketchDep:
             self.sketch = sketchDep.entity
-            self.sketchWasVisible = sketch.isVisible
+            self.sketchWasVisible = self.sketch.isVisible
             self.sketch.isVisible = True
 
+        usedProfiles = []
         for feature in self._editedCustomFeature.features:
             if type(feature) == f.ExtrudeFeature:
-                profiles = feature.profile
-                # single profiles are not in a collection
-                profiles = profiles if type(profiles) == core.ObjectCollection else [profiles]
-                for profile in profiles:
-                    try:
-                        # this should be here, it adds correctly, but throws an error
-                        self.profilesSelection.addSelection(profile)
-                    except:
-                        pass
-                        #print('Adding extrude error:\n{}'.format(traceback.format_exc()))
+                try:
+                    profiles = feature.profile # this can throw an error (if profile is used in other layers?)
+                    # single profiles are not in a collection
+                    profiles = profiles if type(profiles) == core.ObjectCollection else [profiles]
+                    for profile in profiles:
+                        # avoid adding the same profile more than once as each layer may reuse the same profile.
+                        if not profile in usedProfiles:
+                            self.profilesSelection.addSelection(profile)
+                            usedProfiles.append(profile)
+                except:
+                    pass
+                    #print('Adding extrude error:\n{}'.format(traceback.format_exc()))
         
     def onEditExecute(self, eventArgs:core.CommandEventArgs):
         self._execute(eventArgs)
@@ -202,7 +205,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
              # Note: more items than maxvisiblerows results in text not appearing correctly.
             self.tbLayers.maximumVisibleRows = 6
 
-            intitalLayers, isFlipped, isReversed = self._readDefaultLayerIndexes()
+            intitalLayers, isFlipped, isReversed, opType  = self._readDefaultLayerIndexes()
             for layerIndex in intitalLayers:
                 self._addLayer(layerIndex)
             
@@ -232,9 +235,10 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             ddOperation.listItems.add("Join", False, 'resources/BooleanAdd')
             ddOperation.listItems.add("Cut", False, 'resources/BooleanSubtract')
             ddOperation.listItems.add("Intersect", False, 'resources/BooleanIntersect')
-            ddOperation.listItems.add("New Body", True, 'resources/BooleanNewBody')
+            ddOperation.listItems.add("New Body", False, 'resources/BooleanNewBody')
             ddOperation.listItems.add("New Component", False, 'resources/BooleanNewComponent')
-            self.opType = 3
+            self.opType = opType
+            ddOperation.listItems[self.opType].isSelected = True
             #                       --- Objects to cut/merge/intersect
 
             self.grObjectToCut = inputs.addGroupCommandInput("grObjectsToCut", "Objects to Cut")
@@ -288,14 +292,21 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                 #profilesDep.entity = TurtleUtils.ensureObjectCollection(self.selectedProfiles)
                 customFeature = self._editedCustomFeature
             else:
-                custFeatInput = comp.features.customFeatures.createInput(self.customFeatureDef, tLayers.extrudes[0], tLayers.extrudes[-1])    
+                custFeatInput:f.CustomFeatureInput = comp.features.customFeatures.createInput(self.customFeatureDef, tLayers.extrudes[0], tLayers.extrudes[-1])    
                 custFeatInput.addDependency('sketch', self.selectedProfiles[0].parentSketch)
                 for i, profile in enumerate(self.selectedProfiles):
                     custFeatInput.addDependency('profile_' + str(i), profile)
-                customFeature = comp.features.customFeatures.add(custFeatInput) 
 
-            encoding = self._encodeDialogState()
-            customFeature.attributes.add("DialogState", "dialogEncoding", encoding)
+                val = adsk.core.ValueInput.createByString("0")                
+                custFeatInput.addCustomParameter('dialogEncoding', 'dialogEncoding', val, "", False)
+                
+                customFeature = comp.features.customFeatures.add(custFeatInput) 
+                param = customFeature.parameters.itemById('dialogEncoding')
+                param.comment = self._encodeDialogState()
+
+            # encoding = self._encodeDialogState()
+            # customFeature.attributes.add("DialogState", "dialogEncoding", encoding)
+            
 
         return tLayers
 
@@ -383,7 +394,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             comma = ","
         result += "], " + str(self.bFlipDirection.value) + "," + str(self.bReversed.value) + ","
         
-        result += str(self.opType) + ","
+        result += str(self.opType) + ""
         # result += "["
         # comma = ""
         # for profile in self.selectedProfiles:
@@ -408,12 +419,14 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
 
     def _readDefaultLayerIndexes(self):
         if self.isEditMode:
-            attr = self._editedCustomFeature.attributes.itemByName("DialogState","dialogEncoding")
+            attr = self._editedCustomFeature.parameters.itemById('dialogEncoding').comment
+            #attr = self._editedCustomFeature.attributes.itemByName("DialogState","dialogEncoding")
         else:
             attr = app.activeDocument.attributes.itemByName("ExtrudeLayers", "defaultLayerIndexes")
+            attr = attr.value if attr else None
 
         if attr:
-            result = self._decodeDialogState(attr.value)
+            result = self._decodeDialogState(attr)
         else:
-            result = ([0,1,0], False, False)
+            result = ([0,1,0], False, False, 3)
         return result
