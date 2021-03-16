@@ -17,14 +17,13 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         cmdId = 'ddwExtrudeLayersId'
         cmdName = 'Extrude Layers'
         cmdDescription = 'Extrudes a profile into multiple layer bodies of parameterized thicknesses. Can also be used to cut, intersect existing layered components.'
-        targetPanels = self.getTargetPanels()
         self.sketch = None
-        self.hideSketchAfterCommand = False
+        self.sketchWasVisible = True
         self.isPreview = False
-        super().__init__(cmdId, cmdName, cmdDescription, True, targetPanels)
+        super().__init__(cmdId, cmdName, cmdDescription)
 
     def getTargetPanels(self):
-        return ui.allToolbarPanels.itemById('SolidCreatePanel'), ui.allToolbarPanels.itemById('SketchCreatePanel')
+        return [ui.allToolbarPanels.itemById('SolidCreatePanel'), ui.allToolbarPanels.itemById('SketchCreatePanel')]
 
     def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         self._createDialog(eventArgs.command.commandInputs)  
@@ -91,6 +90,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
 
             elif cmdId == 'ddOperation':
                 self.opType = cmdInput.selectedItem.index
+                self._resetUI()
                 print(str(self.opType) + " : " + cmdInput.selectedItem.name)
 
             if not cmdId.startswith("MaterialThickness"):
@@ -133,14 +133,15 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.isPreview = True
         self._execute(eventArgs)
-        eventArgs.isValidResult = True
+        eventArgs.isValidResult = False
         self.isPreview = False
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self._execute(eventArgs)
         self._writeDefaultLayerIndexes()
         if len(self.selectedProfiles) > 0:
-            self.selectedProfiles[0].parentSketch.isVisible = self.hideSketchAfterCommand
+            # When using an encoded or referenced sketch it may have been non visible (not currently doing that).
+            self.selectedProfiles[0].parentSketch.isVisible = self.sketchWasVisible
 
     
     # Custom Feature
@@ -152,6 +153,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         sketchDep = existingDependencies.itemById('sketch')
         if sketchDep:
             self.sketch = sketchDep.entity
+            self.sketchWasVisible = sketch.isVisible
             self.sketch.isVisible = True
 
         for feature in self._editedCustomFeature.features:
@@ -203,16 +205,17 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             intitalLayers, isFlipped, isReversed = self._readDefaultLayerIndexes()
             for layerIndex in intitalLayers:
                 self._addLayer(layerIndex)
-                
-            btAddItem = inputs.addBoolValueInput('tableAdd', 'Add', False, "resources/Add/", True)
-            self.tbLayers.addToolbarCommandInput(btAddItem)
-            btDeleteItem = inputs.addBoolValueInput('tableDelete', 'Delete', False, "resources/Remove/", True)
-            self.tbLayers.addToolbarCommandInput(btDeleteItem)
+            
+            tbInputs = self.tbLayers.commandInputs
+            self.btAddItem = tbInputs.addBoolValueInput('tableAdd', 'Add', False, "resources/Add/", True)
+            self.tbLayers.addToolbarCommandInput(self.btAddItem)
+            self.btDeleteItem = tbInputs.addBoolValueInput('tableDelete', 'Delete', False, "resources/Remove/", True)
+            self.tbLayers.addToolbarCommandInput(self.btDeleteItem)
             
             # Flip direction
-            self.flipDirection = inputs.addBoolValueInput('bFlip', 'Flip Direction', True, "resources/Flip/", isFlipped)
+            self.bFlipDirection = inputs.addBoolValueInput('bFlip', 'Flip Direction', True, "resources/Flip/", isFlipped)
             # Reverse Order
-            self.reversed = inputs.addBoolValueInput('bReverse', 'ReverseOrder', True, "resources/Reverse/", isReversed)
+            self.bReversed = inputs.addBoolValueInput('bReverse', 'ReverseOrder', True, "resources/Reverse/", isReversed)
 
             # * maybe not: Start (Profile Plane, Offset, Object)
             # Direction (One Side, Two Sides, Symmetric)
@@ -234,8 +237,8 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             self.opType = 3
             #                       --- Objects to cut/merge/intersect
 
-            grObjectToCut = inputs.addGroupCommandInput("grObjectsToCut", "Objects to Cut")
-            grObjectToCut.isVisible = False
+            self.grObjectToCut = inputs.addGroupCommandInput("grObjectsToCut", "Objects to Cut")
+            self.grObjectToCut.isVisible = False
 
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
@@ -311,15 +314,12 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
 
     def _extrude(self, distances):
         sketch, comp = self._getComponent()
-        # sketch = self.selectedProfiles[0].parentSketch
-        # comp:TurtleComponent = self. TurtleComponent.createFromSketch(sketch)
         count = len(self.stateTable)
         appearanceList = [state[0] for state in self.stateTable]
-        if self.reversed.value:
+        if self.bReversed.value:
             distances.reverse()
             appearanceList.reverse()
-        result = comp.createLayers([self.selectedProfiles], distances, count, self.flipDirection.value, appearanceList)
-        self.hideSketchAfterCommand = sketch.isVisible
+        result = comp.createLayers([self.selectedProfiles], distances, count, self.bFlipDirection.value, appearanceList)
         sketch.isVisible = True
         return result
 
@@ -343,7 +343,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         self.stateTable.append([ddChoice, thicknessValue, True])
          
     def _updateLayer(self, row):
-        if row < 0:
+        if row < 0 or not self.tbLayers.isVisible:
             return
         cmdInputs:core.CommandInputs = self.tbLayers.commandInputs
         ddIndex = self.stateTable[row][0]
@@ -362,6 +362,18 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         self.tbLayers.addCommandInput(valueInput, row, 1)
         self.tbLayers.addCommandInput(lockIcon, row, 2)
 
+    def _resetUI(self):
+        if self.opType == 3 or self.opType == 4: # new body or component
+            self.tbLayers.isVisible = True
+            self.bReversed.isVisible = True
+            self.bFlipDirection.isVisible = True
+            self.grObjectToCut.isVisible = False
+        else:
+            self.tbLayers.isVisible = False
+            self.bReversed.isVisible = False
+            self.bFlipDirection.isVisible = False
+            self.grObjectToCut.isVisible = True
+
     def _encodeDialogState(self):
         layerParamIndexes = [state[0] for state in self.stateTable] 
         result = "(["
@@ -369,8 +381,9 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         for index in layerParamIndexes:
             result += comma + str(index)
             comma = ","
-        result += "], " + str(self.flipDirection.value) + "," + str(self.reversed.value) + ","
-
+        result += "], " + str(self.bFlipDirection.value) + "," + str(self.bReversed.value) + ","
+        
+        result += str(self.opType) + ","
         # result += "["
         # comma = ""
         # for profile in self.selectedProfiles:

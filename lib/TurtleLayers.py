@@ -8,30 +8,46 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 
 class TurtleLayers(list):
     # pass lists, or optionally single elements if specifying layerCount. layerCount should match list sizes if one is passed.
-    def __init__(self, tcomponent:'TurtleComponent', profiles:list, thicknesses:list, layerCount:int = -1, isFlipped = False, appearanceList = []):
+    def __init__(self, tcomponent:'TurtleComponent'):
         self.tcomponent = tcomponent
         self.component = tcomponent.component
         self.parameters = TurtleParams.instance()
         self.sketch = None
 
+    @classmethod
+    def createFromExisting(cls, tcomponent:'TurtleComponent'):
+        result = cls(tcomponent)
+        attr = tcomponent.component.attributes.itemByName("Turtle", "layers")
+        if attr:
+            result.layerCount = int(attr)
+        else:
+            print("Can't map Turtle Layers to non Turtle component.")
+        return result
+
+    @classmethod
+    def createFromProfiles(cls, tcomponent:'TurtleComponent', profiles:list, thicknesses:list, layerCount:int = -1, isFlipped = False, appearanceList = []):
+        result = cls(tcomponent)
+
         isListProfiles = isinstance(profiles, list)
         isListThickness = isinstance(thicknesses, list)
         profileCount = len(profiles) if isListProfiles else 1
         thicknessCount = len(thicknesses) if isListThickness else 1
-        self.layerCount = layerCount if layerCount > 0 else max(profileCount, thicknessCount)
-        self.profiles = profiles if isListProfiles else [profiles] * self.layerCount
-        self.thicknesses = thicknesses if isListThickness else [thicknesses] * self.layerCount
-        self.isFlipped = isFlipped
-        self.appearanceList = appearanceList
+        result.layerCount = layerCount if layerCount > 0 else max(profileCount, thicknessCount)
+        result.profiles = profiles if isListProfiles else [profiles] * self.layerCount
+        result.thicknesses = thicknesses if isListThickness else [thicknesses] * self.layerCount
+        result.isFlipped = isFlipped
+        result.appearanceList = appearanceList
         
-        self.extrudes = self._extrudeAllLayers()
-        self.extend(self.extrudes)
+        result.extrudes = result._extrudeAllLayers()
+        result.extend(result.extrudes)
 
-        self.component.attributes.add("Turtle", "layers", str(self.layerCount))
+        result.component.attributes.add("Turtle", "layers", str(result.layerCount))
+
+        return result
 
     def _extrudeAllLayers(self):
         extrudes = []
-        startFace = 0
+        startFace = None # zero distance from profile plane is default, startFrom is not set
         bodyCount = self.component.bRepBodies.count
         for i in range(self.layerCount):
             profileIndex = i if len(self.profiles) > i else len(self.profiles) - 1
@@ -39,19 +55,26 @@ class TurtleLayers(list):
             layerProfiles = TurtleUtils.ensureObjectCollection(self.profiles[profileIndex])
             self.sketch = layerProfiles[0].parentSketch
             extruded:f.ExtrudeFeature = self.tcomponent.extrude(layerProfiles, startFace, self.thicknesses[thicknessIndex], self.isFlipped)
+
             if len(self.appearanceList) > i:
                 self.tcomponent.colorExtrudedBodiesByIndex(extruded, self.appearanceList[i])
             else:
                 self.tcomponent.colorExtrudedBodiesByThickness(extruded, self.thicknesses[thicknessIndex])
 
             # mark layers with extrude index and body map
+            start:f.BRepFace = startFace if startFace else extruded.startFaces[0]
             for body in extruded.bodies:
                 body.name = "L" + str(i) + "Body" + str(bodyCount)
-                body.attributes.add("Turtle", "layerBody", str(i)+ "_" + str(bodyCount))
+                body.attributes.add("Turtle", "givenName", body.name)
+                body.attributes.add("Turtle", "layerIndex", str(i))
+                body.attributes.add("Turtle", "bodyIndex", str(bodyCount))
+                body.attributes.add("Turtle", "startFace", start.entityToken)
+                body.attributes.add("Turtle", "thickness", str(self.thicknesses[thicknessIndex]))
+                body.attributes.add("Turtle", "isFlipped", str(self.isFlipped))
                 bodyCount += 1
 
             extrudes.append(extruded)
-            startFace = extruded.endFaces.item(0)
+            startFace = extruded.endFaces[0]
         return extrudes
 
     def __getitem__(self, item) -> f.ExtrudeFeature:

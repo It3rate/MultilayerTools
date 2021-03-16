@@ -38,7 +38,7 @@ class TurtleComponent:
         return result
 
     def createLayers(self,profiles:list, thicknesses:list, layerCount:int = 1, isFlipped = False, appearanceList:list = []):
-        return TurtleLayers(self, profiles, thicknesses, layerCount, isFlipped, appearanceList)
+        return TurtleLayers.createFromProfiles(self, profiles, thicknesses, layerCount, isFlipped, appearanceList)
 
     def __wrapExistingSketches(self):
         self._sketches = []

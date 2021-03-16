@@ -46,7 +46,7 @@ class JointMaker:
         self.createShelves()
     
     def createWalls(self, profile):
-        layers = TurtleLayers(self.baseComponent, profile, [pOUTER, pMID, pOUTER])
+        layers = TurtleLayers.createFromProfiles(self.baseComponent, profile, [pOUTER, pMID, pOUTER])
         # wall cuts
         outerWallSketch = self.baseComponent.createSketch(layers.startFaceAt(0), "outerWallSketch")
         outerProfile = self.drawWallOuterCuts(outerWallSketch)
@@ -106,7 +106,7 @@ class JointMaker:
 
         cutProfile = tsketch.getProfileAt(0)
         fullProfile = tsketch.combineProfiles()
-        layers = TurtleLayers(tcomp, [fullProfile,cutProfile,fullProfile], [pOUTER, pMID, pOUTER])
+        layers = TurtleLayers.createFromProfiles(tcomp, [fullProfile,cutProfile,fullProfile], [pOUTER, pMID, pOUTER])
         return layers
     
     

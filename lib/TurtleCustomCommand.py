@@ -8,16 +8,17 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 _handlers = []
 
 class TurtleCustomCommand(TurtleUICommand):
-    def __init__(self, cmdId:str, cmdName:str, cmdDesc:str, isCustomCommand:bool, *targetPanels):
-        super().__init__(cmdId, cmdName, cmdDesc, isCustomCommand, targetPanels)
+    def __init__(self, cmdId:str, cmdName:str, cmdDesc:str):
+        super().__init__(cmdId, cmdName, cmdDesc)
         self.isCustomCommand = True
+        self.isEditMode = False
+        self._editedCustomFeature = None
 
-        # Create the command definition for the edit command.
         self.editCommandDefinition = ui.commandDefinitions.itemById(self.cmdId + "_edit")
         if not self.editCommandDefinition:
             self.editCommandDefinition = ui.commandDefinitions.addButtonDefinition(self.cmdId + "_edit", cmdName, cmdDesc, self.resFolder)
 
-        editCreated = self.getEditCreatedHandler()
+        editCreated = self.getEditCreatedHandler() 
         self.editCommandDefinition.commandCreated.add(editCreated)
         _handlers.append(editCreated)
         
@@ -31,6 +32,10 @@ class TurtleCustomCommand(TurtleUICommand):
 
         adsk.autoTerminate(False)
         
+    # override to track edit mode for this command
+    def getCreatedHandler(self):
+        return BaseCustomCommandCreatedHandler(self)
+
     # custom features
     @baseMethod
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
@@ -59,15 +64,24 @@ class TurtleCustomCommand(TurtleUICommand):
     def getComputeCustomFeatureHandler(self):
         return BaseComputeCustomFeature(self)
         
-class BaseEditCreatedHandler(BaseCommandCreatedHandler): 
+class BaseCustomCommandCreatedHandler(BaseCommandCreatedHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__(turtleUICommand)
 
+    def notify(self, eventArgs):
+        self.turtleUICommand.isEditMode = False
+        super().notify(eventArgs)
+
+class BaseEditCreatedHandler(BaseCommandCreatedHandler): 
+    def __init__(self, turtleUICommand:TurtleUICommand):
+        super().__init__(turtleUICommand)
+        self.autoRun = False
+
     def notify(self, args):
+        self.turtleUICommand.isEditMode = True
         self.turtleUICommand._editedCustomFeature:f.CustomFeature = ui.activeSelections.item(0).entity
         if self.turtleUICommand._editedCustomFeature is None:
             print("No active custom feature.")
-        self.turtleUICommand.isEditMode = True
 
         super().notify(args)
 

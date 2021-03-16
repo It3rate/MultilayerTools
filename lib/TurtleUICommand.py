@@ -7,10 +7,9 @@ f,core,app,ui,design,root = TurtleUtils.initGlobals()
 _handlers = []
 
 class TurtleUICommand():
-    def __init__(self, cmdId:str, cmdName:str, cmdDesc:str, isCustomCommand:bool, *targetPanels):
+    def __init__(self, cmdId:str, cmdName:str, cmdDesc:str):
         super().__init__()
         self.cmdId = cmdId
-        self.targetPanels = targetPanels
         try:
             self.resFolder = "resources/" + self.cmdId 
 
@@ -59,7 +58,7 @@ class TurtleUICommand():
                 app.cameraChanged.add(onCameraChanged)
                 _handlers.append(onCameraChanged)
             
-            # todo: document events
+            # todo: f.document events
 
             self.isCustomCommand = False
             adsk.autoTerminate(False)
@@ -67,9 +66,8 @@ class TurtleUICommand():
             print('Failed:\n{}'.format(traceback.format_exc()))
 
     def getTargetPanels(self):
-        if not self.targetPanels:
-            self.targetPanels = [ui.allToolbarPanels.itemById('SolidScriptsAddinsPanel')]
-        return self.targetPanels
+        # override to place icons in different panel(s)
+        return [ui.allToolbarPanels.itemById('SolidScriptsAddinsPanel')]
 
     def createAddinUI(self):
         targetPanels = self.getTargetPanels()
@@ -323,10 +321,11 @@ class BaseCommandCreatedHandler(core.CommandCreatedEventHandler):
     def __init__(self, turtleUICommand:TurtleUICommand):
         super().__init__()
         self.turtleUICommand = turtleUICommand
-        self.turtleUICommand.isEditMode = False
-        self.turtleUICommand._editedCustomFeature = None
+        self.autoRun = True
+        # self.turtleUICommand._editedCustomFeature = None
 
     def notify(self, eventArgs):
+        #self.turtleUICommand.isEditMode = False
         cmd = eventArgs.command
 
         try:
@@ -451,12 +450,14 @@ class BaseCommandCreatedHandler(core.CommandCreatedEventHandler):
                 cmd.destroy.add(onDestroy)
                 _handlers.append(onDestroy)
 
-            #if not self.turtleUICommand.isEditMode:
-            if type(self) == BaseCommandCreatedHandler: # subclasses need to know how to start themselves (eg onEditCreated)
+            if self.autoRun:
                 self.turtleUICommand.onCreated(eventArgs)
+
         except:
             eventArgs.executeFailed = True
             print('Execute: {}\n'.format(traceback.format_exc()))
+        
+
 
 # Command
 class BaseActivateHandler(core.CommandEventHandler):
