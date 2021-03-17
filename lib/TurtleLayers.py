@@ -91,15 +91,16 @@ class TurtleLayers:
     def getBodiesFrom(self, *extrudeIndexes:int):
         result = []
         for index in extrudeIndexes:
-            for body in self[index].bodies:
-                result.append(body)
+            for bodyData in self.layers[index]:
+                if bodyData.body:
+                    result.append(bodyData.body)
         return result
 
-    def startFaceAt(self, extrudeIndex:int) -> f.BRepFace:
-        return self[extrudeIndex].startFaces.item(0)
+    def startFaceAt(self, extrudeIndex:int) -> f.BRepFace:  
+        return self.extrudes[extrudeIndex].startFaces.item(0)
 
     def endFaceAt(self, extrudeIndex:int) -> f.BRepFace:
-        return self[extrudeIndex].endFaces.item(0)
+        return self.extrudes[extrudeIndex].endFaces.item(0)
 
     def cutWithProfiles(self, profiles):
         self.cutBodiesWithProfiles(profiles, *range(self.layerCount))
