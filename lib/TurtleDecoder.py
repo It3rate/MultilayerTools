@@ -7,7 +7,7 @@ from .TurtleSketch import TurtleSketch
 from .TurtleParams import TurtleParams
 from .TurtlePath import TurtlePath
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleDecoder:
 

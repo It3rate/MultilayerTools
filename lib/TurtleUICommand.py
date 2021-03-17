@@ -2,7 +2,7 @@ import adsk.core, adsk.fusion, adsk.cam, traceback
 import os, math, re
 from .TurtleUtils import TurtleUtils, baseMethod, hasOverride
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 _handlers = []
 
@@ -18,12 +18,16 @@ class TurtleUICommand():
                 self.commandDefinition = ui.commandDefinitions.addButtonDefinition(self.cmdId + "_create", cmdName, cmdDesc, self.resFolder)
             self.createAddinUI()
 
+            self.activateHandler = None
+            self.executeHandler = None
+            self.deactivateHandler = None
+
             # Events
             uiCmd = self.commandDefinition
             
-            onCommandCreated = self.getCreatedHandler()
-            uiCmd.commandCreated.add(onCommandCreated)
-            _handlers.append(onCommandCreated)
+            self.createHandler = self.getCreatedHandler()
+            uiCmd.commandCreated.add(self.createHandler)
+            _handlers.append(self.createHandler)
 
             if hasOverride(self.onCommandStarting):
                 onCommandStarting = self.getCommandStartingHandler()
@@ -220,10 +224,12 @@ class TurtleUICommand():
 
 
     def getActivateHandler(self):
-        return BaseActivateHandler(self)
+        self.activateHandler = BaseActivateHandler(self)
+        return self.activateHandler
 
     def getDeactivateHandler(self):
-        return BaseDeactivateHandler(self)
+        self.deactivateHandler = BaseDeactivateHandler(self)
+        return self.deactivateHandler
 
     def getSelectHandler(self):
         return BaseSelectHandler(self)
@@ -272,10 +278,12 @@ class TurtleUICommand():
         return BaseValidateInputsHandler(self)
 
     def getExecuteHandler(self):
-        return BaseCommandExecuteHandler(self)
+        self.executeHandler = BaseCommandExecuteHandler(self)
+        return self.executeHandler
 
     def getPreviewHandler(self):
-        return BasePreviewHandler(self)
+        self.previewHandler = BasePreviewHandler(self)
+        return self.previewHandler
 
     def getDestroyHandler(self):
         return BaseDestroyHandler(self)

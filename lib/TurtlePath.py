@@ -3,7 +3,7 @@ import adsk.core, adsk.fusion, traceback
 import os, math, re, sys
 from .TurtleUtils import TurtleUtils
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtlePath:
     tolerance = 0.00001
@@ -11,7 +11,7 @@ class TurtlePath:
         self.sketch:f.Sketch = sketch
         self.dimensions = sketch.sketchDimensions
         self.constraints:f.GeometricConstraints = sketch.geometricConstraints
-        self.unitsManager:f.UnitsManager = design.unitsManager
+        self.unitsManager:f.UnitsManager = TurtleUtils.activeDesign().unitsManager
         
     # Command letters must be uppercase
     # units is the data portion should be lowercase (in, mm, fl_oz, %). Some fusion units have uppercase, if this becomes an issue just rework the regex.

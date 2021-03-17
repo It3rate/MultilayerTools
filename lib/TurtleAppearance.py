@@ -2,7 +2,7 @@
 import adsk.core, adsk.fusion, traceback
 from .TurtleUtils import TurtleUtils
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleAppearance(list):
     __useInstance = 'Use Instance'
@@ -46,7 +46,7 @@ class TurtleAppearance(list):
         materialLib = app.materialLibraries.item(2).appearances
         for col in colors:
             appearance = materialLib.itemByName(col)
-            appearance.copyTo(design)
+            appearance.copyTo(TurtleUtils.activeDesign())
             result.append(appearance)
         return result
     

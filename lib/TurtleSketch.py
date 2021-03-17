@@ -5,7 +5,7 @@ from .TurtleUtils import TurtleUtils
 from .TurtlePath import TurtlePath
 from .TurtleParams import TurtleParams
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleSketch:
     def __init__(self, sketchTarget:f.Sketch):

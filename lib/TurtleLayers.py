@@ -4,7 +4,7 @@ import os, math, re, sys
 from .TurtleUtils import TurtleUtils
 from .TurtleParams import TurtleParams
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleLayers(list):
     # pass lists, or optionally single elements if specifying layerCount. layerCount should match list sizes if one is passed.
@@ -20,7 +20,7 @@ class TurtleLayers(list):
         result = cls(tcomponent)
         attrCount = tcomponent.component.attributes.itemByName("Turtle", "layerCount")
         if attrCount:
-            for i in range(int(attrCount)):
+            for i in range(int(attrCount.value)):
                 self.layers.append([])
 
             for body in tcomponent.component.bodies:
@@ -39,8 +39,8 @@ class TurtleLayers(list):
         profileCount = len(profiles) if isListProfiles else 1
         thicknessCount = len(thicknesses) if isListThickness else 1
         newLayerCount = layerCount if layerCount > 0 else max(profileCount, thicknessCount)
-        result.profiles = profiles if isListProfiles else [profiles] * self.layerCount
-        result.thicknesses = thicknesses if isListThickness else [thicknesses] * self.layerCount
+        result.profiles = profiles if isListProfiles else [profiles] * newLayerCount
+        result.thicknesses = thicknesses if isListThickness else [thicknesses] * newLayerCount
         result.isFlipped = isFlipped
         result.appearanceList = appearanceList
         
@@ -48,8 +48,8 @@ class TurtleLayers(list):
         result.extend(result.extrudes)
 
         countAttr = result.component.attributes.itemByName("Turtle", "layerCount")
-        count = int(countAttr) if countAttr else 0
-        result.component.attributes.add("Turtle", "layerCount", str(self.layerCount + count))
+        count = int(countAttr.value) if countAttr else 0
+        result.component.attributes.add("Turtle", "layerCount", str(newLayerCount + count))
 
         return result
 
@@ -127,7 +127,7 @@ class LayerBodyData:
     def __init__(self, body:f.BRepBody):
         self.body = body
         self.layerIndex, self.bodyIndex, self.startFaceToken, self.thickness, self.isFlipped = self._getBodyAttributes(body)
-        self.startFace = design.findEntityByToken(self.startFaceToken)
+        self.startFace = TurtleUtils.activeDesign().findEntityByToken(self.startFaceToken)
 
     @classmethod
     def createWithExisting(cls, body:f.BRepBody):

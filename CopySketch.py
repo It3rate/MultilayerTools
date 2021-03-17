@@ -8,7 +8,7 @@ from .lib.TurtleSketch import TurtleSketch
 from .lib.TurtleEncoder import TurtleEncoder
 from .lib.data.SketchData import SketchData
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 class CopySketchCommand(TurtleUICommand):
     def __init__(self):

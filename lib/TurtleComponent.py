@@ -9,7 +9,7 @@ from .TurtleLayers import TurtleLayers
 from .TurtleAppearance import TurtleAppearance
 
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleComponent:
 

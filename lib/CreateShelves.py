@@ -7,7 +7,7 @@ from .TurtleEncoder import TurtleEncoder
 from .TurtleDecoder import TurtleDecoder
 
 # command
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 class CreateShelves(TurtleCommand):
     def __init__(self):

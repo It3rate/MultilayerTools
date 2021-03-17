@@ -13,23 +13,29 @@ class TurtleUtils:
         global core
         global app
         global ui
-        global design
-        global root
+        # global design
+        # global root
         f = adsk.fusion
         core = adsk.core
         app = adsk.core.Application.get()
         ui  = app.userInterface
-        design = f.Design.cast(app.activeProduct)
-        root = f.Component.cast(design.rootComponent)
-        return f,core,app,ui,design,root
+        # design:f.Design = app.activeProduct
+        # root:f.Component = design.rootComponent
+        return f,core,app,ui#,design,root
 
+    @classmethod
+    def activeDesign(cls):
+        return app.activeProduct
+    @classmethod
+    def activeRoot(cls):
+        return app.activeProduct.rootComponent
 
     @classmethod
     def getTargetSketch(cls, selType, showMessage = True):
         result = None
         typeName = selType.__name__
         title = "Selection Required"
-        if not design:
+        if not TurtleUtils.activeDesign():
             if showMessage:
                 ui.messageBox('No active Fusion design', title)
         elif selType is f.Sketch and app.activeEditObject.classType == f.Sketch.classType: # in sketch
@@ -71,6 +77,7 @@ class TurtleUtils:
         # f.close()
         # command = 'type sketchData.txt | clip'
         # os.system(command)
+        root = TurtleUtils.activeRoot()
         root = tk.Tk()
         root.withdraw()
         try:
@@ -87,6 +94,7 @@ class TurtleUtils:
 
     @classmethod
     def setClipboardText(cls, data):
+        root = TurtleUtils.activeRoot()
         root = tk.Tk()
         root.withdraw()
         root.clipboard_clear()
@@ -96,6 +104,7 @@ class TurtleUtils:
 
     @classmethod
     def clearClipboardText(cls):
+        root = TurtleUtils.activeRoot()
         root = tk.Tk()
         root.withdraw()
         root.clipboard_clear()

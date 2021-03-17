@@ -9,7 +9,7 @@ from .lib.TurtleParams import TurtleParams
 from .lib.TurtleComponent import TurtleComponent
 from .lib.TurtleCustomCommand import TurtleCustomCommand
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 class ExtrudeLayersCommand(TurtleCustomCommand):
     def __init__(self):
@@ -20,6 +20,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         self.sketch = None
         self.sketchWasVisible = True
         self.isPreview = False
+        self.design = TurtleUtils.activeDesign()
         super().__init__(cmdId, cmdName, cmdDescription)
 
     def getTargetPanels(self):
@@ -36,7 +37,9 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             isLayerTable = cmdInput.parentCommandInput and cmdInput.parentCommandInput.id == "tbLayers"
             rowIndex = -1
             
-            if cmdId.startswith("MaterialInput"):
+            if cmdInput == "selProfile":
+                pass
+            elif cmdId.startswith("MaterialInput"):
                 rowIndex = int(cmdId[-1])
                 ddIndex = cmdInput.selectedItem.index
                 state = self.stateTable[rowIndex]
@@ -144,11 +147,12 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             self.selectedProfiles[0].parentSketch.isVisible = self.sketchWasVisible
 
     
-    # Custom Feature
+    # Custom Feature Edit events
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
         self._createDialog(eventArgs.command.commandInputs)  
     
     def onEditActivate(self, eventArgs:core.CommandEventArgs):
+        self.profilesSelection.clearSelection()
         existingDependencies = self._editedCustomFeature.dependencies
         sketchDep = existingDependencies.itemById('sketch')
         if sketchDep:
@@ -166,12 +170,15 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                     for profile in profiles:
                         # avoid adding the same profile more than once as each layer may reuse the same profile.
                         if not profile in usedProfiles:
-                            self.profilesSelection.addSelection(profile)
                             usedProfiles.append(profile)
+                            self.profilesSelection.addSelection(profile)
                 except:
-                    pass
-                    #print('Adding extrude error:\n{}'.format(traceback.format_exc()))
-        
+                     #print('Adding extrude error:\n{}'.format(traceback.format_exc()))
+                     pass
+
+    def onEditDeactivate(self, eventArgs:core.CommandEventArgs):
+        print("deactivate")
+
     def onEditExecute(self, eventArgs:core.CommandEventArgs):
         self._execute(eventArgs)
         self._writeDefaultLayerIndexes()
@@ -266,16 +273,13 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         tLayers = self._extrude(distances)
 
         if self.isCustomCommand:
-            comp:f.Component = tLayers.tcomponent.component
-            customFeatures:f.CustomFeatures = comp.features.customFeatures
-
-
             if self.isEditMode:
-                # name = self._editedCustomFeature.name
-                # compare = customFeatures.itemByName(name)
+                # this is clearly not the correct way or even a good way to do this, waiting for better way.
                 oldFeatures = []
                 for feature in self._editedCustomFeature.features:
                     oldFeatures.append(feature)
+
+                self._editedCustomFeature.features.clear()
                 self._editedCustomFeature.startFeature =  tLayers.extrudes[0]
                 self._editedCustomFeature.endFeature =  tLayers.extrudes[-1]
 
@@ -284,29 +288,28 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                     try:
                         feature.deleteMe()
                     except:
+                        #print('error deleting feature:\n{}'.format(traceback.format_exc()))
                         pass
                 existingDependencies = self._editedCustomFeature.dependencies
                 sketchDep = existingDependencies.itemById('sketch')
                 sketchDep.entity = self.selectedProfiles[0].parentSketch
-                #profilesDep = existingDependencies.itemById('profiles')
-                #profilesDep.entity = TurtleUtils.ensureObjectCollection(self.selectedProfiles)
-                customFeature = self._editedCustomFeature
+                # profilesDep = existingDependencies.itemById('profile')
+                # profilesDep.entity = TurtleUtils.ensureObjectCollection(self.selectedProfiles)
             else:
+                comp:f.Component = tLayers.tcomponent.component
                 custFeatInput:f.CustomFeatureInput = comp.features.customFeatures.createInput(self.customFeatureDef, tLayers.extrudes[0], tLayers.extrudes[-1])    
+                
                 custFeatInput.addDependency('sketch', self.selectedProfiles[0].parentSketch)
-                for i, profile in enumerate(self.selectedProfiles):
-                    custFeatInput.addDependency('profile_' + str(i), profile)
+                # Seems we can't remove dependencies or use collections? Can't edit profile count in that case.
+                # for i, profile in enumerate(self.selectedProfiles):
+                #     custFeatInput.addDependency('profile_' + str(i), profile)
 
                 val = adsk.core.ValueInput.createByString("0")                
                 custFeatInput.addCustomParameter('dialogEncoding', 'dialogEncoding', val, "", False)
                 
                 customFeature = comp.features.customFeatures.add(custFeatInput) 
-                param = customFeature.parameters.itemById('dialogEncoding')
+                param = customFeature.parameters.itemById('dialogEncoding') # add encoding as comment to allow string use in params
                 param.comment = self._encodeDialogState()
-
-            # encoding = self._encodeDialogState()
-            # customFeature.attributes.add("DialogState", "dialogEncoding", encoding)
-            
 
         return tLayers
 
@@ -318,7 +321,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             if self.opType <= 3: # new bodies
                 tComp = TurtleComponent.createFromSketch(sketch)
             elif self.opType == 4: # new Component
-                comp = design.activeComponent
+                comp = self.design.activeComponent
                 nextIndex = comp.occurrences.count + 1
                 tComp = TurtleComponent.createFromParent(comp, "LayeredComp" + str(nextIndex)) 
         return sketch, tComp
@@ -419,14 +422,14 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
 
     def _readDefaultLayerIndexes(self):
         if self.isEditMode:
-            attr = self._editedCustomFeature.parameters.itemById('dialogEncoding').comment
-            #attr = self._editedCustomFeature.attributes.itemByName("DialogState","dialogEncoding")
+            enc = self._editedCustomFeature.parameters.itemById('dialogEncoding').comment
+            #enc = self._editedCustomFeature.attributes.itemByName("DialogState","dialogEncoding").value
         else:
             attr = app.activeDocument.attributes.itemByName("ExtrudeLayers", "defaultLayerIndexes")
-            attr = attr.value if attr else None
+            enc = attr.value if attr else None
 
-        if attr:
-            result = self._decodeDialogState(attr)
+        if enc:
+            result = self._decodeDialogState(enc)
         else:
             result = ([0,1,0], False, False, 3)
         return result

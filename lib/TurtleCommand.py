@@ -3,7 +3,7 @@ import os, math, re
 from .TurtleUtils import TurtleUtils
 from .JointMaker import JointMaker
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 _handlers = []
 

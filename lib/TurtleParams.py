@@ -3,7 +3,7 @@ import adsk.core, adsk.fusion, traceback
 import os, math, re, sys
 from .TurtleUtils import TurtleUtils
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleParams:
 
@@ -12,6 +12,7 @@ class TurtleParams:
 
     def __init__(self, useInstance, units:str="mm"):
         self.curUnits = units
+        self.design = TurtleUtils.activeDesign()
 
     @classmethod
     def instance(cls, units:str="mm"):
@@ -20,7 +21,7 @@ class TurtleParams:
         return cls._turtleParamsInstance
 
     def getValue(self, name):
-        param = design.userParameters.itemByName(name)
+        param = self.design.userParameters.itemByName(name)
         return "" if param is None else param.expression
 
     def addParams(self, *nameValArray):
@@ -32,16 +33,16 @@ class TurtleParams:
     # Create parameter if it doesn't already exist
     def addParam(self, name, val, unitKind="", msg=""):
         units = self.curUnits if unitKind=="" else unitKind
-        result = design.userParameters.itemByName(name)
+        result = self.design.userParameters.itemByName(name)
         if result is None:
             fval = self.createValue(val, units)
-            result = design.userParameters.add(name, fval, units, msg)
+            result = self.design.userParameters.add(name, fval, units, msg)
         return result
 
     # Create or change value of parameter
     def setParam(self, name, val, unitKind="", msg=""):
         units = self.curUnits if unitKind=="" else unitKind
-        result = design.userParameters.itemByName(name)
+        result = self.design.userParameters.itemByName(name)
         if not result:
             result = self.addParam(name, val, units, msg)
         else:
@@ -61,12 +62,12 @@ class TurtleParams:
 
     def getUserParams(self):
         result = {}
-        for param in design.userParameters:
+        for param in self.design.userParameters:
             result[param.name] = param.expression
         return result
 
     def printAllParams(self):
-        for param in design.userParameters:
+        for param in self.design.userParameters:
             print(param.name + ": " + param.expression)
 
     

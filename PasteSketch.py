@@ -8,7 +8,7 @@ from .lib.TurtleSketch import TurtleSketch
 from .lib.TurtleDecoder import TurtleDecoder
 from .lib.data.SketchData import SketchData
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 class PasteSketchCommand(TurtleUICommand):
     def __init__(self):

@@ -8,7 +8,7 @@ from .TurtleParams import TurtleParams
 from .TurtlePath import TurtlePath
 from .TurtleLayers import TurtleLayers
 
-f,core,app,ui,design,root = TurtleUtils.initGlobals()
+f,core,app,ui = TurtleUtils.initGlobals()
 
 pMID = "mid"
 pOUTER = "outer"
@@ -23,9 +23,9 @@ class JointMaker:
         sketch:f.Sketch = TurtleUtils.getTargetSketch(f.Sketch)
         if not sketch:
             return
-        design.designType = adsk.fusion.DesignTypes.ParametricDesignType
+        TurtleUtils.activeDesign().designType = adsk.fusion.DesignTypes.ParametricDesignType
 
-        self.rootComponent = TurtleComponent(root)
+        self.rootComponent = TurtleComponent(TurtleUtils.activeRoot())
         self.baseComponent = TurtleComponent.createFromSketch(sketch)
 
         self.baseSketch = TurtleSketch(sketch)
@@ -153,7 +153,7 @@ class JointMaker:
 
 
     def createComponent(self, name):
-        occ = root.occurrences.addNewComponent(adsk.core.Matrix3D.create())
+        occ = TurtleUtils.activeRoot().occurrences.addNewComponent(adsk.core.Matrix3D.create())
         occ.component.name = name
         return occ.component
 
