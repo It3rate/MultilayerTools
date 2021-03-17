@@ -330,10 +330,8 @@ class BaseCommandCreatedHandler(core.CommandCreatedEventHandler):
         super().__init__()
         self.turtleUICommand = turtleUICommand
         self.autoRun = True
-        # self.turtleUICommand._editedCustomFeature = None
 
     def notify(self, eventArgs):
-        #self.turtleUICommand.isEditMode = False
         cmd = eventArgs.command
 
         try:

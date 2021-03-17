@@ -161,11 +161,13 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             self.sketch.isVisible = True
 
         usedProfiles = []
+        # Get profiles from features that already exist. 
+        # This doesn't work without exceptions I don't understand, but haven't found a better way yet.
         for feature in self._editedCustomFeature.features:
             if type(feature) == f.ExtrudeFeature:
                 try:
                     profiles = feature.profile # this can throw an error (if profile is used in other layers?)
-                    # single profiles are not in a collection
+                    # single profiles are not in a collection, so create a collection to allow uniform access
                     profiles = profiles if type(profiles) == core.ObjectCollection else [profiles]
                     for profile in profiles:
                         # avoid adding the same profile more than once as each layer may reuse the same profile.
@@ -310,8 +312,6 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                 customFeature = comp.features.customFeatures.add(custFeatInput) 
                 param = customFeature.parameters.itemById('dialogEncoding') # add encoding as comment to allow string use in params
                 param.comment = self._encodeDialogState()
-
-        return tLayers
 
     def _getComponent(self):
         tComp = None
