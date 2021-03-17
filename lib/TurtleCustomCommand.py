@@ -18,9 +18,6 @@ class TurtleCustomCommand(TurtleUICommand):
         if not self.editCommandDefinition:
             self.editCommandDefinition = ui.commandDefinitions.addButtonDefinition(self.cmdId + "_edit", cmdName, cmdDesc, self.resFolder)
 
-        if self.createHandler:
-            self.commandDefinition.commandCreated.remove(self.createHandler)
-
         editCreated = self.getEditCreatedHandler() 
         self.editCommandDefinition.commandCreated.add(editCreated)
         _handlers.append(editCreated)
