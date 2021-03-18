@@ -123,6 +123,21 @@ class TurtleUtils:
                 result.add(itemList)
         return result
 
+    @classmethod
+    def ensureList(cls, items):
+        result = items
+        if type(items) != list: 
+            result = []
+            if hasattr(items, "__iter__"):
+                for item in items:
+                    result.append(item)
+            elif hasattr(items, "count"):
+                for i in range(items.count):
+                    result.append(items[i])
+            else:
+                result.append(items)
+        return result
+
 
 
 # used to detect overrides - only hook up events if there is a handler implemented

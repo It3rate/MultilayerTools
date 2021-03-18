@@ -282,8 +282,8 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                     oldFeatures.append(feature)
 
                 self._editedCustomFeature.features.clear()
-                self._editedCustomFeature.startFeature =  tLayers.extrudes[0]
-                self._editedCustomFeature.endFeature =  tLayers.extrudes[-1]
+                self._editedCustomFeature.startFeature =  tLayers.firstLayerExtrude()
+                self._editedCustomFeature.endFeature =  tLayers.lastLayerExtrude()
 
                 oldFeatures.reverse()
                 for feature in oldFeatures:
@@ -299,17 +299,18 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                 # profilesDep.entity = TurtleUtils.ensureObjectCollection(self.selectedProfiles)
             else:
                 comp:f.Component = tLayers.tcomponent.component
-                custFeatInput:f.CustomFeatureInput = comp.features.customFeatures.createInput(self.customFeatureDef, tLayers.extrudes[0], tLayers.extrudes[-1])    
+                customFeatures = comp.features.customFeatures
+                customFeatInput:f.CustomFeatureInput = customFeatures.createInput(self.customFeatureDef, tLayers.firstLayerExtrude(), tLayers.lastLayerExtrude())    
                 
-                custFeatInput.addDependency('sketch', self.selectedProfiles[0].parentSketch)
+                customFeatInput.addDependency('sketch', self.selectedProfiles[0].parentSketch)
                 # Seems we can't remove dependencies or use collections? Can't edit profile count in that case.
                 # for i, profile in enumerate(self.selectedProfiles):
-                #     custFeatInput.addDependency('profile_' + str(i), profile)
+                #     customFeatInput.addDependency('profile_' + str(i), profile)
 
                 val = adsk.core.ValueInput.createByString("0")                
-                custFeatInput.addCustomParameter('dialogEncoding', 'dialogEncoding', val, "", False)
+                customFeatInput.addCustomParameter('dialogEncoding', 'dialogEncoding', val, "", False)
                 
-                customFeature = comp.features.customFeatures.add(custFeatInput) 
+                customFeature = comp.features.customFeatures.add(customFeatInput) 
                 param = customFeature.parameters.itemById('dialogEncoding') # add encoding as comment to allow string use in params
                 param.comment = self._encodeDialogState()
 
