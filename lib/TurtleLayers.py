@@ -3,12 +3,13 @@ import adsk.core, adsk.fusion, traceback
 import os, math, re, sys
 from .TurtleUtils import TurtleUtils
 from .TurtleParams import TurtleParams
+from .TurtleComponent import TurtleComponent
 
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleLayers:
     # pass lists, or optionally single elements if specifying layerCount. layerCount should match list sizes if one is passed.
-    def __init__(self, tcomponent:'TurtleComponent'):
+    def __init__(self, tcomponent:TurtleComponent):
         self.tcomponent = tcomponent
         self.component = tcomponent.component
         self.parameters = TurtleParams.instance()
@@ -16,7 +17,7 @@ class TurtleLayers:
         self.layerCount = 0
 
     @classmethod
-    def createFromExisting(cls, tcomponent:'TurtleComponent'):
+    def createFromExisting(cls, tcomponent:TurtleComponent):
         result = cls(tcomponent)
         attrCount = tcomponent.component.attributes.itemByName("Turtle", "layerCount")
         if attrCount:
@@ -29,7 +30,7 @@ class TurtleLayers:
         return result
 
     @classmethod
-    def createFromProfiles(cls, tcomponent:'TurtleComponent', profiles:list, thicknesses:list, layerCount:int = -1, isFlipped = False, appearanceList = []):
+    def createFromProfiles(cls, tcomponent:TurtleComponent, profiles:list, thicknesses:list, layerCount:int = -1, isFlipped = False, appearanceList = []):
         result = cls(tcomponent)
 
         isListProfiles = isinstance(profiles, list)

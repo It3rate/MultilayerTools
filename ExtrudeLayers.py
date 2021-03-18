@@ -7,6 +7,7 @@ from .lib.TurtleUICommand import TurtleUICommand
 from .lib.TurtleSketch import TurtleSketch
 from .lib.TurtleParams import TurtleParams
 from .lib.TurtleComponent import TurtleComponent
+from .lib.TurtleLayers import TurtleLayers
 from .lib.TurtleCustomCommand import TurtleCustomCommand
 
 f,core,app,ui = TurtleUtils.initGlobals()
@@ -334,7 +335,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         if self.bReversed.value:
             distances.reverse()
             appearanceList.reverse()
-        result = comp.createLayers([self.selectedProfiles], distances, count, self.bFlipDirection.value, appearanceList)
+        result = TurtleLayers.createFromProfiles(comp, [self.selectedProfiles], distances, count, self.bFlipDirection.value, appearanceList)
         sketch.isVisible = True
         return result
 

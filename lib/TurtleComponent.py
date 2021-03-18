@@ -5,7 +5,6 @@ from .TurtleUtils import TurtleUtils
 from .TurtleSketch import TurtleSketch
 from .TurtleParams import TurtleParams
 from .TurtlePath import TurtlePath
-from .TurtleLayers import TurtleLayers
 from .TurtleAppearance import TurtleAppearance
 
 
@@ -36,9 +35,6 @@ class TurtleComponent:
         component = self.createComponent(self.component, name)
         result = TurtleComponent(component)
         return result
-
-    def createLayers(self,profiles:list, thicknesses:list, layerCount:int = 1, isFlipped = False, appearanceList:list = []):
-        return TurtleLayers.createFromProfiles(self, profiles, thicknesses, layerCount, isFlipped, appearanceList)
 
     def __wrapExistingSketches(self):
         self._sketches = []
