@@ -21,6 +21,11 @@ class TurtleComponent:
         self.__wrapExistingSketches()
 
     @classmethod
+    def createFromExisting(cls, existingComponent:f.Component):
+        result = cls(existingComponent) 
+        return result
+
+    @classmethod
     def createFromParent(cls, parentComponent:f.Component, name:str):
         comp = cls.createComponent(parentComponent, name) 
         result = cls(comp)
@@ -111,14 +116,14 @@ class TurtleComponent:
 
     def cutBodyWithProfile(self, profile:f.Profile, body:f.BRepBody):
         extrudes = body.parentComponent.features.extrudeFeatures
-        cutInput = extrudes.createInput(profile, f.FeatureOperations.CutFeatureOperation) 
+        input = extrudes.createInput(profile, f.FeatureOperations.CutFeatureOperation) 
 
         toExtent = f.ToEntityExtentDefinition.create(body, False)
         toExtent.isMinimumSolution = False
-        cutInput.setOneSideExtent(toExtent, f.ExtentDirections.SymmetricExtentDirection)
+        input.setOneSideExtent(toExtent, f.ExtentDirections.SymmetricExtentDirection)
 
-        cutInput.participantBodies = [body]
-        extrude = extrudes.add(cutInput) 
+        input.participantBodies = [body]
+        extrude = extrudes.add(input) 
         return extrude
 
     def colorExtrudedBodiesByThickness(self, extruded:f.ExtrudeFeature, thickness):

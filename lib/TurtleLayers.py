@@ -21,10 +21,10 @@ class TurtleLayers:
         result = cls(tcomponent)
         attrCount = tcomponent.component.attributes.itemByName("Turtle", "layerCount")
         if attrCount:
-            for feature in tcomponent.component.features:
-                if type(feature) == f.ExtrudeFeature:
+            for feature in tcomponent.component.features.extrudeFeatures:
+                if feature.attributes.itemByName("Turtle", "layerIndex"):
                     layerData = LayerData.createWithExisting(feature)
-                    self.layers.append(layerData)
+                    result.layers.append(layerData)
         else:
             print("Mapped layers with non TurtleLayer component (layers will be empty).")
         return result
@@ -79,9 +79,9 @@ class TurtleLayers:
     def extrudeForLayer(self, extrudeIndex:int) -> f.ExtrudeFeature:  
         return self.layers[index].extrude if len(self.layers) > index else None
 
-    def firstLayerExtrude(self, extrudeIndex:int) -> f.ExtrudeFeature:  
+    def firstLayerExtrude(self) -> f.ExtrudeFeature:  
         return self.layers[0].extrude if len(self.layers) > 0 else None
-    def lastLayerExtrude(self, extrudeIndex:int) -> f.ExtrudeFeature:  
+    def lastLayerExtrude(self) -> f.ExtrudeFeature:  
         return self.layers[-1].extrude if len(self.layers) > 0 else None
 
     def allLayerBodies(self):
@@ -100,16 +100,42 @@ class TurtleLayers:
     def endFaceAt(self, extrudeIndex:int) -> f.BRepFace:
         return self.layers[-1].getAnEndFace() if  len(self.layers) > 0 else None
 
-    def cutWithProfiles(self, cutProfiles):
-        self.cutBodiesWithProfiles(cutProfiles, *range(self.layerCount))
+    def cutWithProfiles(self, profiles):
+        self.cutBodiesWithProfiles(profiles, *range(self.layerCount))
 
-    def cutBodiesWithProfiles(self, cutProfiles, *bodyIndexes:int):
-        cutProfiles = cutProfiles if isinstance(cutProfiles, list) else [cutProfiles] * len(bodyIndexes)
-        for i in range(len(bodyIndexes)):
-            bodies = self.getBodiesFrom(bodyIndexes[i])
-            pindex = min(i, len(cutProfiles) - 1)
+    def cutBodiesWithProfiles(self, profiles, *layerIndexes:int):
+        profiles = profiles if isinstance(profiles, list) else [profiles] * len(layerIndexes)
+        for i in range(len(layerIndexes)):
+            bodies = self.getBodiesFrom(layerIndexes[i])
+            pindex = min(i, len(profiles) - 1)
             for body in bodies:
-                self.tcomponent.cutBodyWithProfile(cutProfiles[pindex], body)
+                self.tcomponent.cutBodyWithProfile(profiles[pindex], body)
+
+    def joinWithProfiles(self, profiles):
+        extrusions = []
+        profiles = profiles if isinstance(profiles, list) else [profiles] * len(layerIndexes)
+        for i, layer in enumerate(self.layers):
+            bodies = self.getBodiesFrom(i)
+            pindex = min(i, len(profiles) - 1)
+            for body in bodies:
+                extrudes = self.component.features.extrudeFeatures
+                dist = self.parameters.createValue(layer.thickness)
+                extrudeInput = extrudes.createInput(profiles[pindex][0], f.FeatureOperations.JoinFeatureOperation) 
+                # always use positive direction becuase the existing extent distance will already be negative if needed
+                extrudeInput.setOneSideExtent(layer.extrude.extentOne, f.ExtentDirections.PositiveExtentDirection)
+                extrudeInput.startExtent = layer.extrude.startExtent
+                extrudeInput.participantBodies = [body]
+                extruded = extrudes.add(extrudeInput) 
+                extrusions.append(extruded)
+        return extrusions
+
+    def intersectWithProfiles(self, profiles):
+        profiles = profiles if isinstance(profiles, list) else [profiles] * len(layerIndexes)
+        for i in range(len(layerIndexes)):
+            bodies = self.getBodiesFrom(layerIndexes[i])
+            pindex = min(i, len(profiles) - 1)
+            for body in bodies:
+                self.tcomponent.intersectBodyWithProfile(profiles[pindex], body)
 
     def mirrorLayers(self, plane:f.ConstructionPlane, isJoined:bool = False):
         mirrorFeatures = self.component.features.mirrorFeatures
@@ -141,7 +167,8 @@ class LayerData:
     @classmethod
     def createWithExisting(cls, extrude:f.ExtrudeFeature):
         #body, layerIndex, bodyIndex, startFaceToken, thickness, isFlipped = cls._getAttributes(body)
-        result = cls(extrude, cls._getAttributes(extrude))
+        layerIndex, thickness, isFlipped, appearanceIndex = cls._getAttributes(extrude)
+        result = cls(extrude, layerIndex, thickness, isFlipped, appearanceIndex)
         return result
 
     @classmethod
@@ -164,11 +191,24 @@ class LayerData:
     def getStartFaceList(self):
         return TurtleUtils.ensureList(self.extrude.startFaces) if self.extrude else []
     def getAStartFace(self):
-        return self.extrude.startFaces[0] if self.extrude else None
+        result = None
+        if self.extrude:
+            for face in self.extrude.startFaces:
+                if face: # faces can be None, weirdly
+                    result = face
+                    break
+        return result
     def getEndFaceList(self):
         return TurtleUtils.ensureList(self.extrude.endFaces) if self.extrude else []
     def getAnEndFace(self):
-        return self.extrude.endFaces[0] if self.extrude else None
+        result = None
+        if self.extrude:
+            for face in self.extrude.endFaces:
+                if face: # faces can be None, weirdly
+                    result = face
+                    break
+        return result
+        #return self.extrude.endFaces[0] if self.extrude else None
     def getExtrudeToken(self):
         return self.extrude.entityToken
 
