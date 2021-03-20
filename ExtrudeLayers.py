@@ -261,28 +261,20 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         for index in range(self.profilesSelection.selectionCount):
             self.selectedProfiles.append(self.profilesSelection.selection(index).entity)
         
-        if self.opType == 0: # Join
-            tLayers = self._join(self.selectedProfiles)
-            pass
-        if self.opType == 1: # Cut
-            tLayers = self._join(self.selectedProfiles)
-            pass
-        if self.opType == 2: # Intersect
-            tLayers = self._join(self.selectedProfiles)
-            pass
-        elif self.opType == 3 or self.opType == 4: # new body, new component
-            count = len(self.stateTable)
-            for i, state in enumerate(self.stateTable):
-                ddIndex = self.stateTable[i][0]
-                paramVal = self.params.getValue(self.thicknessParamNames[ddIndex])
-                if paramVal != state[1]:
-                    self.params.setParam(self.thicknessParamNames[ddIndex], state[1])
-            distances = []
-            for state in self.stateTable:
-                distances.append(self.thicknessParamNames[state[0]]) # use param names for final extrude thickness
-            tLayers = self._extrude(distances)
+        sketch, tComp = self._getTComponent()
 
-        if False and self.isCustomCommand:
+        if self.opType < 3: # modify existing
+            # only operates on the active component, should be any selected component here though.
+            tLayers:TurtleLayers = TurtleLayers.createFromExisting(tComp)
+            # JoinFeatureOperation = 0 CutFeatureOperation = 1 IntersectFeatureOperation = 2
+            newFeatures = tLayers.modifyWithProfiles([self.selectedProfiles], self.opType)
+        
+        elif self.opType == 3 or self.opType == 4: # NewBodyFeatureOperation = 3 NewComponentFeatureOperation = 4
+            tLayers, newFeatures = self._extrude(tComp)
+
+        sketch.isVisible = True
+
+        if self.isCustomCommand:
             if self.isEditMode:
                 # this is clearly not the correct way or even a good way to do this, waiting for better way.
                 oldFeatures = []
@@ -308,7 +300,9 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             else:
                 comp:f.Component = tLayers.tcomponent.component
                 customFeatures = comp.features.customFeatures
-                customFeatInput:f.CustomFeatureInput = customFeatures.createInput(self.customFeatureDef, tLayers.firstLayerExtrude(), tLayers.lastLayerExtrude())    
+                firstFeature = newFeatures[0] # tLayers.firstLayerExtrude()
+                lastFeature = newFeatures[-1] # tLayers.lastLayerExtrude()
+                customFeatInput:f.CustomFeatureInput = customFeatures.createInput(self.customFeatureDef, firstFeature, lastFeature)    
 
                 customFeatInput.addDependency('sketch', self.selectedProfiles[0].parentSketch)
                 # Seems we can't remove dependencies or use collections? Can't edit profile count in that case.
@@ -322,12 +316,15 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                 param = customFeature.parameters.itemById('dialogEncoding') # add encoding as comment to allow string use in params
                 param.comment = self._encodeDialogState()
 
-    def _getComponent(self):
+    def _getTComponent(self):
         tComp = None
         sketch = None
         if len(self.selectedProfiles) > 0:
             sketch = self.selectedProfiles[0].parentSketch
-            if self.opType <= 3: # new bodies
+            if self.opType < 3: # modify
+                comp = self.selectedProfiles[0].parentSketch.parentComponent
+                tComp = TurtleComponent.createFromExisting(comp)
+            if self.opType == 3: # new bodies
                 tComp = TurtleComponent.createFromSketch(sketch)
             elif self.opType == 4: # new Component
                 comp = self.design.activeComponent
@@ -335,34 +332,25 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                 tComp = TurtleComponent.createFromParent(comp, "LayeredComp" + str(nextIndex)) 
         return sketch, tComp
 
-    def _extrude(self, distances):
-        sketch, comp = self._getComponent()
+    def _extrude(self, tComp:TurtleComponent):            
+        count = len(self.stateTable)
+        for i, state in enumerate(self.stateTable):
+            ddIndex = self.stateTable[i][0]
+            paramVal = self.params.getValue(self.thicknessParamNames[ddIndex])
+            if paramVal != state[1]:
+                self.params.setParam(self.thicknessParamNames[ddIndex], state[1])
+        distances = []
+        for state in self.stateTable:
+            distances.append(self.thicknessParamNames[state[0]]) # use param names for final extrude thickness
+        
         count = len(self.stateTable)
         appearanceList = [state[0] for state in self.stateTable]
         if self.bReversed.value:
             distances.reverse()
             appearanceList.reverse()
-        result = TurtleLayers.createFromProfiles(comp, [self.selectedProfiles], distances, count, self.bFlipDirection.value, appearanceList)
-        sketch.isVisible = True
-        return result
-
-    def _join(self, profiles:list):
-        comp = self.selectedProfiles[0].parentSketch.parentComponent
-        tcomp = TurtleComponent.createFromExisting(comp) # Extrude's join only joins in active component, could do any component here though.
-        tLayers:TurtleLayers = TurtleLayers.createFromExisting(tcomp)
-        tLayers.joinWithProfiles([self.selectedProfiles])
-        return tLayers
-
-
-
-        # count = len(self.stateTable)
-        # appearanceList = [state[0] for state in self.stateTable]
-        # if self.bReversed.value:
-        #     distances.reverse()
-        #     appearanceList.reverse()
-        # result = TurtleLayers.createFromProfiles(comp, [self.selectedProfiles], distances, count, self.bFlipDirection.value, appearanceList)
-        # sketch.isVisible = True
-        # return result
+        result, newFeatures = TurtleLayers.createFromProfiles(tComp, [self.selectedProfiles], distances, count, self.bFlipDirection.value, appearanceList)
+        return result, newFeatures
+        
 
     def _addLayer(self, ddChoice):
         cmdInputs:core.CommandInputs = self.tbLayers.commandInputs

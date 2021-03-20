@@ -41,40 +41,14 @@ class TurtleLayers:
         profiles = profiles if isListProfiles else [profiles] * newLayerCount
         thicknesses = thicknesses if isListThickness else [thicknesses] * newLayerCount
         
-        result._extrudeNewBodies(newLayerCount, profiles, thicknesses, isFlipped, appearanceList)
+        newFeatures = result._extrudeWithProfiles(newLayerCount, profiles, thicknesses, isFlipped, appearanceList)
 
         countAttr = result.component.attributes.itemByName("Turtle", "layerCount")
         count = int(countAttr.value) if countAttr else 0
         result.component.attributes.add("Turtle", "layerCount", str(newLayerCount + count))
 
-        return result
+        return result, newFeatures
 
-
-    def _extrudeNewBodies(self, newLayerCount:int, profiles:list, thicknesses:list, isFlipped:bool, appearanceList = []):
-        # for i in range(newLayerCount):
-        #     self.layers.append([])
-
-        startFace = None # zero distance from profile plane is default, startFrom is not set
-        for i in range(newLayerCount):
-            profileIndex = i if len(profiles) > i else len(profiles) - 1
-            thicknessIndex = i if len(thicknesses) > i else len(thicknesses) - 1
-            layerProfiles = TurtleUtils.ensureObjectCollection(profiles[profileIndex])
-            extruded:f.ExtrudeFeature = self.tcomponent.extrude(layerProfiles, startFace, thicknesses[thicknessIndex], isFlipped)
-
-            appearanceIndex = -1
-            if len(appearanceList) > i:
-                self.tcomponent.colorExtrudedBodiesByIndex(extruded, appearanceList[i])
-                appearanceIndex = i
-            else:
-                self.tcomponent.colorExtrudedBodiesByThickness(extruded, thicknesses[thicknessIndex])
-
-            # mark layers with extrude index and body map
-            start:f.BRepFace = startFace if startFace else extruded.startFaces[0]
-            extrudeData = LayerData.createNew(extruded, self.layerCount + i, thicknesses[thicknessIndex], isFlipped, appearanceIndex)
-            self.layers.append(extrudeData)
-
-            startFace = extruded.endFaces[0]
-        self.layerCount += newLayerCount
 
     def extrudeForLayer(self, extrudeIndex:int) -> f.ExtrudeFeature:  
         return self.layers[index].extrude if len(self.layers) > index else None
@@ -111,7 +85,35 @@ class TurtleLayers:
             for body in bodies:
                 self.tcomponent.cutBodyWithProfile(profiles[pindex], body)
 
-    def joinWithProfiles(self, profiles):
+    def _extrudeWithProfiles(self, newLayerCount:int, profiles:list, thicknesses:list, isFlipped:bool, appearanceList = []):
+        # for i in range(newLayerCount):
+        #     self.layers.append([])
+        extrusions = []
+        startFace = None # zero distance from profile plane is default, startFrom is not set
+        for i in range(newLayerCount):
+            profileIndex = i if len(profiles) > i else len(profiles) - 1
+            thicknessIndex = i if len(thicknesses) > i else len(thicknesses) - 1
+            layerProfiles = TurtleUtils.ensureObjectCollection(profiles[profileIndex])
+            extruded:f.ExtrudeFeature = self.tcomponent.extrude(layerProfiles, startFace, thicknesses[thicknessIndex], isFlipped)
+            extrusions.append(extruded)
+
+            appearanceIndex = -1
+            if len(appearanceList) > i:
+                self.tcomponent.colorExtrudedBodiesByIndex(extruded, appearanceList[i])
+                appearanceIndex = i
+            else:
+                self.tcomponent.colorExtrudedBodiesByThickness(extruded, thicknesses[thicknessIndex])
+
+            # mark layers with extrude index and body map
+            start:f.BRepFace = startFace if startFace else extruded.startFaces[0]
+            extrudeData = LayerData.createNew(extruded, self.layerCount + i, thicknesses[thicknessIndex], isFlipped, appearanceIndex)
+            self.layers.append(extrudeData)
+
+            startFace = extruded.endFaces[0]
+        self.layerCount += newLayerCount
+        return extrusions
+
+    def modifyWithProfiles(self, profiles, operation:f.FeatureOperations):
         extrusions = []
         profiles = profiles if isinstance(profiles, list) else [profiles] * len(layerIndexes)
         for i, layer in enumerate(self.layers):
@@ -120,22 +122,18 @@ class TurtleLayers:
             for body in bodies:
                 extrudes = self.component.features.extrudeFeatures
                 dist = self.parameters.createValue(layer.thickness)
-                extrudeInput = extrudes.createInput(profiles[pindex][0], f.FeatureOperations.JoinFeatureOperation) 
-                # always use positive direction becuase the existing extent distance will already be negative if needed
+                extrudeInput = extrudes.createInput(profiles[pindex][0], operation) 
+                # always use positive direction because the existing extent distance will already be negative if needed 
                 extrudeInput.setOneSideExtent(layer.extrude.extentOne, f.ExtentDirections.PositiveExtentDirection)
-                extrudeInput.startExtent = layer.extrude.startExtent
+                start = layer.extrude.startExtent
+                # if layers started based on the original profile, use the first start face (because the new join profile might not be on the same plane)
+                if type(start) == f.ProfilePlaneStartDefinition:
+                    start = f.FromEntityStartDefinition.create(layer.getAStartFace(), self.parameters.createValue(0))
+                extrudeInput.startExtent = start
                 extrudeInput.participantBodies = [body]
                 extruded = extrudes.add(extrudeInput) 
                 extrusions.append(extruded)
         return extrusions
-
-    def intersectWithProfiles(self, profiles):
-        profiles = profiles if isinstance(profiles, list) else [profiles] * len(layerIndexes)
-        for i in range(len(layerIndexes)):
-            bodies = self.getBodiesFrom(layerIndexes[i])
-            pindex = min(i, len(profiles) - 1)
-            for body in bodies:
-                self.tcomponent.intersectBodyWithProfile(profiles[pindex], body)
 
     def mirrorLayers(self, plane:f.ConstructionPlane, isJoined:bool = False):
         mirrorFeatures = self.component.features.mirrorFeatures
