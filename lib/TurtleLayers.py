@@ -74,17 +74,6 @@ class TurtleLayers:
     def endFaceAt(self, extrudeIndex:int) -> f.BRepFace:
         return self.layers[-1].getAnEndFace() if  len(self.layers) > 0 else None
 
-    def cutWithProfiles(self, profiles):
-        self.cutBodiesWithProfiles(profiles, *range(self.layerCount))
-
-    def cutBodiesWithProfiles(self, profiles, *layerIndexes:int):
-        profiles = profiles if isinstance(profiles, list) else [profiles] * len(layerIndexes)
-        for i in range(len(layerIndexes)):
-            bodies = self.getBodiesFrom(layerIndexes[i])
-            pindex = min(i, len(profiles) - 1)
-            for body in bodies:
-                self.tcomponent.cutBodyWithProfile(profiles[pindex], body)
-
     def _extrudeWithProfiles(self, newLayerCount:int, profiles:list, thicknesses:list, isFlipped:bool, appearanceList = []):
         # for i in range(newLayerCount):
         #     self.layers.append([])
@@ -162,11 +151,6 @@ class LayerData:
         self.appearanceIndex:int = appearanceIndex
         if self.extrude:
             self.setExtrude(extrude)
-
-    # def __init__(self, body:f.BRepBody):
-    #     self.body = body
-    #     self.layerIndex, self.bodyIndex, self.startFaceToken, self.thickness, self.isFlipped = self._getBodyAttributes(body)
-    #     self.startFace = TurtleUtils.activeDesign().findEntityByToken(self.startFaceToken)
 
     @classmethod
     def createWithExisting(cls, extrude:f.ExtrudeFeature):
