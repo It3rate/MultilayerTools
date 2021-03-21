@@ -21,7 +21,6 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         self.sketch = None
         self.sketchWasVisible = True
         self.isPreview = False
-        self.design = TurtleUtils.activeDesign()
         super().__init__(cmdId, cmdName, cmdDescription)
 
     def getTargetPanels(self):
@@ -38,8 +37,18 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             isLayerTable = cmdInput.parentCommandInput and cmdInput.parentCommandInput.id == "tbLayers"
             rowIndex = -1
             
-            if cmdInput == "selProfile":
-                pass
+            if cmdId == "selProfile":
+                count = self.profilesSelection.selectionCount
+                if count > 1:
+                    curSel:f.Profile = self.profilesSelection.selection(count - 1).entity
+                    curSketch = curSel.parentSketch
+                    isSameSketch = True
+                    for i in range(count - 1):
+                        if curSketch != self.profilesSelection.selection(i).entity.parentSketch:
+                            self.profilesSelection.clearSelection()
+                            self.profilesSelection.addSelection(curSel)
+                            break
+
             elif cmdId.startswith("MaterialInput"):
                 rowIndex = int(cmdId[-1])
                 ddIndex = cmdInput.selectedItem.index
@@ -327,7 +336,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             if self.opType == 3: # new bodies
                 tComp = TurtleComponent.createFromSketch(sketch)
             elif self.opType == 4: # new Component
-                comp = self.design.activeComponent
+                comp = TurtleUtils.activeDesign().activeComponent
                 nextIndex = comp.occurrences.count + 1
                 tComp = TurtleComponent.createFromParent(comp, "LayeredComp" + str(nextIndex)) 
         return sketch, tComp

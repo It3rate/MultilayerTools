@@ -10,7 +10,7 @@ def run(context):
     commandHandles.append(ExtrudeLayersCommand())
     commandHandles.append(CopySketchCommand())
     commandHandles.append(PasteSketchCommand())
-    # commandHandles.append(CreateShelves())
+    #commandHandles.append(CreateShelves())
 
 def stop(context):
     for cmd in commandHandles:

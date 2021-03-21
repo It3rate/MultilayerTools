@@ -52,7 +52,8 @@ class JointMaker:
         outerProfile = self.drawWallOuterCuts(outerWallSketch)
         innerWallSketch = self.baseComponent.createSketch(layers.startFaceAt(1), "innerWallSketch")
         innerProfile = self.drawWallInsideCuts(innerWallSketch)
-        layers.cutWithProfiles([outerProfile, innerProfile, innerProfile])
+        #layers.cutWithProfiles([outerProfile, innerProfile, innerProfile])
+        layers.modifyWithProfiles([outerProfile, innerProfile, innerProfile], f.FeatureOperations.CutFeatureOperation)
 
         layers.mirrorLayers(self.midPlane, False)
 

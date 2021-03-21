@@ -123,8 +123,14 @@ class TurtleLayers:
                 extrudes = self.component.features.extrudeFeatures
                 dist = self.parameters.createValue(layer.thickness)
                 extrudeInput = extrudes.createInput(profiles[pindex][0], operation) 
-                # always use positive direction because the existing extent distance will already be negative if needed 
-                extrudeInput.setOneSideExtent(layer.extrude.extentOne, f.ExtentDirections.PositiveExtentDirection)
+
+                endFace = layer.getAnEndFace()
+                if endFace:
+                    end = f.ToEntityExtentDefinition.create(endFace, False, self.parameters.createValue(0))
+                    extrudeInput.setOneSideExtent(end, f.ExtentDirections.PositiveExtentDirection)
+                else:
+                    extrudeInput.setOneSideExtent(layer.extrude.extentOne, f.ExtentDirections.PositiveExtentDirection)
+
                 start = layer.extrude.startExtent
                 # if layers started based on the original profile, use the first start face (because the new join profile might not be on the same plane)
                 if type(start) == f.ProfilePlaneStartDefinition:
