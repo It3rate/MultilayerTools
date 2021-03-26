@@ -30,22 +30,44 @@ class TurtleLayers:
         return result
 
     @classmethod
-    def createFromProfiles(cls, tcomponent:TurtleComponent, profiles:list, thicknesses:list, layerCount:int = -1, isFlipped = False, appearanceList = []):
+    def createWithLayerData(cls, tcomponent:TurtleComponent, layerDataList:list, appearanceList = []):
         result = cls(tcomponent)
+        countAttr = result.component.attributes.itemByName("Turtle", "layerCount")
+        result.layerCount = int(countAttr.value) if countAttr else 0
 
-        isListProfiles = isinstance(profiles, list)
-        isListThickness = isinstance(thicknesses, list)
-        profileCount = len(profiles) if isListProfiles else 1
-        thicknessCount = len(thicknesses) if isListThickness else 1
-        newLayerCount = layerCount if layerCount > 0 else max(profileCount, thicknessCount)
-        profiles = profiles if isListProfiles else [profiles] * newLayerCount
-        thicknesses = thicknesses if isListThickness else [thicknesses] * newLayerCount
+        newFeatures = result._extrudeWithLayerData(tcomponent, layerDataList, appearanceList)
         
-        newFeatures = result._extrudeWithProfiles(newLayerCount, profiles, thicknesses, isFlipped, appearanceList)
+        result.component.attributes.add("Turtle", "layerCount", str(result.layerCount))
+        return result, newFeatures
+
+    def _extrudeWithLayerData(self, tcomponent:TurtleComponent,  layerDataList:list, appearanceList = []):
+        newFeatures = []
+        startFace = None # zero distance from profile plane is default, startFrom is not set
+        for i, layer in enumerate(layerDataList):
+            layer.extrude = tcomponent.extrude(layer.getProfileCollection(), startFace, layer.thickness, layer.isFlipped)
+            layer.layerIndex = self.layerCount
+
+            if len(appearanceList) > i and layer.appearanceIndex > -1:
+                self.tcomponent.colorExtrudedBodiesByIndex(layer.extrude, appearanceList[layer.appearanceIndex])
+            else:
+                self.tcomponent.colorExtrudedBodiesByThickness(layer.extrude, layer.thickness)
+            layer.startFace = startFace if startFace else layer.extrude.startFaces[0]
+            startFace = layer.extrude.endFaces[0]
+            newFeatures.append(layer.extrude)
+            self.layerCount += 1
+        
+        return newFeatures
+
+    @classmethod
+    def createFromProfiles(cls, tcomponent:TurtleComponent, profiles:list, thicknesses:list, isFlipped = False, layerCount:int = -1, appearanceList = []):
+        result = cls(tcomponent)
+        layerDataList = LayerData.createLayerDataList(profiles, thicknesses, isFlipped)
+
+        newFeatures = result._extrudeWithLayerData(tcomponent, layerDataList, appearanceList)
 
         countAttr = result.component.attributes.itemByName("Turtle", "layerCount")
         count = int(countAttr.value) if countAttr else 0
-        result.component.attributes.add("Turtle", "layerCount", str(newLayerCount + count))
+        result.component.attributes.add("Turtle", "layerCount", str(result.layerCount))
 
         return result, newFeatures
 
@@ -95,11 +117,11 @@ class TurtleLayers:
 
             # mark layers with extrude index and body map
             start:f.BRepFace = startFace if startFace else extruded.startFaces[0]
-            extrudeData = LayerData.createNew(extruded, self.layerCount + i, thicknesses[thicknessIndex], isFlipped, appearanceIndex)
+            extrudeData = LayerData.createNew(extruded, thicknesses[thicknessIndex], isFlipped, self.layerCount, appearanceIndex)
             self.layers.append(extrudeData)
 
             startFace = extruded.endFaces[0]
-        self.layerCount += newLayerCount
+            self.layerCount += 1
         return extrusions
 
     def modifyWithProfiles(self, profiles, operation:f.FeatureOperations):
@@ -143,12 +165,14 @@ class TurtleLayers:
 
 
 class LayerData:
-    def __init__(self, extrude:f.ExtrudeFeature, layerIndex:int, thickness, isFlipped:bool, appearanceIndex:int = -1):
+    def __init__(self, extrude:f.ExtrudeFeature, profiles:f.Profiles, thickness, isFlipped:bool, layerIndex:int = -1, appearanceIndex:int = -1):
         self.extrude = extrude
         self.layerIndex:int = layerIndex
         self.thickness = thickness
         self.isFlipped:bool = isFlipped
         self.appearanceIndex:int = appearanceIndex
+        self.profiles = profiles
+        self.startFace = None
         if self.extrude:
             self.setExtrude(extrude)
 
@@ -156,26 +180,48 @@ class LayerData:
     def createWithExisting(cls, extrude:f.ExtrudeFeature):
         #body, layerIndex, bodyIndex, startFaceToken, thickness, isFlipped = cls._getAttributes(body)
         layerIndex, thickness, isFlipped, appearanceIndex = cls._getAttributes(extrude)
-        result = cls(extrude, layerIndex, thickness, isFlipped, appearanceIndex)
+        result = cls(extrude, None, thickness, isFlipped, layerIndex, appearanceIndex)
         return result
 
     @classmethod
-    def createNew(cls, extrude:f.ExtrudeFeature, layerIndex:int, thickness, isFlipped:bool, appearanceIndex:int = -1):
-        result = cls(extrude, layerIndex, thickness, isFlipped, appearanceIndex)
+    def createNew(cls, extrude:f.ExtrudeFeature, thickness, isFlipped:bool, layerIndex:int, appearanceIndex:int = -1):
+        result = cls(extrude, None, thickness, isFlipped, layerIndex, appearanceIndex)
         return result
         
     @classmethod
-    def createWithoutBody(cls, layerIndex:int, thickness, isFlipped:bool, appearanceIndex:int = -1):
-        return cls(None, layerIndex, thickness, isFlipped, appearanceIndex)
+    def createWithoutBody(cls, profiles:f.Profiles, thickness, isFlipped:bool, appearanceIndex:int = -1):
+        return cls(None, profiles, thickness, isFlipped, -1, appearanceIndex)
+
+    @classmethod
+    def createLayerDataList(cls, profiles:list, thicknesses:list, isFlipped = False, layerCount:int = -1):
+        isListProfiles = isinstance(profiles, list)
+        isListThickness = isinstance(thicknesses, list)
+        profileCount = len(profiles) if isListProfiles else 1
+        thicknessCount = len(thicknesses) if isListThickness else 1
+        newLayerCount = layerCount if layerCount > 0 else max(profileCount, thicknessCount)
+        profiles = profiles if isListProfiles else [profiles] * newLayerCount
+        thicknesses = thicknesses if isListThickness else [thicknesses] * newLayerCount
+        layerDataList = []
+        for i in range(newLayerCount):
+            profile = profiles[i] if len(profiles) > i else profiles[-1]
+            thickness = thicknesses[i] if len(thicknesses) > i else thicknesses[-1]
+            layer = LayerData.createWithoutBody(profile, thickness, isFlipped)
+            layerDataList.append(layer)
+        return layerDataList
+
+
 
     def setExtrude(self, extrude:f.ExtrudeFeature):
         self.extrude = extrude
         self._applyAttributesToExtrude(self.extrude)
+        self.profiles = extrude.profile
 
     def getBodyList(self):
         return TurtleUtils.ensureList(self.extrude.bodies) if self.extrude else []
     def getProfileList(self):
-        return TurtleUtils.ensureList(self.extrude.profile) if self.extrude else []
+        return TurtleUtils.ensureList(self.extrude.profile) if self.extrude else TurtleUtils.ensureList(self.profiles)
+    def getProfileCollection(self):
+        return TurtleUtils.ensureObjectCollection(self.extrude.profile) if self.extrude else TurtleUtils.ensureObjectCollection(self.profiles)
     def getStartFaceList(self):
         return TurtleUtils.ensureList(self.extrude.startFaces) if self.extrude else []
     def getAStartFace(self):

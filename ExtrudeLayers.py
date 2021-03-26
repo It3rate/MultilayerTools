@@ -7,7 +7,7 @@ from .lib.TurtleUICommand import TurtleUICommand
 from .lib.TurtleSketch import TurtleSketch
 from .lib.TurtleParams import TurtleParams
 from .lib.TurtleComponent import TurtleComponent
-from .lib.TurtleLayers import TurtleLayers
+from .lib.TurtleLayers import TurtleLayers, LayerData
 from .lib.TurtleCustomCommand import TurtleCustomCommand
 
 f,core,app,ui = TurtleUtils.initGlobals()
@@ -236,7 +236,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             # Flip direction
             self.bFlipDirection = inputs.addBoolValueInput('bFlip', 'Flip Direction', True, "resources/Flip/", isFlipped)
             # Reverse Order
-            self.bReversed = inputs.addBoolValueInput('bReverse', 'ReverseOrder', True, "resources/Reverse/", isReversed)
+            self.bReversed = inputs.addBoolValueInput('bReverse', 'Reverse Order', True, "resources/Reverse/", isReversed)
 
             # * maybe not: Start (Profile Plane, Offset, Object)
             # Direction (One Side, Two Sides, Symmetric)
@@ -264,7 +264,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
 
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
-            
+    
     def _execute(self, eventArgs:core.CommandEventArgs):
         self.selectedProfiles = []
         for index in range(self.profilesSelection.selectionCount):
@@ -341,6 +341,14 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                 tComp = TurtleComponent.createFromParent(comp, "LayeredComp" + str(nextIndex)) 
         return sketch, tComp
 
+
+
+
+
+
+    def extrude(cls, tComp:TurtleComponent, stateTable, bReversed:bool, bFlipDirection:bool):
+        pass
+
     def _extrude(self, tComp:TurtleComponent):            
         count = len(self.stateTable)
         for i, state in enumerate(self.stateTable):
@@ -357,7 +365,9 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         if self.bReversed.value:
             distances.reverse()
             appearanceList.reverse()
-        result, newFeatures = TurtleLayers.createFromProfiles(tComp, [self.selectedProfiles], distances, count, self.bFlipDirection.value, appearanceList)
+
+        layerDataList = LayerData.createLayerDataList([self.selectedProfiles], distances, self.bFlipDirection.value)
+        result, newFeatures = TurtleLayers.createWithLayerData(tComp, layerDataList, appearanceList)
         return result, newFeatures
         
 

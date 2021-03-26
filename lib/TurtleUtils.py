@@ -114,7 +114,7 @@ class TurtleUtils:
     @classmethod
     def ensureObjectCollection(cls, itemList):
         result = itemList
-        if type(itemList) != core.ObjectCollection: 
+        if not itemList or type(itemList) != core.ObjectCollection: 
             result = core.ObjectCollection.create()
             if isinstance(itemList, list):
                 for item in itemList:
@@ -124,18 +124,18 @@ class TurtleUtils:
         return result
 
     @classmethod
-    def ensureList(cls, items):
-        result = items
-        if type(items) != list: 
+    def ensureList(cls, itemList):
+        result = itemList
+        if not itemList or type(itemList) != list: 
             result = []
-            if hasattr(items, "__iter__"):
-                for item in items:
+            if hasattr(itemList, "__iter__"):
+                for item in itemList:
                     result.append(item)
-            elif hasattr(items, "count"):
-                for i in range(items.count):
-                    result.append(items[i])
+            elif hasattr(itemList, "count"):
+                for i in range(itemList.count):
+                    result.append(itemList[i])
             else:
-                result.append(items)
+                result.append(itemList)
         return result
 
 

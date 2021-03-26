@@ -85,11 +85,11 @@ class TurtleEncoder:
             result += "\'Dimensions\':" + self.encodeList(self.data["Dimensions"]) + ",\n" #             [\n\'" + "\',\'".join(self.data["Dimensions"]) + "\'\n],\n")
         if self.guideline:
             guidePoints = self.getSortedPoints(self.guideline)
-            result += "\'Guideline\':[" + self.encodePoints(*guidePoints) + ",\'" + self.encodeEntity(self.guideline) + "\'],\n"
+            guideEntity = self.encodeEntity(self.guideline)
+            result += "\'Guideline\':[" + self.encodePoints(*guidePoints) + ",\'" + guideEntity + "\'],\n"
         else: 
             result += "\'Guideline\':[],\n" 
-            
-        #result += "\'ProfileCentroids\':" + self.encodeList(self.data["ProfileCentroids"]) + ",\n" 
+
         result += "\'ProfileCentroids\':[\n" + self.encodePoints(*self.data["ProfileCentroids"]) + "\n],\n"
         result += "\'NamedProfiles\':{\n" + self.encodeNamedProfiles() + "\n}\n"
 
