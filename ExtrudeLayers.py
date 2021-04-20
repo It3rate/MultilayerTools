@@ -195,23 +195,28 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         self._execute(eventArgs)
         self._writeDefaultLayerIndexes()
     
+    def _createVariables(self):
+        self.thicknessParamNames = ['mat0', 'mat1', 'mat2', 'mat3', 'mat4', 'mat5']
+        self.params.addParams(
+            self.thicknessParamNames[0], 2,
+            self.thicknessParamNames[1], 3.5,
+            self.thicknessParamNames[2], 3,
+            self.thicknessParamNames[3], 4,
+            self.thicknessParamNames[4], 5,
+            self.thicknessParamNames[5], 6)
+        
+        self.paramTable = []
+        for i in range(len(self.thicknessParamNames)):
+            paramVal = self.params.getValue(self.thicknessParamNames[i])
+            self.paramTable.append([self.thicknessParamNames[i], paramVal])
+        self.stateTable = []
+        self.selectedProfiles = []
+        self.opType = 0
+
+    
     def _createDialog(self, inputs):
         try:
-            self.thicknessParamNames = ['mat0', 'mat1', 'mat2', 'mat3', 'mat4', 'mat5']
-            self.params.addParams(
-                self.thicknessParamNames[0], 2,
-                self.thicknessParamNames[1], 3.5,
-                self.thicknessParamNames[2], 3,
-                self.thicknessParamNames[3], 4,
-                self.thicknessParamNames[4], 5,
-                self.thicknessParamNames[5], 6)
-            
-            self.paramTable = []
-            for i in range(len(self.thicknessParamNames)):
-                paramVal = self.params.getValue(self.thicknessParamNames[i])
-                self.paramTable.append([self.thicknessParamNames[i], paramVal])
-            self.stateTable = []
-            self.selectedProfiles = []
+            self._createVariables()
 
             # Select profiles
             self.profilesSelection = inputs.addSelectionInput('selProfile', 'Select Profile', 'Select profile to extrude.')
@@ -224,6 +229,8 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             self.tbLayers.maximumVisibleRows = 6
 
             intitalLayers, isFlipped, isReversed, opType  = self._readDefaultLayerIndexes()
+            self.opType = opType
+            
             for layerIndex in intitalLayers:
                 self._addLayer(layerIndex)
             
@@ -255,7 +262,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             ddOperation.listItems.add("Intersect", False, 'resources/BooleanIntersect')
             ddOperation.listItems.add("New Body", False, 'resources/BooleanNewBody')
             ddOperation.listItems.add("New Component", False, 'resources/BooleanNewComponent')
-            self.opType = opType
+
             ddOperation.listItems[self.opType].isSelected = True
             #                       --- Objects to cut/merge/intersect
 

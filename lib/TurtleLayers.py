@@ -43,17 +43,18 @@ class TurtleLayers:
     def _extrudeWithLayerData(self, tcomponent:TurtleComponent,  layerDataList:list, appearanceList = []):
         newFeatures = []
         startFace = None # zero distance from profile plane is default, startFrom is not set
-        for i, layer in enumerate(layerDataList):
-            layer.extrude = tcomponent.extrude(layer.getProfileCollection(), startFace, layer.thickness, layer.isFlipped)
-            layer.layerIndex = self.layerCount
+        for i, layerData in enumerate(layerDataList):
+            layerData.extrude = tcomponent.extrude(layerData.getProfileCollection(), startFace, layerData.thickness, layerData.isFlipped)
+            layerData.layerIndex = self.layerCount
 
-            if len(appearanceList) > i and layer.appearanceIndex > -1:
-                self.tcomponent.colorExtrudedBodiesByIndex(layer.extrude, appearanceList[layer.appearanceIndex])
+            if len(appearanceList) > i and layerData.appearanceIndex > -1:
+                self.tcomponent.colorExtrudedBodiesByIndex(layerData.extrude, appearanceList[layerData.appearanceIndex])
             else:
-                self.tcomponent.colorExtrudedBodiesByThickness(layer.extrude, layer.thickness)
-            layer.startFace = startFace if startFace else layer.extrude.startFaces[0]
-            startFace = layer.extrude.endFaces[0]
-            newFeatures.append(layer.extrude)
+                self.tcomponent.colorExtrudedBodiesByThickness(layerData.extrude, layerData.thickness)
+            layerData.startFace = startFace if startFace else layerData.extrude.startFaces[0]
+            startFace = layerData.extrude.endFaces[0]
+            newFeatures.append(layerData.extrude)
+            self.layers.append(layerData) # add to internal layers
             self.layerCount += 1
         
         return newFeatures
