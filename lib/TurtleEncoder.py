@@ -314,8 +314,9 @@ class TurtleEncoder:
 
     def encodeParams(self):
         result = ""
+        comma = ""
         for key in self.usedParams:
-            result += "\'" + key + "\':\'" + self.encodeParameter(self.params[key]) + "\'\n"
+            result += "\'" + key + "\':\'" + self.encodeParameter(self.params[key]) + "\',\n"
         return result
 
     def encodeParameter(self, expr:str):

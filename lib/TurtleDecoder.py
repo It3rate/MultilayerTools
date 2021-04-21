@@ -122,7 +122,7 @@ class TurtleDecoder:
         encodedPts = [self.asPoint3D(gl[0]),self.asPoint3D(gl[1])] if len(gl) > 1 else []
         if self.guideline and len(encodedPts) > 1:
             self.guideIndex = int(gl[2][1:])
-            # ensure encoded guide moves left to right, or top to bottom if vertival
+            # ensure encoded guide moves left to right, or top to bottom if vertical
             sel0 = self.guideline.startSketchPoint.geometry
             sel1 = self.guideline.endSketchPoint.geometry
 
@@ -157,6 +157,10 @@ class TurtleDecoder:
                 vc(0,0,1)
             )
             self.guideScale = selVec.length / encVec.length
+            
+            self.guideline.isFixed = True
+            self.guideline.startSketchPoint.isFixed = True
+            self.guideline.endSketchPoint.isFixed = True
 
         
     def generatePoints(self, ptVals):

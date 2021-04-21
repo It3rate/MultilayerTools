@@ -147,6 +147,9 @@ class PasteSketchCommand(TurtleUICommand):
         eventArgs.isValidResult = True
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
+        self.sketch.areProfilesShown = False
+        self.sketch.computeDeferred = True
+
         self._ensureSketchData()
         flipX = self.flipHSelection.value
         flipY = self.flipVSelection.value
@@ -154,7 +157,9 @@ class PasteSketchCommand(TurtleUICommand):
             self.decoder = TurtleDecoder.createWithGuideline(self.data, self.guideline, flipX, flipY)
         elif self.sketch:
             self.decoder = TurtleDecoder.createWithSketch(self.data, self.sketch, flipX, flipY)
-
+            
+        self.sketch.areProfilesShown = True
+        self.sketch.computeDeferred = False
 
     def _resetSelections(self):
         ui.activeSelections.clear()

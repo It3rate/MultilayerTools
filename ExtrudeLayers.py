@@ -7,7 +7,8 @@ from .lib.TurtleUICommand import TurtleUICommand
 from .lib.TurtleSketch import TurtleSketch
 from .lib.TurtleParams import TurtleParams
 from .lib.TurtleComponent import TurtleComponent
-from .lib.TurtleLayers import TurtleLayers, LayerData
+from .lib.TurtleLayers import TurtleLayers
+from .lib.TurtleLayerData import TurtleLayerData
 from .lib.TurtleCustomCommand import TurtleCustomCommand
 
 f,core,app,ui = TurtleUtils.initGlobals()
@@ -373,7 +374,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
             distances.reverse()
             appearanceList.reverse()
 
-        layerDataList = LayerData.createLayerDataList([self.selectedProfiles], distances, self.bFlipDirection.value)
+        layerDataList = TurtleLayerData.createLayerDataList([self.selectedProfiles], distances, self.bFlipDirection.value)
         result, newFeatures = TurtleLayers.createWithLayerData(tComp, layerDataList, appearanceList)
         return result, newFeatures
         

@@ -31,6 +31,7 @@ class TurtleParams:
 
     # Create parameter if it doesn't already exist
     def addParam(self, name, val, unitKind="", msg=""):
+        # todo: need to parse params for expressions and make sure there are no forward refs. Maybe just catch and retry exceptions for now.
         units = self.curUnits if unitKind=="" else unitKind
         result = TurtleUtils.activeDesign().userParameters.itemByName(name)
         if result is None:

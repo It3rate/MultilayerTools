@@ -12,7 +12,7 @@ def run(context):
     commandHandles.append(PasteSketchCommand())
     commandHandles.append(ExtrudeLayersCommand())
     commandHandles.append(SketchBuilder())
-    # commandHandles.append(CreateShelves())
+    #commandHandles.append(CreateShelves())
 
 def stop(context):
     for cmd in commandHandles:
