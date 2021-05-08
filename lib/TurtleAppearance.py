@@ -38,8 +38,8 @@ class TurtleAppearance(list):
         colors = [
             "Plastic - Translucent Matte (Yellow)",
             "Plastic - Translucent Matte (Green)",
-            "Plastic - Translucent Matte (Red)",
             "Plastic - Translucent Matte (Blue)",
+            "Plastic - Translucent Matte (Red)",
             "Plastic - Translucent Matte (Gray)",
             "Plastic - Translucent Matte (White)",
         ]
