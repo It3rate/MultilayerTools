@@ -1,5 +1,5 @@
-
 import adsk.core, adsk.fusion, traceback, os
+
 from .CopySketch import CopySketchCommand
 from .PasteSketch import PasteSketchCommand
 from .ExtrudeLayers import ExtrudeLayersCommand
