@@ -2,11 +2,11 @@
 # #Description-Copies sketch points, lines, constraints and dimensions, including parameters. Optionally relative to a guideline for relative pasting.
 
 import adsk.core, adsk.fusion, traceback
-from .lib.TurtleUtils import TurtleUtils
-from .lib.TurtleUICommand import TurtleUICommand
-from .lib.TurtleSketch import TurtleSketch
-from .lib.TurtleEncoder import TurtleEncoder
-from .lib.data.SketchData import SketchData
+from .tlib.TurtleUtils import TurtleUtils
+from .tlib.TurtleUICommand import TurtleUICommand
+from .tlib.TurtleSketch import TurtleSketch
+from .tlib.TurtleEncoder import TurtleEncoder
+from .tlib.data.SketchData import SketchData
 
 f,core,app,ui = TurtleUtils.initGlobals()
 

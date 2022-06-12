@@ -2,11 +2,11 @@
 #Description-'Pastes sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow transformed pasting if a guideline was selected while copying.'
 
 import adsk.core, adsk.fusion, traceback
-from .lib.TurtleUtils import TurtleUtils
-from .lib.TurtleUICommand import TurtleUICommand
-from .lib.TurtleSketch import TurtleSketch
-from .lib.TurtleDecoder import TurtleDecoder
-from .lib.data.SketchData import SketchData
+from .tlib.TurtleUtils import TurtleUtils
+from .tlib.TurtleUICommand import TurtleUICommand
+from .tlib.TurtleSketch import TurtleSketch
+from .tlib.TurtleDecoder import TurtleDecoder
+from .tlib.data.SketchData import SketchData
 
 f,core,app,ui = TurtleUtils.initGlobals()
 

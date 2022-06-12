@@ -2,14 +2,14 @@
 # #Extrudes a profile into multiple layer bodies of parameterized thicknesses. Can also be used to cut, intersect existing layered components.
 
 import adsk.core, adsk.fusion, traceback
-from .lib.TurtleUtils import TurtleUtils
-from .lib.TurtleUICommand import TurtleUICommand
-from .lib.TurtleSketch import TurtleSketch
-from .lib.TurtleParams import TurtleParams
-from .lib.TurtleComponent import TurtleComponent
-from .lib.TurtleLayers import TurtleLayers
-from .lib.TurtleLayerData import TurtleLayerData
-from .lib.TurtleCustomCommand import TurtleCustomCommand
+from .tlib.TurtleUtils import TurtleUtils
+from .tlib.TurtleUICommand import TurtleUICommand
+from .tlib.TurtleSketch import TurtleSketch
+from .tlib.TurtleParams import TurtleParams
+from .tlib.TurtleComponent import TurtleComponent
+from .tlib.TurtleLayers import TurtleLayers
+from .tlib.TurtleLayerData import TurtleLayerData
+from .tlib.TurtleCustomCommand import TurtleCustomCommand
 
 f,core,app,ui = TurtleUtils.initGlobals()
 

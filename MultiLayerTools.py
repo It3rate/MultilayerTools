@@ -4,7 +4,7 @@ from .CopySketch import CopySketchCommand
 from .PasteSketch import PasteSketchCommand
 from .ExtrudeLayers import ExtrudeLayersCommand
 from .SketchBuilder import SketchBuilder
-from .lib.CreateShelves import CreateShelves
+from .tlib.CreateShelves import CreateShelves
 
 commandHandles = []
 def run(context):
