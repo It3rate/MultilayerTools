@@ -41,7 +41,7 @@ class PasteSketchCommand(TurtleUICommand):
 
             # Select optional guideline.
             self.guidelineSelection = inputs.addSelectionInput('selGuideline', 'Select Guideline', 'Optional reference guideline used if transforming sketch.')
-            self.guidelineSelection.setSelectionLimits(0,0)
+            self.guidelineSelection.setSelectionLimits(0,1)
             self.guidelineSelection.addSelectionFilter('SketchLines')
 
             # Select sketch.
@@ -52,8 +52,8 @@ class PasteSketchCommand(TurtleUICommand):
             self.sketchText = inputs.addTextBoxCommandInput('txSketch', 'Select Sketch', '<b>Auto selected.</b>', 1, True)
 
             # Flip checkboxes
-            self.flipHSelection = inputs.addBoolValueInput('bFlipH', 'Flip Sketch', True)
-            self.flipVSelection = inputs.addBoolValueInput('bFlipV', 'Mirror Sketch', True)
+            self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse Sketch', True)
+            self.mirrorSelection = inputs.addBoolValueInput('bMirror', 'Mirror Sketch', True)
 
             if self.sketch and not self.guideline:
                 tSketch = TurtleSketch.createWithSketch(self.sketch)
@@ -86,7 +86,7 @@ class PasteSketchCommand(TurtleUICommand):
                 if cmdInput.selectionCount > 0:
                     guide = cmdInput.selection(0).entity
                     if not guide.attributes.itemByName("Turtle", "generated"): # can use own drawn line as guideline
-                        self.guideline = cmdInput.selection(0).entity
+                        self.guideline = cmdInput.selection(0).entity 
                         self.sketch = self.guideline.parentSketch
                     else:
                         self.guideline = None
@@ -136,7 +136,6 @@ class PasteSketchCommand(TurtleUICommand):
         # never allow selecting guidelines that are self drawn
         if type(sel) == f.SketchLine and sel.attributes.itemByName("Turtle", "generated"):
             eventArgs.isSelectable = False
-            eventArgs.additionalEntities.add(sel)
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.onExecute(eventArgs)
@@ -151,12 +150,12 @@ class PasteSketchCommand(TurtleUICommand):
         self.sketch.computeDeferred = True
 
         self._ensureSketchData()
-        flipX = self.flipHSelection.value
-        flipY = self.flipVSelection.value
+        reverse = self.reverseSelection.value
+        mirror = self.mirrorSelection.value
         if self.guideline:
-            self.decoder = TurtleDecoder.createWithGuideline(self.data, self.guideline, flipX, flipY)
+            self.decoder = TurtleDecoder.createWithGuideline(self.data, self.guideline, reverse, mirror)
         elif self.sketch:
-            self.decoder = TurtleDecoder.createWithSketch(self.data, self.sketch, flipX, flipY)
+            self.decoder = TurtleDecoder.createWithSketch(self.data, self.sketch, reverse, mirror)
             
         self.sketch.areProfilesShown = True
         self.sketch.computeDeferred = False
@@ -199,11 +198,11 @@ class PasteSketchCommand(TurtleUICommand):
             self.sketchText.isVisible = False
         
         if self.guideline:
-            self.flipHSelection.isEnabled = True
-            self.flipVSelection.isEnabled = True
+            self.reverseSelection.isEnabled = True
+            self.mirrorSelection.isEnabled = True
         else:
-            self.flipHSelection.isEnabled = False
-            self.flipVSelection.isEnabled = False
+            self.reverseSelection.isEnabled = False
+            self.mirrorSelection.isEnabled = False
 
         # not sure of a better way to do this...
         # on the second tab, the first tab's selection is still updated and deselected etc, so things will not redraw without this

@@ -13,7 +13,7 @@ f,core,app,ui = TurtleUtils.initGlobals()
 class TurtleEncoder:
     def __init__(self, sketch:f.Sketch = None, guideline:f.SketchLine = None, namedProfiles = {}):
         
-        self.guideline = guideline
+        self.guideline:f.SketchLine = guideline
         self.autoGuideline = (sketch == None) # only autodetect guidelines if this isn't a UI command
         self.sketch:f.Sketch = sketch
         if not self.sketch:
@@ -86,7 +86,8 @@ class TurtleEncoder:
         if self.guideline:
             guidePoints = self.getSortedPoints(self.guideline)
             guideEntity = self.encodeEntity(self.guideline)
-            result += "\'Guideline\':[" + self.encodePoints(*guidePoints) + ",\'" + guideEntity + "\'],\n"
+            flippedText = "flip" if TurtleSketch.isLineFlipped(self.guideline) else "noFlip"
+            result += "\'Guideline\':[" + self.encodePoints(*guidePoints) + ",\'" + guideEntity + "\',\'" + flippedText + "\'],\n"
         else: 
             result += "\'Guideline\':[],\n" 
 

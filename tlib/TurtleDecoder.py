@@ -11,22 +11,22 @@ f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleDecoder:
 
-    def __init__(self, flipX = False, flipY = False):
-        self.flipX = flipX
-        self.flipY = flipY
+    def __init__(self, reverse = False, mirror = False):
+        self.isReversed = reverse
+        self.isMirrored = mirror
         self.transform = core.Matrix3D.create()
         self.guideline = None
         self.sketch = None
 
     @classmethod
-    def create(cls, data, flipX = False, flipY = False):
+    def create(cls, data, reverse = False, mirror = False):
         decoder = TurtleDecoder()
         decoder.run(data)
         return decoder
 
     @classmethod
-    def createWithTransform(cls, data, transform:core.Matrix3D, flipX = False, flipY = False):
-        decoder = TurtleDecoder(flipX, flipY)
+    def createWithTransform(cls, data, transform:core.Matrix3D, reverse = False, mirror = False):
+        decoder = TurtleDecoder(reverse, mirror)
         # It doesn't make sense to map transforms, as the sketch transform in fusion isn't constant.
         # Tt will be based on where the camera is when entering the sketch, so just use identity, and allow flipping.
         decoder.transform = transform
@@ -34,15 +34,15 @@ class TurtleDecoder:
         return decoder
 
     @classmethod
-    def createWithSketch(cls, data, sketch:f.Sketch, flipX = False, flipY = False):
-        decoder = TurtleDecoder(flipX, flipY)
+    def createWithSketch(cls, data, sketch:f.Sketch, reverse = False, mirror = False):
+        decoder = TurtleDecoder(reverse, mirror)
         decoder.sketch = sketch
         decoder.run(data)
         return decoder
 
     @classmethod
-    def createWithGuideline(cls, data, guideline:f.SketchLine, flipX = False, flipY = False):
-        decoder = TurtleDecoder(flipX, flipY)
+    def createWithGuideline(cls, data, guideline:f.SketchLine, reverse = False, mirror = False):
+        decoder = TurtleDecoder(reverse, mirror)
         decoder.guideline = guideline
         decoder.sketch = guideline.parentSketch
         decoder.run(data)
@@ -58,7 +58,7 @@ class TurtleDecoder:
         self.tsketch = TurtleSketch.createWithSketch(self.sketch)
         self.tparams = TurtleParams.instance()
 
-        self.guideIndex = -1
+        self.encGuideIndex = -1
         self.guideScale = 1.0
         if self.guideline:
             self.assessGuidelineTransform(data)
@@ -120,47 +120,51 @@ class TurtleDecoder:
     def assessGuidelineTransform(self, data):
         gl = data["Guideline"] if "Guideline" in data else []
         encodedPts = [self.asPoint3D(gl[0]),self.asPoint3D(gl[1])] if len(gl) > 1 else []
-        if self.guideline and len(encodedPts) > 1:
-            self.guideIndex = int(gl[2][1:])
-            # ensure encoded guide moves left to right, or top to bottom if vertical
-            sel0 = self.guideline.startSketchPoint.geometry
-            sel1 = self.guideline.endSketchPoint.geometry
-
+        if len(encodedPts) > 1:
+            self.encGuideIndex = int(gl[2][1:])
+            self.encGuideFlipped =  len(gl) > 2 and gl[3] == "flip"
             enc0 = encodedPts[0]
             enc1 = encodedPts[1]
-            if (enc0.x > enc1.x) or (enc0.x == enc1.x and enc0.y < enc1.y):
-                temp = enc1
-                enc1 = enc0
-                enc0 = temp
+            guide0,guide1 = TurtleSketch.naturalPointOrder(self.guideline) if self.guideline else (enc0, enc1)
 
-            # note: guidelines are NOT always encoded left to right on the x axis, it depends on user orientation
-            naturalFlipX = sel0.x > sel1.x
-            naturalFlipY = sel0.y > sel1.y
+            reverseVal = -1 if self.isReversed else 1
+            mirrorVal = -1 if self.isMirrored else 1
 
             vc = core.Vector3D.create
-            encVec = vc((enc1.x-enc0.x), (enc1.y - enc0.y), 0)
-            selVec = vc((sel1.x-sel0.x), (sel1.y - sel0.y), 0)
+            encVec = vc((enc1.x - enc0.x), (enc1.y - enc0.y), 0)
+            guideVec = vc((guide1.x - guide0.x), (guide1.y - guide0.y), 0)
 
-            # adjust original encoded guideline to create flips
-            self.isXFlipped = (self.flipX != naturalFlipX)
-            gOrigin = enc1 if self.isXFlipped else enc0
-            gxVec = encVec if not self.isXFlipped else vc(-encVec.x, -encVec.y, 0)
-            gyVec = vc(-encVec.y,encVec.x,0) if self.flipY == naturalFlipY else vc(encVec.y,-encVec.x,0)
+            gOrigin = guide1 if self.isReversed else guide0
+
+            guideVec = vc(-guideVec.x, -guideVec.y * mirrorVal, 0)\
+                 if self.isReversed else\
+                 vc(guideVec.x, guideVec.y * mirrorVal, 0)
+
+            gxVec = vc(guideVec.x, guideVec.y * mirrorVal, 0)
+
+            gyVec = vc(-guideVec.y, -guideVec.x * mirrorVal, 0)\
+                if self.isReversed else\
+                vc(guideVec.y, guideVec.x * mirrorVal, 0)
+                
             self.transform.setToAlignCoordinateSystems(
+                enc0, 
+                encVec,
+                vc(encVec.y,encVec.x,0),
+                vc(0,0,1),
                 gOrigin, 
                 gxVec,
                 gyVec,
-                vc(0,0,1),
-                sel0, 
-                selVec,
-                vc(selVec.y,-selVec.x,0),
                 vc(0,0,1)
             )
-            self.guideScale = selVec.length / encVec.length
-            
-            self.guideline.isFixed = True
-            self.guideline.startSketchPoint.isFixed = True
-            self.guideline.endSketchPoint.isFixed = True
+
+            self.guideScale = guideVec.length / encVec.length
+            originPt = self.tsketch.findPointAt(gOrigin)
+            if originPt:
+                originPt.isFixed = True
+            # if self.guideline:
+            #     self.guideline.isFixed = True
+            #     self.guideline.startSketchPoint.isFixed = True
+            #     self.guideline.endSketchPoint.isFixed = True
 
         
     def generatePoints(self, ptVals):
@@ -203,20 +207,21 @@ class TurtleDecoder:
                     params = self.parseParams(parse[3:])
                     curve = None
                     if kind == "L":
-                        # delete guideline instead, if worried about it.
-                        # if self.guideIndex > -1 and len(result) == self.guideIndex:
-                        #     # don't duplicate existing guideline
-                        #     if self.isXFlipped:
-                        #         self.replacePoint(params[1], self.guideline.startSketchPoint)
-                        #         self.replacePoint(params[0], self.guideline.endSketchPoint)
-                        #     else:
-                        #         self.replacePoint(params[0], self.guideline.startSketchPoint)
-                        #         self.replacePoint(params[1], self.guideline.endSketchPoint)
-                        #     curve = self.guideline
-                        # else:
-                        curve = self.replaceLine(params[0], params[1]) # check for generated line match, add if present
-                        if not curve: # else create line (normal path)
-                            curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
+                        if False and self.encGuideIndex > -1 and len(result) == self.encGuideIndex:
+                            isOriginalFlipped = TurtleSketch.isLineFlipped(self.guideline)
+                            isCurrentFlipped = TurtleSketch.isLineFlipped(self.guideline)
+                            # don't duplicate existing guideline
+                            if self.isXFlipped:
+                                self.replacePoint(params[1], self.guideline.startSketchPoint)
+                                self.replacePoint(params[0], self.guideline.endSketchPoint)
+                            else:
+                                self.replacePoint(params[0], self.guideline.startSketchPoint)
+                                self.replacePoint(params[1], self.guideline.endSketchPoint)
+                            curve = self.guideline
+                        else:
+                            curve = self.replaceLine(params[0], params[1]) # check for generated line match, add if present
+                            if not curve: # else create line (normal path)
+                                curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
                     elif kind == "A":
                         curve = sketchCurves.sketchArcs.addByThreePoints(params[0], self.asPoint3D(params[1]), params[2])
                         if len(params) > 2:
@@ -300,7 +305,7 @@ class TurtleDecoder:
             p2 = params[2] if len(params) > 2 else None
             try:
                 if(kind == "VH"):
-                    if not self.hasRotation: # don't set vert/horz if transforming with rotation
+                    if not self.hasRotation and not p0 == self.guideline: # don't set vert/horz if transforming with rotation
                         sp = p0.startSketchPoint.geometry
                         ep = p0.endSketchPoint.geometry
                         if(abs(sp.x - ep.x) < abs(sp.y - ep.y)):

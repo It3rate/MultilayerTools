@@ -16,6 +16,7 @@ class TurtleSketch:
         self.component = sketchTarget.parentComponent
         self.constraints:f.GeometricConstraints = sketchTarget.geometricConstraints
         self.dimensions:f.SketchDimensions = sketchTarget.sketchDimensions
+        self.sketchPoints:f.SketchPoints = sketchTarget.sketchPoints
         self.sketchLines:f.SketchLines = sketchTarget.sketchCurves.sketchLines
         self.profiles:f.Profiles = sketchTarget.profiles
         self.path:TurtlePath = TurtlePath(self.sketch)
@@ -183,6 +184,15 @@ class TurtleSketch:
         collection.removeByItem(result)
         return result
 
+    def findPointAt(self, target:core.Point3D):
+        result = None
+        for i in range(self.sketchPoints.count):
+            pt:f.SketchPoint = self.sketchPoints.item(i)
+            if target.isEqualTo(pt.geometry):
+                result = pt
+                break
+        return result
+
     def getSingleLines(self):
         lines = []
         touched = []
@@ -249,3 +259,17 @@ class TurtleSketch:
         ev = curve.geometry.evaluator
         pe = ev.getParameterExtents()
         return ev.getPointAtParameter((pe[2] - pe[1]) * 0.5)[1]
+        
+    @classmethod
+    def isLineFlipped(cls, line:f.SketchLine):
+        sp = line.startSketchPoint.geometry
+        ep = line.endSketchPoint.geometry
+        isFlippedX = sp.x > ep.x
+        isFlippedY = abs(sp.x - ep.x) < 0.0001 and sp.y > ep.y
+        return isFlippedX or isFlippedY
+        
+    @classmethod
+    def naturalPointOrder(cls, line:f.SketchLine):
+        sp = line.startSketchPoint.geometry
+        ep = line.endSketchPoint.geometry
+        return (sp, ep) if not TurtleSketch.isLineFlipped(line) else (ep, sp)

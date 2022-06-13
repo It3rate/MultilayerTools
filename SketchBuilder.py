@@ -83,8 +83,8 @@ class SketchBuilder(TurtleCustomCommand):
             self.btDeleteItem = tbInputs.addBoolValueInput('tableDelete', 'Delete', False, "resources/Remove/", True)
             self.tbLayers.addToolbarCommandInput(self.btDeleteItem)
             
-            self.flipHSelection = inputs.addBoolValueInput('bFlipH', 'Flip', True)
-            self.flipVSelection = inputs.addBoolValueInput('bFlipV', 'Mirror', True)
+            self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse', True)
+            self.mirrorSelection = inputs.addBoolValueInput('bMirror', 'Mirror', True)
 
             # self.bFlipDirection = inputs.addBoolValueInput('iAxis', 'Rotate Axis', True, "resources/Flip/", isFlipped)
             # self.bReversed = inputs.addBoolValueInput('bReverse', 'Rotate Axis', True, "resources/Reverse/", isReversed)

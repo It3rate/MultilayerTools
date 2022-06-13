@@ -181,7 +181,7 @@ class CopySketchCommand(TurtleUICommand):
         enc = TurtleEncoder(self.sketch, self.guideline, np)
     
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
-        eventArgs.areInputsValid = self.sketch
+        eventArgs.areInputsValid = self.sketch != None
     # def onMouseClick(self, eventArgs:core.MouseEventArgs):
     #     print("click")
     # def onMouseDown(self, eventArgs:core.MouseEventArgs):
