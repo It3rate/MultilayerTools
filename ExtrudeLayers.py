@@ -319,8 +319,8 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
                 customFeatures = comp.features.customFeatures
                 firstFeature = newFeatures[0] # tLayers.firstLayerExtrude()
                 lastFeature = newFeatures[-1] # tLayers.lastLayerExtrude()
-                customFeatInput:f.CustomFeatureInput = customFeatures.createInput(self.customFeatureDef, firstFeature, lastFeature)    
-
+                customFeatInput:f.CustomFeatureInput = customFeatures.createInput(self.customFeatureDef)    
+                customFeatInput.setStartAndEndFeatures(firstFeature, lastFeature)
                 customFeatInput.addDependency('sketch', self.selectedProfiles[0].parentSketch)
                 # Seems we can't remove dependencies or use collections? Can't edit profile count in that case.
                 # for i, profile in enumerate(self.selectedProfiles):

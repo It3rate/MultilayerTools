@@ -21,7 +21,6 @@ class TurtleDecoder:
     @classmethod
     def create(cls, data, flipX = False, flipY = False):
         decoder = TurtleDecoder()
-        decoder.guideline = self.tsketch.getSingleConstructionLine()
         decoder.run(data)
         return decoder
 
@@ -31,7 +30,6 @@ class TurtleDecoder:
         # It doesn't make sense to map transforms, as the sketch transform in fusion isn't constant.
         # Tt will be based on where the camera is when entering the sketch, so just use identity, and allow flipping.
         decoder.transform = transform
-        decoder.guideline = self.tsketch.getSingleConstructionLine()
         decoder.run(data)
         return decoder
 
@@ -46,7 +44,7 @@ class TurtleDecoder:
     def createWithGuideline(cls, data, guideline:f.SketchLine, flipX = False, flipY = False):
         decoder = TurtleDecoder(flipX, flipY)
         decoder.guideline = guideline
-        decoder.sketch:f.Sketch = guideline.parentSketch
+        decoder.sketch = guideline.parentSketch
         decoder.run(data)
         return decoder
 
@@ -86,13 +84,15 @@ class TurtleDecoder:
         self.offsetRefs = {}
         self.forwardExpressions = {}
         self.points = self.generatePoints(self.pointValues)
-        self.curves = self.generateCurves(self.chainValues)
+        self.curves = self.generateChains(self.chainValues)
 
         self.constraints = self.generateConstraints(self.constraintValues)
         for name in self.params:
             self.addUserParam(name)
 
-        self.dimensions = self.generateDimensions(self.dimensionValues)
+        if self.guideScale == 1.0:
+            self.dimensions = self.generateDimensions(self.dimensionValues)
+
         self.profileMap = self.mapProfiles(self.profileCentroids)
     
     def addUserParam(self, name, currentDimIndex:int = -1):
@@ -133,7 +133,7 @@ class TurtleDecoder:
                 enc1 = enc0
                 enc0 = temp
 
-            # note: guidelines are always encoded left to right on the x axis
+            # note: guidelines are NOT always encoded left to right on the x axis, it depends on user orientation
             naturalFlipX = sel0.x > sel1.x
             naturalFlipY = sel0.y > sel1.y
 
@@ -186,7 +186,7 @@ class TurtleDecoder:
             idx += 1
         return result
     
-    def generateCurves(self, chains):
+    def generateChains(self, chains):
         result = []
         sketchCurves = self.sketch.sketchCurves
         self.generatedCurves = []
@@ -203,19 +203,20 @@ class TurtleDecoder:
                     params = self.parseParams(parse[3:])
                     curve = None
                     if kind == "L":
-                        if self.guideIndex > -1 and len(result) == self.guideIndex:
-                            # don't duplicate existing guideline
-                            if self.isXFlipped:
-                                self.replacePoint(params[1], self.guideline.startSketchPoint)
-                                self.replacePoint(params[0], self.guideline.endSketchPoint)
-                            else:
-                                self.replacePoint(params[0], self.guideline.startSketchPoint)
-                                self.replacePoint(params[1], self.guideline.endSketchPoint)
-                            curve = self.guideline
-                        else:
-                            curve = self.replaceLine(params[0], params[1]) # check for generated line match, add if present
-                            if not curve: # else create line (normal path)
-                                curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
+                        # delete guideline instead, if worried about it.
+                        # if self.guideIndex > -1 and len(result) == self.guideIndex:
+                        #     # don't duplicate existing guideline
+                        #     if self.isXFlipped:
+                        #         self.replacePoint(params[1], self.guideline.startSketchPoint)
+                        #         self.replacePoint(params[0], self.guideline.endSketchPoint)
+                        #     else:
+                        #         self.replacePoint(params[0], self.guideline.startSketchPoint)
+                        #         self.replacePoint(params[1], self.guideline.endSketchPoint)
+                        #     curve = self.guideline
+                        # else:
+                        curve = self.replaceLine(params[0], params[1]) # check for generated line match, add if present
+                        if not curve: # else create line (normal path)
+                            curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
                     elif kind == "A":
                         curve = sketchCurves.sketchArcs.addByThreePoints(params[0], self.asPoint3D(params[1]), params[2])
                         if len(params) > 2:
@@ -460,7 +461,8 @@ class TurtleDecoder:
             gl = self.guideline
             startMatch = gl.startSketchPoint == p0 or gl.startSketchPoint == p1
             endMatch = gl.endSketchPoint == p0 or gl.endSketchPoint == p1
-            result = gl and startMatch and endMatch
+            notSame = startMatch != endMatch
+            result = gl and startMatch and endMatch and notSame
         return result
 
     def encodeExpression(self, expr):
