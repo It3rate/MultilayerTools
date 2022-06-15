@@ -23,9 +23,12 @@ class PasteSketchCommand(TurtleUICommand):
     def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         try:
             self.isInSketch = app.activeEditObject.classType == f.Sketch.classType
-            self.guideline:f.SketchLine = TurtleUtils.getSelectedTypeOrNone(f.SketchLine)
-            if self.guideline:
-                self.sketch = self.guideline.parentSketch
+            self.guidelines = []
+            self.hasGuideline = lambda : len(self.guidelines) > 0
+            self.lastGuideline = lambda : self.guidelines[len(self.guidelines) - 1] if self.hasGuideline() else None
+            gl = TurtleUtils.getSelectedTypeOrNone(f.SketchLine)
+            if gl:
+                self.addGuideline(gl)
             else:
                 self.sketch = TurtleUtils.getTargetSketch(f.Sketch, False)
             self.data = None
@@ -41,9 +44,8 @@ class PasteSketchCommand(TurtleUICommand):
 
             # Select optional guideline.
             self.guidelineSelection = inputs.addSelectionInput('selGuideline', 'Select Guideline', 'Optional reference guideline used if transforming sketch.')
-            self.guidelineSelection.setSelectionLimits(0,1)
+            self.guidelineSelection.setSelectionLimits(0,0)
             self.guidelineSelection.addSelectionFilter('SketchLines')
-
             # Select sketch.
             self.sketchSelection = inputs.addSelectionInput('selSketch', 'Select Sketch', 'Select sketch to copy.')
             self.sketchSelection.setSelectionLimits(0,0)
@@ -54,12 +56,6 @@ class PasteSketchCommand(TurtleUICommand):
             # Flip checkboxes
             self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse Sketch', True)
             self.mirrorSelection = inputs.addBoolValueInput('bMirror', 'Mirror Sketch', True)
-
-            if self.sketch and not self.guideline:
-                tSketch = TurtleSketch.createWithSketch(self.sketch)
-                lines = tSketch.getSingleLines()
-                if(len(lines) == 1):
-                    self.guideline = lines[0]
             
             loadGroup = inputs.addGroupCommandInput("loadGroup", "Load From Disk")
             self.btLoadText = loadGroup.children.addButtonRowCommandInput("btLoadText", "Load Sketch", False)
@@ -71,36 +67,37 @@ class PasteSketchCommand(TurtleUICommand):
             self.radioProfiles = inputs.addRadioButtonGroupCommandInput('radioProfiles', 'Named Profiles')
             self.radioProfiles.isFullWidth = True
 
-            if self.sketch:
+            if self.sketch and not self.isInSketch:
                 self.sketchSelection.addSelection(self.sketch)
 
             self._resetUI()
         except:
             print('Failed:\n{}'.format(traceback.format_exc()))
-        
+
+    def addGuideline(self, gl):
+        if gl and not gl.attributes.itemByName("Turtle", "generated"):
+            self.guidelines.append(gl)
+            self.sketch = gl.parentSketch
+
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
         try:
-            inputs = eventArgs.inputs
             cmdInput = eventArgs.input
             if cmdInput.id == 'selGuideline':
-                if cmdInput.selectionCount > 0:
-                    guide = cmdInput.selection(0).entity
-                    if not guide.attributes.itemByName("Turtle", "generated"): # can use own drawn line as guideline
-                        self.guideline = cmdInput.selection(0).entity 
-                        self.sketch = self.guideline.parentSketch
-                    else:
-                        self.guideline = None
+                selCount = cmdInput.selectionCount
+                if selCount > 0:
+                    gl = cmdInput.selection(selCount - 1).entity
+                    self.addGuideline(gl)
                 else:
-                    self.guideline = None
+                    self.guidelines.clear()
 
             elif cmdInput.id == 'selSketch':
                 if self.sketchSelection.selectionCount > 0:
                     self.sketch = cmdInput.selection(0).entity
-                    if(self.guideline and self.guideline.parentSketch != self.sketch):
-                        self.guideline = None
+                    if(self.hasGuideline and self.guidelines[0].parentSketch != self.sketch):
+                        self.guidelines.clear()
                 else:
                     self.sketch = None
-                    self.guideline = None
+                    self.guidelines.clear()
 
             elif cmdInput.id == 'radioProfiles':
                 self.selectedProfileIndex = cmdInput.selectedItem.index
@@ -137,6 +134,9 @@ class PasteSketchCommand(TurtleUICommand):
         if type(sel) == f.SketchLine and sel.attributes.itemByName("Turtle", "generated"):
             eventArgs.isSelectable = False
 
+        if type(sel) == f.Sketch and self.isInSketch:
+            eventArgs.isSelectable = False
+
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.onExecute(eventArgs)
         if self.tabIndex == 1 and self.decoder and len(self.decoder.namedProfiles) > 0:
@@ -152,8 +152,9 @@ class PasteSketchCommand(TurtleUICommand):
         self._ensureSketchData()
         reverse = self.reverseSelection.value
         mirror = self.mirrorSelection.value
-        if self.guideline:
-            self.decoder = TurtleDecoder.createWithGuideline(self.data, self.guideline, reverse, mirror)
+
+        if self.hasGuideline():
+            self.decoder = TurtleDecoder.createWithGuideline(self.data, self.lastGuideline(), reverse, mirror)
         elif self.sketch:
             self.decoder = TurtleDecoder.createWithSketch(self.data, self.sketch, reverse, mirror)
             
@@ -164,12 +165,11 @@ class PasteSketchCommand(TurtleUICommand):
         ui.activeSelections.clear()
         self.guidelineSelection.clearSelection()
         self.sketchSelection.clearSelection()
-        if self.guideline and not self.guideline.isValid:
-            self.guideline = None
+        self.guidelines = [gl for gl in self.guidelines if not gl.isValid]
+        for gl in self.guidelines:
+            self.guidelineSelection.addSelection(gl)
 
-        if self.guideline:
-            self.guidelineSelection.addSelection(self.guideline)
-        elif self.sketch:
+        if self.sketch and not self.isInSketch:
             self.sketchSelection.addSelection(self.sketch)
 
     def _updateProfiles(self):
@@ -189,7 +189,7 @@ class PasteSketchCommand(TurtleUICommand):
                 self.data = eval(clip)
     
     def _resetUI(self):
-        if self.guideline or self.isInSketch:
+        if self.hasGuideline() or self.isInSketch:
             self.sketchSelection.isVisible = False
             self.sketchText.isVisible = True
             self.guidelineSelection.hasFocus = True 
@@ -197,21 +197,15 @@ class PasteSketchCommand(TurtleUICommand):
             self.sketchSelection.isVisible = True
             self.sketchText.isVisible = False
         
-        if self.guideline:
-            self.reverseSelection.isEnabled = True
-            self.mirrorSelection.isEnabled = True
-        else:
-            self.reverseSelection.isEnabled = False
-            self.mirrorSelection.isEnabled = False
-
         # not sure of a better way to do this...
         # on the second tab, the first tab's selection is still updated and deselected etc, so things will not redraw without this
-        if self.guideline:
+        if self.hasGuideline():
             self.guidelineSelection.clearSelection() 
-            self.guidelineSelection.addSelection(self.guideline)
+            for gl in self.guidelines:
+                self.guidelineSelection.addSelection(gl)
         else:
             self.guidelineSelection.clearSelection() 
-            if self.sketch:
+            if self.sketch and not self.isInSketch:
                 self.sketchSelection.clearSelection()
                 self.sketchSelection.addSelection(self.sketch)
             else:
