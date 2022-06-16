@@ -48,7 +48,7 @@ class TurtleUtils:
             if not type(result) is selType:
                 result = None
                 if showMessage:
-                    ui.messageBox('Selected object needs to be a ' + typeName + ". It is a " + str(type(selected)) + ".", title)
+                    ui.messageBox('Selected object needs to be a ' + typeName + ". It is a " + str(type(ui.activeSelections.item(0))) + ".", title)
 
         return result
 

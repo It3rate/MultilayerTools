@@ -80,6 +80,30 @@ class PasteSketchCommand(TurtleUICommand):
             self.sketch = gl.parentSketch
 
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
+
+        # investigations of a shelled box
+        # comp:f.Component = TurtleUtils.activeDesign().activeComponent
+        # body = comp.bRepBodies.item(0)
+        # f0 = body.faces.item(0)
+        # f1 = body.faces.item(1)
+        # f2 = body.faces.item(2)
+        # f3 = body.faces.item(3)
+        # f4 = body.faces.item(4)
+        # f5 = body.faces.item(5)
+        # f6 = body.faces.item(6)
+        # f7 = body.faces.item(7)
+        # f8 = body.faces.item(8)
+        # f9 = body.faces.item(9)
+        # f10 = body.faces.item(10)
+        # topClue = f5.loops.count # 2 
+        # f5Norm = f5.geometry.normal
+        # pts = f5.vertices # 8
+        # edges = f5.edges # 8
+        # shellFeature = comp.features.shellFeatures.item(0)
+        # thickness = shellFeature.insideThickness.value # or expression 
+        # faces=shellFeature.faces
+        # boxFeature = comp.features.boxFeatures.item(0)
+
         try:
             cmdInput = eventArgs.input
             if cmdInput.id == 'selGuideline':
