@@ -24,6 +24,7 @@ class TurtleCustomCommand(TurtleUICommand):
         
         self.customFeatureDef = f.CustomFeatureDefinition.create(self.cmdId, cmdName,  self.resFolder)
         self.customFeatureDef.editCommandId = self.cmdId + "_edit"
+        print(self.customFeatureDef.editCommandId)
 
         # Connect to the compute event for the custom feature.
         computeCustomFeature = self.getComputeCustomFeatureHandler()

@@ -138,6 +138,31 @@ class TurtleUtils:
                 result.append(itemList)
         return result
 
+    @classmethod
+    def reverseVector(self, vec:adsk.core.Vector3D) -> adsk.core.Vector3D:
+        result = vec.copy()
+        invMatrix = adsk.core.Matrix3D.create()
+        invMatrix.setWithArray([-1,0,0,0,0,-1,0,0,0,0,-1,0,0,0,0,-1])
+        result.transformBy(invMatrix)
+        return result
+
+    @classmethod
+    def firstNormMatch(self, norm:adsk.core.Vector3D, faces:list[adsk.fusion.BRepFace], findLargest:bool = False) -> adsk.fusion.BRepFace:
+        oppNorm = self.reverseVector(norm)
+        result = None
+        area = 0
+        for face in faces:
+            if (face.isParamReversed and face.geometry.normal.isEqualTo(oppNorm)) or face.geometry.normal.isEqualTo(norm):
+                if findLargest and face.area > area:
+                    result = face
+                    area = face.area
+                else:
+                    result = face
+                    break
+
+        if result:
+            faces.remove(result)
+        return result
 
 
 # used to detect overrides - only hook up events if there is a handler implemented
