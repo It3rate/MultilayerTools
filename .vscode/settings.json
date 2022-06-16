@@ -3,5 +3,5 @@
 	"python.pythonPath":	"C:/Users/Acer/AppData/Local/Autodesk/webdeploy/production/a728026e6cfbcb51c0eeb65fc1debc9226e69551/Python/python.exe",
 	"python.linting.pylintEnabled":	true,
 	"python.analysis.extraPaths":	["C:/Users/Robin/AppData/Roaming/Autodesk/Autodesk Fusion 360/API/Python/defs", "C:/Users/Acer/AppData/Roaming/Autodesk/Autodesk Fusion 360/API/Python/defs"],
-	"python.linting.enabled":	false
+	"python.linting.enabled":	true
 }
