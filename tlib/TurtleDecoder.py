@@ -41,11 +41,12 @@ class TurtleDecoder:
         return decoder
 
     @classmethod
-    def createWithGuideline(cls, data, guideline:f.SketchLine, reverse = False, mirror = False):
+    def createWithGuidelines(cls, data, guidelines, reverse = False, mirror = False):
         decoder = TurtleDecoder(reverse, mirror)
-        decoder.guideline = guideline
-        decoder.sketch = guideline.parentSketch
-        decoder.run(data)
+        for guideline in guidelines:
+            decoder.guideline = guideline
+            decoder.sketch = guideline.parentSketch
+            decoder.run(data)
         return decoder
 
     def run(self, data):
@@ -60,8 +61,7 @@ class TurtleDecoder:
 
         self.encGuideIndex = -1
         self.guideScale = 1.0
-        if self.guideline:
-            self.assessGuidelineTransform(data)
+        self.assessTransform(data)
 
         self.decodeSketchData(data)
         self.decodeFromSketch()
@@ -117,7 +117,8 @@ class TurtleDecoder:
             self.dimensionNameMap.append(regex)
             idx += 1
 
-    def assessGuidelineTransform(self, data):
+    def assessTransform(self, data):
+        self.transform = core.Matrix3D.create()
         gl = data["Guideline"] if "Guideline" in data else []
         encodedPts = [self.asPoint3D(gl[0]),self.asPoint3D(gl[1])] if len(gl) > 1 else []
         if len(encodedPts) > 1:
@@ -126,7 +127,12 @@ class TurtleDecoder:
             enc0 = encodedPts[0]
             enc1 = encodedPts[1]
             guide0,guide1 = TurtleSketch.naturalPointOrder(self.guideline) if self.guideline else (enc0, enc1)
+            scale, originPoint = self.createTransformFromGuidePoints(enc0, enc1, guide0, guide1)
+            self.guideScale = scale
+            if originPoint:
+                originPoint.isFixed = True
 
+    def createTransformFromGuidePoints(self, enc0:core.Point3D, enc1:core.Point3D, guide0:core.Point3D, guide1:core.Point3D):
             reverseVal = -1 if self.isReversed else 1
             mirrorVal = -1 if self.isMirrored else 1
 
@@ -156,15 +162,9 @@ class TurtleDecoder:
                 gyVec,
                 vc(0,0,1)
             )
-
-            self.guideScale = guideVec.length / encVec.length
-            originPt = self.tsketch.findPointAt(gOrigin)
-            if originPt:
-                originPt.isFixed = True
-            # if self.guideline:
-            #     self.guideline.isFixed = True
-            #     self.guideline.startSketchPoint.isFixed = True
-            #     self.guideline.endSketchPoint.isFixed = True
+            scale = guideVec.length / encVec.length
+            origin = self.tsketch.findPointAt(gOrigin)
+            return (scale, origin)
 
         
     def generatePoints(self, ptVals):
