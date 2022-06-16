@@ -41,11 +41,12 @@ class TurtleDecoder:
         return decoder
 
     @classmethod
-    def createWithGuideline(cls, data, guideline:f.SketchLine, reverse = False, mirror = False):
+    def createWithGuidelines(cls, data, guidelines, reverse = False, mirror = False):
         decoder = TurtleDecoder(reverse, mirror)
-        decoder.guideline = guideline
-        decoder.sketch = guideline.parentSketch
-        decoder.run(data)
+        for guideline in guidelines:
+            decoder.guideline = guideline
+            decoder.sketch = guideline.parentSketch
+            decoder.run(data)
         return decoder
 
     def run(self, data):
@@ -117,6 +118,7 @@ class TurtleDecoder:
             idx += 1
 
     def assessTransform(self, data):
+        self.transform = core.Matrix3D.create()
         gl = data["Guideline"] if "Guideline" in data else []
         encodedPts = [self.asPoint3D(gl[0]),self.asPoint3D(gl[1])] if len(gl) > 1 else []
         if len(encodedPts) > 1:

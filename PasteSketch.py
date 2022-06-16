@@ -154,7 +154,7 @@ class PasteSketchCommand(TurtleUICommand):
         mirror = self.mirrorSelection.value
 
         if self.hasGuideline():
-            self.decoder = TurtleDecoder.createWithGuideline(self.data, self.lastGuideline(), reverse, mirror)
+            self.decoder = TurtleDecoder.createWithGuidelines(self.data, self.guidelines, reverse, mirror)
         elif self.sketch:
             self.decoder = TurtleDecoder.createWithSketch(self.data, self.sketch, reverse, mirror)
             
