@@ -17,6 +17,7 @@ f,core,app,ui = TurtleUtils.initGlobals()
 class MoldBuilder(TurtleCustomCommand):
     def __init__(self):
         self.params = TurtleParams.instance()
+        self.component:f.Component = TurtleUtils.activeDesign().activeComponent
         cmdId = 'ddwMoldBuilderId'
         cmdName = 'Mold Builder'
         cmdDescription = 'Generates a laser cuttable mold from a shelled box.'
@@ -27,11 +28,10 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         # investigations of a shelled box
-        self.component:f.Component = TurtleUtils.activeDesign().activeComponent
         if not self.component.bRepBodies.count == 1 or not self.component.bRepBodies.item(0).faces.count == 11:
             return
         self._parseFaces()
-
+        
         self._createDialog(eventArgs.command.commandInputs)
 
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
@@ -41,9 +41,10 @@ class MoldBuilder(TurtleCustomCommand):
         self.onExecute(eventArgs)
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
-        face:f.BRepFace = self.topFace
-        topSketch = TurtleSketch.createWithPlane(self.component, face)
-        print (topSketch)
+        topSketch = self.topFace.createSketchAtPoint(self.topFace.vertexAt(0))
+        eps = topSketch.projectList(self.topFace.edges, True)
+        prs = topSketch.profiles
+        print (prs.count)
     
     # Custom Feature Edit events
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
@@ -59,7 +60,8 @@ class MoldBuilder(TurtleCustomCommand):
     def _createDialog(self, inputs):
         try:
             self.moldWallThickness = inputs.addDistanceValueCommandInput('txWallThickness', 'Mold Wall Thickness', self.params.createValue(3.0))
-            self.moldWallThickness.setManipulator(self.frontOuterFace.centroid, self.frontNorm)
+            self.moldWallThickness.setManipulator(self.frontOuterFace.centroid, self.backNorm)
+            ui.activeSelections.add(self.frontOuterFace.face)
             # self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse', True)
             # self.mirrorSelection = inputs.addBoolValueInput('bMirror', 'Mirror', True)
         except:
@@ -68,37 +70,39 @@ class MoldBuilder(TurtleCustomCommand):
     def _parseFaces(self):
         allFaces:list[f.BRepFace] = []
         self.body = self.component.bRepBodies.item(0)
+        self.tFaces = []
         for face in self.body.faces:
-            allFaces.append(face)
+           self.tFaces.append(TurtleFace.createWithFace(face))
 
-        self.faces = self.body.faces
-        self.topFace:f.BRepFace = next(face for face in self.faces if face.loops.count == 2)
+        allFaces = self.tFaces.copy()
+        self.topFace = next(tface for tface in allFaces if tface.loops.count == 2)
         allFaces.remove(self.topFace)
 
-        self.topNorm = self.topFace.geometry.normal
+        # the normal points into the material, not out of it.
+        self.topNorm = self.topFace.normal
         self.bottomNorm = TurtleUtils.reverseVector(self.topNorm)
         if abs(self.topNorm.z) > 0.1:
-            self.rightNorm = core.Vector3D.create(1,0,0)
-            self.backNorm = core.Vector3D.create(0,1,0) 
+            self.leftNorm = core.Vector3D.create(1,0,0)
+            self.frontNorm = core.Vector3D.create(0,1,0) 
         elif abs(self.topNorm.x) > 0.1:
-            self.rightNorm = core.Vector3D.create(0, self.topNorm.x, 0)
-            self.backNorm = core.Vector3D.create(0, 0 ,self.topNorm.x) 
+            self.leftNorm = core.Vector3D.create(0, self.topNorm.x, 0)
+            self.frontNorm = core.Vector3D.create(0, 0 ,self.topNorm.x) 
         else: # y
-            self.rightNorm = core.Vector3D.create(0, 0, self.topNorm.y)
-            self.backNorm = core.Vector3D.create(self.topNorm.y, 0, 0) 
-        self.leftNorm = TurtleUtils.reverseVector(self.rightNorm)
-        self.frontNorm = TurtleUtils.reverseVector(self.backNorm)
+            self.leftNorm = core.Vector3D.create(0, 0, self.topNorm.y)
+            self.frontNorm = core.Vector3D.create(self.topNorm.y, 0, 0) 
+        self.rightNorm = TurtleUtils.reverseVector(self.leftNorm)
+        self.backNorm = TurtleUtils.reverseVector(self.frontNorm)
 
-        self.floorFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.topNorm, allFaces)
-        self.bottomFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.bottomNorm, allFaces)
-        self.leftOuterFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.leftNorm, allFaces, True)
-        self.leftInnerFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.leftNorm, allFaces, False)
-        self.rightOuterFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.rightNorm, allFaces, True)
-        self.rightInnerFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.rightNorm, allFaces, False)
-        self.frontOuterFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.frontNorm, allFaces, True)
-        self.frontInnerFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.frontNorm, allFaces, False)
-        self.backOuterFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.backNorm, allFaces, True)
-        self.backInnerFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.backNorm, allFaces, False)
+        self.floorFace:TurtleFace = self.faceWithNormalMatch(self.topNorm, allFaces)
+        self.bottomFace:TurtleFace = self.faceWithNormalMatch(self.bottomNorm, allFaces)
+        self.leftOuterFace:TurtleFace = self.faceWithNormalMatch(self.leftNorm, allFaces, True)
+        self.leftInnerFace:TurtleFace = self.faceWithNormalMatch(self.leftNorm, allFaces, False)
+        self.rightOuterFace:TurtleFace = self.faceWithNormalMatch(self.rightNorm, allFaces, True)
+        self.rightInnerFace:TurtleFace = self.faceWithNormalMatch(self.rightNorm, allFaces, False)
+        self.frontOuterFace:TurtleFace = self.faceWithNormalMatch(self.frontNorm, allFaces, True)
+        self.frontInnerFace:TurtleFace = self.faceWithNormalMatch(self.frontNorm, allFaces, False)
+        self.backOuterFace:TurtleFace = self.faceWithNormalMatch(self.backNorm, allFaces, True)
+        self.backInnerFace:TurtleFace = self.faceWithNormalMatch(self.backNorm, allFaces, False)
 
         if self.component.features.shellFeatures.count == 1:
             shellFeature = self.component.features.shellFeatures.item(0)
@@ -111,3 +115,19 @@ class MoldBuilder(TurtleCustomCommand):
             dist = app.measureManager.measureMinimumDistance(body1, body2)
             self.thicknessVal = dist.value
             self.thicknessExpr = f'{dist.value} cm'
+            
+    def faceWithNormalMatch(self, norm:core.Vector3D, tfaces:list[TurtleFace], findLargest:bool = False) -> TurtleFace:
+        result = None
+        area = 0
+        for tface in tfaces:
+            if tface.hasNormal(norm):
+                if findLargest:
+                     if tface.area > area:
+                        result = tface
+                        area = tface.area
+                else:
+                    result = tface
+                    break
+        if result:
+            tfaces.remove(result)
+        return result

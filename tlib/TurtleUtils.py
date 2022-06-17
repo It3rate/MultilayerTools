@@ -146,24 +146,6 @@ class TurtleUtils:
         result.transformBy(invMatrix)
         return result
 
-    @classmethod
-    def firstFaceWithNormMatch(self, norm:adsk.core.Vector3D, faces:list[adsk.fusion.BRepFace], findLargest:bool = False) -> adsk.fusion.BRepFace:
-        oppNorm = self.reverseVector(norm)
-        result = None
-        area = 0
-        for face in faces:
-            if (face.isParamReversed and face.geometry.normal.isEqualTo(oppNorm)) or face.geometry.normal.isEqualTo(norm):
-                if findLargest and face.area > area:
-                    result = face
-                    area = face.area
-                else:
-                    result = face
-                    break
-
-        if result:
-            faces.remove(result)
-        return result
-
 
 # used to detect overrides - only hook up events if there is a handler implemented
 def baseMethod(method):

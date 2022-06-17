@@ -1,6 +1,7 @@
 
 import adsk.core, adsk.fusion, traceback
 import os, math, re, sys
+from collections.abc import Iterable
 from .TurtleUtils import TurtleUtils
 from .TurtlePath import TurtlePath
 from .TurtleParams import TurtleParams
@@ -104,6 +105,19 @@ class TurtleSketch:
         dim.parameter.expression = expr
 
 
+
+    def projectList(self, lst, makeConstruction = False):
+        result = []
+        for ent in lst:
+            proj = self.sketch.project(ent)
+            result.append(proj)
+            if makeConstruction:
+                if isinstance(proj, Iterable):
+                    for p in proj:
+                         p.isConstruction = True
+                else:
+                    proj.isConstruction = True
+        return result
 
     def projectLine(self, line:f.SketchLine, makeConstruction = False):
         pp0 = self.sketch.project(line.startSketchPoint)
