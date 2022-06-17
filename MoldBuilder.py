@@ -4,6 +4,7 @@
 from xmlrpc.client import Boolean
 import adsk.core, adsk.fusion, traceback
 from .tlib.TurtleUtils import TurtleUtils
+from .tlib.TurtleFace import TurtleFace
 from .tlib.TurtleUICommand import TurtleUICommand
 from .tlib.TurtleSketch import TurtleSketch
 from .tlib.TurtleParams import TurtleParams
@@ -35,10 +36,14 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
         pass
+
     def onPreview(self, eventArgs:core.CommandEventArgs):
-        pass
+        self.onExecute(eventArgs)
+
     def onExecute(self, eventArgs:core.CommandEventArgs):
-        pass
+        face:f.BRepFace = self.topFace
+        topSketch = TurtleSketch.createWithPlane(self.component, face)
+        print (topSketch)
     
     # Custom Feature Edit events
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
@@ -67,7 +72,7 @@ class MoldBuilder(TurtleCustomCommand):
             allFaces.append(face)
 
         self.faces = self.body.faces
-        self.topFace = next(face for face in self.faces if face.loops.count == 2)
+        self.topFace:f.BRepFace = next(face for face in self.faces if face.loops.count == 2)
         allFaces.remove(self.topFace)
 
         self.topNorm = self.topFace.geometry.normal
@@ -84,16 +89,16 @@ class MoldBuilder(TurtleCustomCommand):
         self.leftNorm = TurtleUtils.reverseVector(self.rightNorm)
         self.frontNorm = TurtleUtils.reverseVector(self.backNorm)
 
-        self.floorFace = TurtleUtils.firstNormMatch(self.topNorm, allFaces)
-        self.bottomFace = TurtleUtils.firstNormMatch(self.bottomNorm, allFaces)
-        self.leftOuterFace = TurtleUtils.firstNormMatch(self.leftNorm, allFaces, True)
-        self.leftInnerFace = TurtleUtils.firstNormMatch(self.leftNorm, allFaces, False)
-        self.rightOuterFace = TurtleUtils.firstNormMatch(self.rightNorm, allFaces, True)
-        self.rightInnerFace = TurtleUtils.firstNormMatch(self.rightNorm, allFaces, False)
-        self.frontOuterFace = TurtleUtils.firstNormMatch(self.frontNorm, allFaces, True)
-        self.frontInnerFace = TurtleUtils.firstNormMatch(self.frontNorm, allFaces, False)
-        self.backOuterFace = TurtleUtils.firstNormMatch(self.backNorm, allFaces, True)
-        self.backInnerFace = TurtleUtils.firstNormMatch(self.backNorm, allFaces, False)
+        self.floorFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.topNorm, allFaces)
+        self.bottomFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.bottomNorm, allFaces)
+        self.leftOuterFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.leftNorm, allFaces, True)
+        self.leftInnerFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.leftNorm, allFaces, False)
+        self.rightOuterFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.rightNorm, allFaces, True)
+        self.rightInnerFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.rightNorm, allFaces, False)
+        self.frontOuterFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.frontNorm, allFaces, True)
+        self.frontInnerFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.frontNorm, allFaces, False)
+        self.backOuterFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.backNorm, allFaces, True)
+        self.backInnerFace:f.BRepFace = TurtleUtils.firstFaceWithNormMatch(self.backNorm, allFaces, False)
 
         if self.component.features.shellFeatures.count == 1:
             shellFeature = self.component.features.shellFeatures.item(0)

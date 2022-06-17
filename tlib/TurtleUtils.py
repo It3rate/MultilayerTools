@@ -147,7 +147,7 @@ class TurtleUtils:
         return result
 
     @classmethod
-    def firstNormMatch(self, norm:adsk.core.Vector3D, faces:list[adsk.fusion.BRepFace], findLargest:bool = False) -> adsk.fusion.BRepFace:
+    def firstFaceWithNormMatch(self, norm:adsk.core.Vector3D, faces:list[adsk.fusion.BRepFace], findLargest:bool = False) -> adsk.fusion.BRepFace:
         oppNorm = self.reverseVector(norm)
         result = None
         area = 0
