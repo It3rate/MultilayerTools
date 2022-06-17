@@ -60,8 +60,9 @@ class MoldBuilder(TurtleCustomCommand):
     def _createDialog(self, inputs):
         try:
             self.moldWallThickness = inputs.addDistanceValueCommandInput('txWallThickness', 'Mold Wall Thickness', self.params.createValue(3.0))
-            self.moldWallThickness.setManipulator(self.frontOuterFace.centroid, self.backNorm)
-            ui.activeSelections.add(self.frontOuterFace.face)
+            self.moldWallThickness.setManipulator(self.frontOuterFace.centroid, self.frontNorm)
+            ui.activeSelections.add(self.backOuterFace.face)
+            ui.activeSelections.add(self.backInnerFace.face)
             # self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse', True)
             # self.mirrorSelection = inputs.addBoolValueInput('bMirror', 'Mirror', True)
         except:
@@ -82,27 +83,27 @@ class MoldBuilder(TurtleCustomCommand):
         self.topNorm = self.topFace.normal
         self.bottomNorm = TurtleUtils.reverseVector(self.topNorm)
         if abs(self.topNorm.z) > 0.1:
-            self.leftNorm = core.Vector3D.create(1,0,0)
-            self.frontNorm = core.Vector3D.create(0,1,0) 
+            self.rightNorm = core.Vector3D.create(1,0,0)
+            self.backNorm = core.Vector3D.create(0,1,0) 
         elif abs(self.topNorm.x) > 0.1:
-            self.leftNorm = core.Vector3D.create(0, self.topNorm.x, 0)
-            self.frontNorm = core.Vector3D.create(0, 0 ,self.topNorm.x) 
+            self.rightNorm = core.Vector3D.create(0, self.topNorm.x, 0)
+            self.backNorm = core.Vector3D.create(0, 0 ,self.topNorm.x) 
         else: # y
-            self.leftNorm = core.Vector3D.create(0, 0, self.topNorm.y)
-            self.frontNorm = core.Vector3D.create(self.topNorm.y, 0, 0) 
-        self.rightNorm = TurtleUtils.reverseVector(self.leftNorm)
-        self.backNorm = TurtleUtils.reverseVector(self.frontNorm)
+            self.rightNorm = core.Vector3D.create(0, 0, self.topNorm.y)
+            self.backNorm = core.Vector3D.create(self.topNorm.y, 0, 0) 
+        self.leftNorm = TurtleUtils.reverseVector(self.rightNorm)
+        self.frontNorm = TurtleUtils.reverseVector(self.backNorm)
 
         self.floorFace:TurtleFace = self.faceWithNormalMatch(self.topNorm, allFaces)
         self.bottomFace:TurtleFace = self.faceWithNormalMatch(self.bottomNorm, allFaces)
-        self.leftOuterFace:TurtleFace = self.faceWithNormalMatch(self.leftNorm, allFaces, True)
-        self.leftInnerFace:TurtleFace = self.faceWithNormalMatch(self.leftNorm, allFaces, False)
-        self.rightOuterFace:TurtleFace = self.faceWithNormalMatch(self.rightNorm, allFaces, True)
-        self.rightInnerFace:TurtleFace = self.faceWithNormalMatch(self.rightNorm, allFaces, False)
         self.frontOuterFace:TurtleFace = self.faceWithNormalMatch(self.frontNorm, allFaces, True)
         self.frontInnerFace:TurtleFace = self.faceWithNormalMatch(self.frontNorm, allFaces, False)
         self.backOuterFace:TurtleFace = self.faceWithNormalMatch(self.backNorm, allFaces, True)
         self.backInnerFace:TurtleFace = self.faceWithNormalMatch(self.backNorm, allFaces, False)
+        self.leftOuterFace:TurtleFace = self.faceWithNormalMatch(self.leftNorm, allFaces, True)
+        self.leftInnerFace:TurtleFace = self.faceWithNormalMatch(self.leftNorm, allFaces, False)
+        self.rightOuterFace:TurtleFace = self.faceWithNormalMatch(self.rightNorm, allFaces, True)
+        self.rightInnerFace:TurtleFace = self.faceWithNormalMatch(self.rightNorm, allFaces, False)
 
         if self.component.features.shellFeatures.count == 1:
             shellFeature = self.component.features.shellFeatures.item(0)
@@ -120,7 +121,7 @@ class MoldBuilder(TurtleCustomCommand):
         result = None
         area = 0
         for tface in tfaces:
-            if tface.hasNormal(norm):
+            if tface.isNormalEqualTo(norm):
                 if findLargest:
                      if tface.area > area:
                         result = tface

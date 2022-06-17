@@ -46,11 +46,12 @@ class TurtleFace:
     def reverseNormal(self)->core.Vector3D:
         return TurtleUtils.reverseVector(self.normal)
 
-    def hasNormal(self, normal:core.Vector3D) -> bool:
-        return (self.isParamReversed and self.reverseNormal().isEqualTo(normal)) or self.normal.isEqualTo(normal)
+    def isNormalEqualTo(self, normal:core.Vector3D) -> bool:
+        (success, ownNormal) = self.face.evaluator.getNormalAtPoint(self.face.pointOnFace)
+        return ownNormal.isEqualTo(normal) if success else False
 
-    def hasSameNormal(self, tface:TurtleFace) -> bool:
-        return self.hasNormal(tface.normal)
+    def isNormalSame(self, tface:TurtleFace) -> bool:
+        return self.isNormalEqualTo(tface.normal)
 
     def reverseNormal(self) -> adsk.core.Vector3D:
         return TurtleUtils.reverseVector(self.normal)
