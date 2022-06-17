@@ -35,6 +35,9 @@ class TurtleFace:
     def loops(self)->f.BRepLoops:
         return self.face.loops
     @property
+    def outerLoop(self)->f.BRepLoop:
+        return next((loop for loop in self.face.loops if loop.isOuter) , None)
+    @property
     def centroid(self)->core.Point3D:
         return self.face.centroid
     @property
@@ -42,6 +45,15 @@ class TurtleFace:
         return self.face.vertices
     def vertexAt(self, index:int)->f.BRepVertex:
         return self.vertices.item(index) if self.vertices.count > index else None
+
+    @property
+    def minPoint(self)->core.Point3D:
+        minPt = self.face.boundingBox.minPoint
+        return next((vertex for vertex in self.face.vertices if vertex.geometry.isEqualTo(minPt)) , None)
+    @property
+    def maxPoint(self)->core.Point3D:
+        maxPt = self.face.boudingBox.minPoint
+        return next((vertex for vertex in self.face.vertices if vertex.geometry.isEqualTo(maxPt)) , None)
 
     def reverseNormal(self)->core.Vector3D:
         return TurtleUtils.reverseVector(self.normal)

@@ -34,6 +34,12 @@ class TurtleSketch:
     @property
     def name(self):
         return self.sketch.name
+    @property
+    def lastAddedConstraint(self):
+        return self.constraints.item(self.constraints.count - 1) if self.constraints.count > 0 else None
+    @property
+    def lastAddedParameter(self):
+        return self.component.modelParameters[self.component.modelParameters.count - 1] if self.component.modelParameters.count > 0 else None
     @name.setter
     def name(self, val):
         self.sketch.name = val
@@ -104,13 +110,11 @@ class TurtleSketch:
         dim = self.dimensions.addOffsetDimension(line0, line1, line1.startSketchPoint.geometry)
         dim.parameter.expression = expr
 
-
-
     def projectList(self, lst, makeConstruction = False):
-        result = []
+        result = []#core.ObjectCollection.create()
         for ent in lst:
             proj = self.sketch.project(ent)
-            result.append(proj)
+            result.append(*proj)
             if makeConstruction:
                 if isinstance(proj, Iterable):
                     for p in proj:
@@ -127,9 +131,22 @@ class TurtleSketch:
             line.isConstruction = True
         return line
 
+    def offset(self, elements, direction, distanceExpr):
+        if not isinstance(elements, core.ObjectCollection):
+            lst = core.ObjectCollection.create()
+            for e in elements:
+                lst.add(e)
+        else:
+            lst = elements
+            
+        offsetElements = self.sketch.offset(lst, direction, .2)
+        offsetConstraint = self.lastAddedConstraint
+        self.lastAddedParameter.expression = distanceExpr
+        return (offsetElements, offsetConstraint)
+
     def addMidpointConstructionLine(self, linex, lengthExpr=None, toLeft=True):
         baseLine:f.SketchLine = self.path.fromLineOrIndex(linex)
-        constraints = self.sketch.geometricConstraints
+        constraints = self.constraints
         path = "XM50LF50X" if toLeft else "XM50RF50X"
         lines = self.path.draw(baseLine, path)
         construction = lines[0]
@@ -210,7 +227,7 @@ class TurtleSketch:
     def getSingleLines(self):
         lines = []
         touched = []
-        for gc in self.sketch.geometricConstraints:
+        for gc in self.constraints:
             if isinstance(gc, f.CoincidentConstraint) and gc.point.connectedEntities:
                 for con in gc.point.connectedEntities:
                     if isinstance(con, f.SketchLine):

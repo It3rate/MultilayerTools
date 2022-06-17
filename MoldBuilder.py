@@ -35,16 +35,24 @@ class MoldBuilder(TurtleCustomCommand):
         self._createDialog(eventArgs.command.commandInputs)
 
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
-        pass
+        self.thicknessExpr = self.moldWallThickness.expression
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.onExecute(eventArgs)
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
-        topSketch = self.topFace.createSketchAtPoint(self.topFace.vertexAt(0))
-        eps = topSketch.projectList(self.topFace.edges, True)
-        prs = topSketch.profiles
-        print (prs.count)
+        minPoint = self.topFace.minPoint
+        topSketch = self.topFace.createSketchAtPoint(minPoint)
+        projectedList = topSketch.projectList(self.topFace.outerLoop.edges, True)
+        topSketch.offset(projectedList, self.topFace.centroid, self.thicknessExpr)
+
+        for loop in self.topFace.loops:
+            projectedList = topSketch.projectList(loop.edges, True)
+            cent = self.topFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
+            topSketch.offset(projectedList, cent, self.thicknessExpr)
+
+        ui.activeSelections.add(self.backOuterFace.face)
+        ui.activeSelections.add(self.backInnerFace.face)
     
     # Custom Feature Edit events
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
@@ -61,8 +69,6 @@ class MoldBuilder(TurtleCustomCommand):
         try:
             self.moldWallThickness = inputs.addDistanceValueCommandInput('txWallThickness', 'Mold Wall Thickness', self.params.createValue(3.0))
             self.moldWallThickness.setManipulator(self.frontOuterFace.centroid, self.frontNorm)
-            ui.activeSelections.add(self.backOuterFace.face)
-            ui.activeSelections.add(self.backInnerFace.face)
             # self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse', True)
             # self.mirrorSelection = inputs.addBoolValueInput('bMirror', 'Mirror', True)
         except:
