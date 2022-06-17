@@ -14,7 +14,7 @@ class PasteSketchCommand(TurtleUICommand):
     def __init__(self):
         cmdId = 'ddwPasteSketchId'
         cmdName = 'Paste Sketch'
-        cmdDescription = 'Pastes sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow transformed pasting if a guideline was selected while copying.'
+        cmdDescription = 'Pastes sketch curves, constraints, parameters and dimensions. Optionally choose a guideline to allow transformed pasting if a guideline was selected while copying.'
         super().__init__(cmdId, cmdName, cmdDescription)
 
     def getTargetPanels(self):

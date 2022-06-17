@@ -131,7 +131,7 @@ class TurtleSketch:
             line.isConstruction = True
         return line
 
-    def offset(self, elements, direction, distanceExpr):
+    def offset(self, elements, direction, distanceExpr, makeConstruction = False):
         if not isinstance(elements, core.ObjectCollection):
             lst = core.ObjectCollection.create()
             for e in elements:
@@ -142,6 +142,9 @@ class TurtleSketch:
         offsetElements = self.sketch.offset(lst, direction, .2)
         offsetConstraint = self.lastAddedConstraint
         self.lastAddedParameter.expression = distanceExpr
+        if makeConstruction:
+            for oe in offsetElements:
+                    oe.isConstruction = True
         return (offsetElements, offsetConstraint)
 
     def addMidpointConstructionLine(self, linex, lengthExpr=None, toLeft=True):

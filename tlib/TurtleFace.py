@@ -49,11 +49,11 @@ class TurtleFace:
     @property
     def minPoint(self)->core.Point3D:
         minPt = self.face.boundingBox.minPoint
-        return next((vertex for vertex in self.face.vertices if vertex.geometry.isEqualTo(minPt)) , None)
+        return next((vertex.geometry for vertex in self.face.vertices if vertex.geometry.isEqualTo(minPt)) , None)
     @property
     def maxPoint(self)->core.Point3D:
-        maxPt = self.face.boudingBox.minPoint
-        return next((vertex for vertex in self.face.vertices if vertex.geometry.isEqualTo(maxPt)) , None)
+        maxPt = self.face.boundingBox.maxPoint
+        return next((vertex.geometry for vertex in self.face.vertices if vertex.geometry.isEqualTo(maxPt)) , None)
 
     def reverseNormal(self)->core.Vector3D:
         return TurtleUtils.reverseVector(self.normal)

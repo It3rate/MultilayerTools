@@ -11,6 +11,8 @@ from .tlib.TurtleParams import TurtleParams
 from .tlib.TurtleComponent import TurtleComponent
 from .tlib.TurtleLayers import TurtleLayers
 from .tlib.TurtleCustomCommand import TurtleCustomCommand
+from .tlib.TurtleDecoder import TurtleDecoder
+from .tlib.data.SketchData import SketchData
 
 f,core,app,ui = TurtleUtils.initGlobals()
 
@@ -41,15 +43,17 @@ class MoldBuilder(TurtleCustomCommand):
         self.onExecute(eventArgs)
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
-        minPoint = self.topFace.minPoint
-        topSketch = self.topFace.createSketchAtPoint(minPoint)
+        topSketch = self.topFace.createSketchAtPoint(self.topFace.centroid)
         projectedList = topSketch.projectList(self.topFace.outerLoop.edges, True)
         topSketch.offset(projectedList, self.topFace.centroid, self.thicknessExpr)
-
+        pasteData = SketchData.hole()
         for loop in self.topFace.loops:
             projectedList = topSketch.projectList(loop.edges, True)
             cent = self.topFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
-            topSketch.offset(projectedList, cent, self.thicknessExpr)
+            topSketch.offset(projectedList, cent, self.thicknessExpr, True)
+            decoder =  TurtleDecoder.createWithGuidelines(pasteData, projectedList, False, False)
+            decoder.run()
+
 
         ui.activeSelections.add(self.backOuterFace.face)
         ui.activeSelections.add(self.backInnerFace.face)
@@ -69,6 +73,8 @@ class MoldBuilder(TurtleCustomCommand):
         try:
             self.moldWallThickness = inputs.addDistanceValueCommandInput('txWallThickness', 'Mold Wall Thickness', self.params.createValue(3.0))
             self.moldWallThickness.setManipulator(self.frontOuterFace.centroid, self.frontNorm)
+            self.lipThickness = inputs.addDistanceValueCommandInput('lipThickness', 'Lip Thickness', self.params.createValue(1.0))
+            self.lipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
             # self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse', True)
             # self.mirrorSelection = inputs.addBoolValueInput('bMirror', 'Mirror', True)
         except:

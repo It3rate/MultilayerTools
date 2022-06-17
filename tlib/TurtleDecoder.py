@@ -44,6 +44,7 @@ class TurtleDecoder:
     def createWithGuidelines(cls, data, guidelines, reverse = False, mirror = False):
         decoder = TurtleDecoder(reverse, mirror)
         for guideline in guidelines:
+            decoder.data = data
             decoder.guideline = guideline
             decoder.sketch = guideline.parentSketch
             decoder.run(data)
@@ -69,7 +70,8 @@ class TurtleDecoder:
         self.sketch.isComputeDeferred = False
         
         
-    def decodeSketchData(self, data):
+    def decodeSketchData(self, data = None):
+        data = data if data else self.data
         self.params = data["Params"] if "Params" in data else {}
         self.pointValues = data["Points"] if "Points" in data else []
         self.chainValues = data["Chains"] if "Chains" in data else []
@@ -90,8 +92,8 @@ class TurtleDecoder:
         for name in self.params:
             self.addUserParam(name)
 
-        if self.guideScale == 1.0:
-            self.dimensions = self.generateDimensions(self.dimensionValues)
+        #if self.guideScale == 1.0:
+        self.dimensions = self.generateDimensions(self.dimensionValues)
 
         self.profileMap = self.mapProfiles(self.profileCentroids)
     
@@ -129,8 +131,8 @@ class TurtleDecoder:
             guide0,guide1 = TurtleSketch.naturalPointOrder(self.guideline) if self.guideline else (enc0, enc1)
             scale, originPoint = self.createTransformFromGuidePoints(enc0, enc1, guide0, guide1)
             self.guideScale = scale
-            if originPoint:
-                originPoint.isFixed = True
+            # if originPoint:
+            #     originPoint.isFixed = True
 
     def createTransformFromGuidePoints(self, enc0:core.Point3D, enc1:core.Point3D, guide0:core.Point3D, guide1:core.Point3D):
             reverseVal = -1 if self.isReversed else 1

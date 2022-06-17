@@ -62,8 +62,10 @@ class TurtleParams:
 
     def getUserParams(self):
         result = {}
-        for param in TurtleUtils.activeDesign().userParameters:
-            result[param.name] = param.expression
+        ap = TurtleUtils.activeDesign().allParameters
+        for param in ap:
+            if isinstance(param, f.UserParameter): 
+                result[param.name] = param.expression
         return result
 
     def printAllParams(self):
