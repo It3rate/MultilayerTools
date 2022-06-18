@@ -46,7 +46,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.params.setOrCreateParam('wallThickness', self.moldWallThickness.expression)
         self.params.setOrCreateParam('lipWidth', self.lipThickness.expression)
         self.params.setOrCreateParam('slotLength', self.slotLength.expression)
-        self.params.printAllParams()
+
         topSketch = self.topFace.createSketchAtPoint(self.topFace.centroid)
         projectedList = topSketch.projectList(self.topFace.outerLoop.edges, True)
         offsetExpr = 'wallThickness + lipWidth'
@@ -57,6 +57,7 @@ class MoldBuilder(TurtleCustomCommand):
             cent = self.topFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
             offsetElements, offsetConstraint = topSketch.offset(projectedList, cent, offsetExpr, True)
             decoder =  TurtleDecoder.createWithGuidelines(pasteData, offsetElements, False, False)
+            break
 
 
         ui.activeSelections.add(self.backOuterFace.face)

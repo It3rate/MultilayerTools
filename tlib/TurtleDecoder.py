@@ -15,7 +15,7 @@ class TurtleDecoder:
         self.isReversed = reverse
         self.isMirrored = mirror
         self.transform = core.Matrix3D.create()
-        self.guideline = None
+        self.selectedGuideline = None
         self.sketch = None
         self.data = None
 
@@ -49,7 +49,7 @@ class TurtleDecoder:
         decoder = TurtleDecoder(reverse, mirror)
         for guideline in guidelines:
             decoder.data = data
-            decoder.guideline = guideline
+            decoder.selectedGuideline = guideline
             decoder.sketch = guideline.parentSketch
             decoder.run()
         return decoder
@@ -66,8 +66,14 @@ class TurtleDecoder:
 
         self.encGuideIndex = -1
         self.guideScale = 1.0
-        self.assessTransform(self.data)
 
+        self.hasEncodedGuideline = False
+        self.startGuidePoint = None
+        self.endGuidePoint = None      
+        self.encGuideIndex = -1
+        self.encGuideFlipped = False
+
+        self.assessTransform()
         self.decodeSketchData(self.data)
         self.decodeFromSketch()
 
@@ -83,6 +89,21 @@ class TurtleDecoder:
         self.dimensionValues = data["Dimensions"] if "Dimensions" in data else []
         self.profileCentroids = data["ProfileCentroids"] if "ProfileCentroids" in data else []
         self.orgNamedProfiles = data["NamedProfiles"] if "NamedProfiles" in data else {}
+        
+        # gl = data["Guideline"] if "Guideline" in data else None
+        # if gl: #TODO: account for single guide point for postioning centered drawings like motors
+        #     self.hasEncodedGuideline = True
+        #     self.startGuidePoint = self.asPoint3D(gl[0])
+        #     self.endGuidePoint = self.asPoint3D(gl[1])       
+        #     self.encGuideIndex = int(gl[2][1:])
+        #     self.encGuideFlipped =  len(gl) > 2 and gl[3] == "flip"
+        # else:
+        #     self.hasEncodedGuideline = False
+        #     self.startGuidePoint = None
+        #     self.endGuidePoint = None      
+        #     self.encGuideIndex = -1
+        #     self.encGuideFlipped = False
+
         self.namedProfiles = self.orgNamedProfiles.copy()
         self.assessDimensionNames()
 
@@ -123,18 +144,26 @@ class TurtleDecoder:
             self.dimensionNameMap.append(regex)
             idx += 1
 
-    def assessTransform(self, data = None):
-        data = data if data else self.data
+    def assessTransform(self):
         self.transform = core.Matrix3D.create()
-        gl = data["Guideline"] if "Guideline" in data else []
-        encodedPts = [self.asPoint3D(gl[0]),self.asPoint3D(gl[1])] if len(gl) > 1 else []
-        if len(encodedPts) > 1:
+        gl = self.data["Guideline"] if "Guideline" in self.data else None
+        if gl: #TODO: account for single guide point for postioning centered drawings like motors
+            self.hasEncodedGuideline = True
+            self.startGuidePoint = self.asPoint3D(gl[0])
+            self.endGuidePoint = self.asPoint3D(gl[1])       
             self.encGuideIndex = int(gl[2][1:])
             self.encGuideFlipped =  len(gl) > 2 and gl[3] == "flip"
-            enc0 = encodedPts[0]
-            enc1 = encodedPts[1]
-            guide0,guide1 = TurtleSketch.naturalPointOrder(self.guideline) if self.guideline else (enc0, enc1)
-            scale, originPoint = self.createTransformFromGuidePoints(enc0, enc1, guide0, guide1)
+        else:
+            self.hasEncodedGuideline = False
+            self.startGuidePoint = None
+            self.endGuidePoint = None      
+            self.encGuideIndex = -1
+            self.encGuideFlipped = False
+
+        if self.startGuidePoint and self.endGuidePoint:
+            guide0,guide1 = TurtleSketch.naturalPointOrder(self.selectedGuideline) if self.selectedGuideline else\
+                 (self.startGuidePoint, self.endGuidePoint)
+            scale, originPoint = self.createTransformFromGuidePoints(self.startGuidePoint, self.endGuidePoint, guide0, guide1)
             self.guideScale = scale
             # if originPoint:
             #     originPoint.isFixed = True
@@ -215,16 +244,16 @@ class TurtleDecoder:
                     curve = None
                     if kind == "L":
                         if False and self.encGuideIndex > -1 and len(result) == self.encGuideIndex:
-                            isOriginalFlipped = TurtleSketch.isLineFlipped(self.guideline)
-                            isCurrentFlipped = TurtleSketch.isLineFlipped(self.guideline)
+                            isOriginalFlipped = TurtleSketch.isLineFlipped(self.selectedGuideline)
+                            isCurrentFlipped = TurtleSketch.isLineFlipped(self.selectedGuideline)
                             # don't duplicate existing guideline
                             if self.isXFlipped:
-                                self.replacePoint(params[1], self.guideline.startSketchPoint)
-                                self.replacePoint(params[0], self.guideline.endSketchPoint)
+                                self.replacePoint(params[1], self.selectedGuideline.startSketchPoint)
+                                self.replacePoint(params[0], self.selectedGuideline.endSketchPoint)
                             else:
-                                self.replacePoint(params[0], self.guideline.startSketchPoint)
-                                self.replacePoint(params[1], self.guideline.endSketchPoint)
-                            curve = self.guideline
+                                self.replacePoint(params[0], self.selectedGuideline.startSketchPoint)
+                                self.replacePoint(params[1], self.selectedGuideline.endSketchPoint)
+                            curve = self.selectedGuideline
                         else:
                             curve = self.replaceLine(params[0], params[1]) # check for generated line match, add if present
                             if not curve: # else create line (normal path)
@@ -262,7 +291,7 @@ class TurtleDecoder:
                         curve.isConstruction = isConstruction
                         curve.isFixed = isFixed
                         result.append(curve)
-                        if curve != self.guideline:
+                        if curve != self.selectedGuideline:
                              curve.attributes.add("Turtle", "generated", str(len(result) - 1))
                 except:
                     print(seg + ' Curve Generation Failed:\n{}'.format(traceback.format_exc()))
@@ -312,7 +341,7 @@ class TurtleDecoder:
             p2 = params[2] if len(params) > 2 else None
             try:
                 if(kind == "VH"):
-                    if not self.hasRotation and not p0 == self.guideline: # don't set vert/horz if transforming with rotation
+                    if not self.hasRotation and not p0 == self.selectedGuideline: # don't set vert/horz if transforming with rotation
                         sp = p0.startSketchPoint.geometry
                         ep = p0.endSketchPoint.geometry
                         if(abs(sp.x - ep.x) < abs(sp.y - ep.y)):
@@ -469,10 +498,13 @@ class TurtleDecoder:
 
     def isGuideline(self, p0, p1):
         result = False
-        if self.guideline:
-            gl = self.guideline
+        if self.selectedGuideline: 
+            gl = self.selectedGuideline
             startMatch = gl.startSketchPoint == p0 or gl.startSketchPoint == p1
             endMatch = gl.endSketchPoint == p0 or gl.endSketchPoint == p1
+            # gl = self.selectedGuideline
+            # startMatch = gl.startSketchPoint.geometry.isEqualTo(p0) or gl.startSketchPoint.geometry.isEqualTo(p1) 
+            # endMatch = gl.endSketchPoint.geometry.isEqualTo(p0) or gl.endSketchPoint.geometry.isEqualTo(p1) 
             notSame = startMatch != endMatch
             result = gl and startMatch and endMatch and notSame
         return result
