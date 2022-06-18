@@ -12,7 +12,7 @@ class TurtleSketch:
     def __init__(self, sketchTarget:f.Sketch):
         self.sketch:f.Sketch = sketchTarget
         self.name = self.sketch.name
-        self.parameters = TurtleParams.instance()
+        self.params = TurtleParams.instance()
         self.referencePlane = sketchTarget.referencePlane
         self.component = sketchTarget.parentComponent
         self.constraints:f.GeometricConstraints = sketchTarget.geometricConstraints
@@ -131,7 +131,7 @@ class TurtleSketch:
             line.isConstruction = True
         return line
 
-    def offset(self, elements, direction, distanceExpr, makeConstruction = False):
+    def offset(self, elements, direction:core.Point3D, distanceExpr:str, makeConstruction = False):
         if not isinstance(elements, core.ObjectCollection):
             lst = core.ObjectCollection.create()
             for e in elements:
@@ -273,7 +273,7 @@ class TurtleSketch:
         comp = destinationComponent if destinationComponent else self.component
         comp.isConstructionFolderLightBulbOn = True
         planeInput:f.ConstructionPlaneInput = comp.constructionPlanes.createInput()
-        dist = self.parameters.createValue(offset)
+        dist = self.params.createValue(offset)
         planeInput.setByOffset(self.referencePlane, dist)
         result = comp.constructionPlanes.add(planeInput)
         if name:

@@ -17,11 +17,13 @@ class TurtleDecoder:
         self.transform = core.Matrix3D.create()
         self.guideline = None
         self.sketch = None
+        self.data = None
 
     @classmethod
     def create(cls, data, reverse = False, mirror = False):
         decoder = TurtleDecoder()
-        decoder.run(data)
+        decoder.data = data
+        decoder.run()
         return decoder
 
     @classmethod
@@ -30,14 +32,16 @@ class TurtleDecoder:
         # It doesn't make sense to map transforms, as the sketch transform in fusion isn't constant.
         # Tt will be based on where the camera is when entering the sketch, so just use identity, and allow flipping.
         decoder.transform = transform
-        decoder.run(data)
+        decoder.data = data
+        decoder.run()
         return decoder
 
     @classmethod
     def createWithSketch(cls, data, sketch:f.Sketch, reverse = False, mirror = False):
         decoder = TurtleDecoder(reverse, mirror)
         decoder.sketch = sketch
-        decoder.run(data)
+        decoder.data = data
+        decoder.run()
         return decoder
 
     @classmethod
@@ -47,10 +51,10 @@ class TurtleDecoder:
             decoder.data = data
             decoder.guideline = guideline
             decoder.sketch = guideline.parentSketch
-            decoder.run(data)
+            decoder.run()
         return decoder
 
-    def run(self, data):
+    def run(self):
         if not self.sketch:
             self.sketch = TurtleUtils.getTargetSketch(f.Sketch)
         if not self.sketch:
@@ -62,9 +66,9 @@ class TurtleDecoder:
 
         self.encGuideIndex = -1
         self.guideScale = 1.0
-        self.assessTransform(data)
+        self.assessTransform(self.data)
 
-        self.decodeSketchData(data)
+        self.decodeSketchData(self.data)
         self.decodeFromSketch()
 
         self.sketch.isComputeDeferred = False
@@ -119,7 +123,8 @@ class TurtleDecoder:
             self.dimensionNameMap.append(regex)
             idx += 1
 
-    def assessTransform(self, data):
+    def assessTransform(self, data = None):
+        data = data if data else self.data
         self.transform = core.Matrix3D.create()
         gl = data["Guideline"] if "Guideline" in data else []
         encodedPts = [self.asPoint3D(gl[0]),self.asPoint3D(gl[1])] if len(gl) > 1 else []

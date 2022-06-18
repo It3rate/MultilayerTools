@@ -37,22 +37,26 @@ class MoldBuilder(TurtleCustomCommand):
         self._createDialog(eventArgs.command.commandInputs)
 
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
-        self.thicknessExpr = self.moldWallThickness.expression
+        pass
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.onExecute(eventArgs)
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
+        self.params.setOrCreateParam('wallThickness', self.moldWallThickness.expression)
+        self.params.setOrCreateParam('lipWidth', self.lipThickness.expression)
+        self.params.setOrCreateParam('slotLength', self.slotLength.expression)
+        self.params.printAllParams()
         topSketch = self.topFace.createSketchAtPoint(self.topFace.centroid)
         projectedList = topSketch.projectList(self.topFace.outerLoop.edges, True)
-        topSketch.offset(projectedList, self.topFace.centroid, self.thicknessExpr)
+        offsetExpr = 'wallThickness + lipWidth'
+        topSketch.offset(projectedList, self.topFace.centroid, offsetExpr)
         pasteData = SketchData.hole()
         for loop in self.topFace.loops:
             projectedList = topSketch.projectList(loop.edges, True)
             cent = self.topFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
-            topSketch.offset(projectedList, cent, self.thicknessExpr, True)
-            decoder =  TurtleDecoder.createWithGuidelines(pasteData, projectedList, False, False)
-            decoder.run()
+            offsetElements, offsetConstraint = topSketch.offset(projectedList, cent, offsetExpr, True)
+            decoder =  TurtleDecoder.createWithGuidelines(pasteData, offsetElements, False, False)
 
 
         ui.activeSelections.add(self.backOuterFace.face)
@@ -71,18 +75,18 @@ class MoldBuilder(TurtleCustomCommand):
     
     def _createDialog(self, inputs):
         try:
-            thicknessVal = self.params.addOrGetParam('wallThickness', 0.2)
+            wallThicknessParam = self.params.addOrGetParam('wallThickness', '4.1 mm')
             self.moldWallThickness = inputs.addDistanceValueCommandInput('txWallThickness', 'Mold Wall Thickness',\
-                 self.params.createValue('wallThickness'))
+                 self.params.createValue(wallThicknessParam.expression))
             self.moldWallThickness.setManipulator(self.frontOuterFace.centroid, self.frontNorm)
 
-            lipVal = self.params.addOrGetParam('lipWidth', 0.2)
-            self.lipThickness = inputs.addDistanceValueCommandInput('txLipWidth', 'Lip Width', self.params.createValue('lipWidth'))
+            lipWidthParam = self.params.addOrGetParam('lipWidth', '2.2 mm')
+            self.lipThickness = inputs.addDistanceValueCommandInput('txLipWidth', 'Lip Width', self.params.createValue(lipWidthParam.expression))
             self.lipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
             
-            slotLenVal = self.params.addOrGetParam('slotLength', 2)
-            self.lipThickness = inputs.addDistanceValueCommandInput('txSlotLen', 'Slot Length', self.params.createValue('slotLength'))
-            self.lipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
+            slotLengthParam = self.params.addOrGetParam('slotLength', '20.3 mm')
+            self.slotLength = inputs.addDistanceValueCommandInput('txSlotLen', 'Slot Length', self.params.createValue(slotLengthParam.expression))
+            #self.slotLength.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
             
             # self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse', True)
             # self.mirrorSelection = inputs.addBoolValueInput('bMirror', 'Mirror', True)
@@ -128,15 +132,15 @@ class MoldBuilder(TurtleCustomCommand):
 
         if self.component.features.shellFeatures.count == 1:
             shellFeature = self.component.features.shellFeatures.item(0)
-            self.thicknessVal = shellFeature.insideThickness.value
-            self.thicknessExpr = shellFeature.insideThickness.expression
+            self.shellThicknessVal = shellFeature.insideThickness.value
+            self.shellThicknessExpr = shellFeature.insideThickness.expression
         else:
             tempBR = f.TemporaryBRepManager.get()
             body1 = tempBR.copy(self.leftOuterFace)
             body2 = tempBR.copy(self.leftInnerFace)
             dist = app.measureManager.measureMinimumDistance(body1, body2)
-            self.thicknessVal = dist.value
-            self.thicknessExpr = f'{dist.value} cm'
+            self.shellThicknessVal = dist.value
+            self.shellThicknessExpr = f'{dist.value} cm'
             
     def faceWithNormalMatch(self, norm:core.Vector3D, tfaces:list[TurtleFace], findLargest:bool = False) -> TurtleFace:
         result = None

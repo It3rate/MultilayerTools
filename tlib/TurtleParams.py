@@ -19,6 +19,10 @@ class TurtleParams:
             cls._turtleParamsInstance = TurtleParams(cls.__useInstance, units)
         return cls._turtleParamsInstance
 
+    @property
+    def currentParams(self):
+        return TurtleUtils.activeDesign().userParameters
+
     def addParams(self, *nameValArray):
         result = []
         for i in range(0, len(nameValArray), 2):
@@ -29,7 +33,7 @@ class TurtleParams:
     def addOrGetParam(self, name:str, val, unitKind="", msg=""):
         # todo: need to parse params for expressions and make sure there are no forward refs. Maybe just catch and retry exceptions for now.
         units = self.curUnits if unitKind=="" else unitKind
-        result = TurtleUtils.activeDesign().allParameters.itemByName(name)
+        result = TurtleUtils.activeDesign().userParameters.itemByName(name)
         if result is None:
             fval = self.createValue(val, units)
             result = TurtleUtils.activeDesign().userParameters.add(name, fval, units, msg)
@@ -37,23 +41,23 @@ class TurtleParams:
 
 
     def hasParam(self, name:str):
-        return TurtleUtils.activeDesign().allParameters.itemByName(name) != None
+        return TurtleUtils.activeDesign().userParameters.itemByName(name) != None
 
     def getParamExprOrDefault(self, name:str, defaultValue = ""):
-        param = TurtleUtils.activeDesign().allParameters.itemByName(name)
+        param = TurtleUtils.activeDesign().userParameters.itemByName(name)
         return defaultValue if param is None else param.expression
 
     def getParamValueOrDefault(self, name:str, defaultValue = 0):
-        param = TurtleUtils.activeDesign().allParameters.itemByName(name)
-        return defaultVale if param is None else param.value
+        param = TurtleUtils.activeDesign().userParameters.itemByName(name)
+        return defaultValue if param is None else param.value
 
     # Create or change value of parameter
     def setOrCreateParam(self, name:str, val, unitKind="", msg=""):
         units = self.curUnits if unitKind=="" else unitKind
-        result = TurtleUtils.activeDesign().allParameters.itemByName(name)
+        result = TurtleUtils.activeDesign().userParameters.itemByName(name)
         if not result:
             result = self.addOrGetParam(name, val, units, msg)
-        else:
+        elif result.expression != val:
             result.expression = val
         return result
 
@@ -70,7 +74,7 @@ class TurtleParams:
 
     def getUserParams(self):
         result = {}
-        ap = TurtleUtils.activeDesign().allParameters
+        ap = TurtleUtils.activeDesign().userParameters
         for param in ap:
             if isinstance(param, f.UserParameter): 
                 result[param.name] = param.expression
