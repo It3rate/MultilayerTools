@@ -107,7 +107,7 @@ class TurtleDecoder:
             else:
                 self.forwardExpressions[lastRef] = [name]
         else:
-            self.tparams.addParam(name, encoding)
+            self.tparams.addOrGetParam(name, encoding)
 
 
     def assessDimensionNames(self):

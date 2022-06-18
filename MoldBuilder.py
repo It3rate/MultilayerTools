@@ -71,10 +71,19 @@ class MoldBuilder(TurtleCustomCommand):
     
     def _createDialog(self, inputs):
         try:
-            self.moldWallThickness = inputs.addDistanceValueCommandInput('txWallThickness', 'Mold Wall Thickness', self.params.createValue(3.0))
+            thicknessVal = self.params.addOrGetParam('wallThickness', 0.2)
+            self.moldWallThickness = inputs.addDistanceValueCommandInput('txWallThickness', 'Mold Wall Thickness',\
+                 self.params.createValue('wallThickness'))
             self.moldWallThickness.setManipulator(self.frontOuterFace.centroid, self.frontNorm)
-            self.lipThickness = inputs.addDistanceValueCommandInput('lipThickness', 'Lip Thickness', self.params.createValue(1.0))
+
+            lipVal = self.params.addOrGetParam('lipWidth', 0.2)
+            self.lipThickness = inputs.addDistanceValueCommandInput('txLipWidth', 'Lip Width', self.params.createValue('lipWidth'))
             self.lipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
+            
+            slotLenVal = self.params.addOrGetParam('slotLength', 2)
+            self.lipThickness = inputs.addDistanceValueCommandInput('txSlotLen', 'Slot Length', self.params.createValue('slotLength'))
+            self.lipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
+            
             # self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse', True)
             # self.mirrorSelection = inputs.addBoolValueInput('bMirror', 'Mirror', True)
         except:

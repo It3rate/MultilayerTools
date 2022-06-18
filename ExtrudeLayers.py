@@ -208,7 +208,7 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         
         self.paramTable = []
         for i in range(len(self.thicknessParamNames)):
-            paramVal = self.params.getValue(self.thicknessParamNames[i])
+            paramVal = self.params.getParamExprOrDefault(self.thicknessParamNames[i])
             self.paramTable.append([self.thicknessParamNames[i], paramVal])
         self.stateTable = []
         self.selectedProfiles = []
@@ -361,9 +361,9 @@ class ExtrudeLayersCommand(TurtleCustomCommand):
         count = len(self.stateTable)
         for i, state in enumerate(self.stateTable):
             ddIndex = self.stateTable[i][0]
-            paramVal = self.params.getValue(self.thicknessParamNames[ddIndex])
+            paramVal = self.params.getParamExprOrDefault(self.thicknessParamNames[ddIndex])
             if paramVal != state[1]:
-                self.params.setParam(self.thicknessParamNames[ddIndex], state[1])
+                self.params.setOrCreateParam(self.thicknessParamNames[ddIndex], state[1])
         distances = []
         for state in self.stateTable:
             distances.append(self.thicknessParamNames[state[0]]) # use param names for final extrude thickness

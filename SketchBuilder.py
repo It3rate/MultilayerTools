@@ -57,7 +57,7 @@ class SketchBuilder(TurtleCustomCommand):
             
             self.paramTable = []
             for i in range(len(self.thicknessParamNames)):
-                paramVal = self.params.getValue(self.thicknessParamNames[i])
+                paramVal = self.params.getParamExprOrDefault(self.thicknessParamNames[i])
                 self.paramTable.append([self.thicknessParamNames[i], paramVal])
 
             self.stateTable = []
