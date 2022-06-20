@@ -58,7 +58,9 @@ class MoldBuilder(TurtleCustomCommand):
             offsetElements, offsetConstraint = topSketch.offset(projectedList, cent, offsetExpr, True)
             #BRepCoEdge objects flow around the outer boundary in a counter-clockwise direction, while inner boundaries are clockwise
             #decoder =  TurtleDecoder.createWithGuidelines(pasteData, offsetElements, False, False)
-            decoder = TurtleDecoder.createWithPointChain(pasteData, topSketch.sketch, topSketch.getCWPointPairs(loop), False, False)
+            #decoder = TurtleDecoder.createWithPointChain(pasteData, topSketch.sketch, topSketch.getCWPointPairs(loop), False, False)
+            ptPairs = topSketch.getPointChain(offsetElements)
+            decoder = TurtleDecoder.createWithPointChain(pasteData, topSketch.sketch, ptPairs, False, False)
             break
 
     # Custom Feature Edit events

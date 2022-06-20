@@ -296,9 +296,52 @@ class TurtleSketch:
     def coEdgeToPoints(self, coEdge:f.BRepCoEdge) -> tuple[core.Point3D, core.Point3D]:
         sp = coEdge.edge.startVertex.geometry
         ep = coEdge.edge.endVertex.geometry
-        print('{:0.2f},{:0.2f}  {:0.2f},{:0.2f}'.format(sp.x, sp.y, ep.x, ep.y))
-        
+        #print('{:0.2f},{:0.2f}  {:0.2f},{:0.2f}'.format(sp.x, sp.y, ep.x, ep.y))
         return (self.sketch.modelToSketchSpace(sp), self.sketch.modelToSketchSpace(ep))
+
+    def getPointChain(self, lines:list[f.SketchLine], makeCW:bool=True)->tuple[core.Point3D, core.Point3D]:
+        ptPairs = []
+        for line in lines:
+            ptPairs.append((line.startSketchPoint.geometry, line.endSketchPoint.geometry))
+
+        curPair = ptPairs.pop(0)
+        chain = [curPair[1]]
+        minPt = curPair[1]
+        lastPt = curPair[1]
+        pairLen = len(ptPairs)
+        for i in range(pairLen):
+            resultIndex = -1
+            for pair in ptPairs:
+                if pair[0].isEqualTo(lastPt):
+                    chain.append(pair[1])
+                    resultIndex = ptPairs.index(pair)
+                elif pair[1].isEqualTo(lastPt):
+                    chain.append(pair[0])
+                    resultIndex = ptPairs.index(pair)
+                if(resultIndex > -1):
+                    lastPt = chain[len(chain)-1]
+                    minPt = self.minPoint(minPt, chain[len(chain) - 1])
+                    ptPairs.pop(resultIndex)
+                    break
+        #start at min
+        minIndex = chain.index(minPt)
+        chain = chain[minIndex:] + chain[:minIndex]
+        # todo: iccw
+        result = []
+        for ptIndex in range(1, len(chain)):
+            result.append((chain[ptIndex - 1], chain[ptIndex]))
+        result.append((chain[len(chain) - 1], chain[0]))
+        return result
+    
+    def minPoint(self, p0:core.Point3D, p1:core.Point3D)->core.Point3D:
+        result = p1
+        if(p0.x < p1.x):
+            result = p0
+        elif(p0.x == p1.x and p0.y < p1.y):
+            result = p0
+        elif(p0.x == p1.x and p0.y == p1.y and p0.z < p1.z):
+            result = p0
+        return result
         
     @classmethod
     def getMidpoint(cls, curve:f.SketchCurve):
