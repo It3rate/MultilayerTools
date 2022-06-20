@@ -287,6 +287,18 @@ class TurtleSketch:
         result = comp.constructionPlanes.add(planeInput)
         return result
 
+    def getCWPointPairs(self, loop:f.BRepLoop) -> list[core.Point3D]:
+        result = []
+        for coEdge in loop.coEdges:
+            result.append(self.coEdgeToPoints(coEdge))
+        return result
+
+    def coEdgeToPoints(self, coEdge:f.BRepCoEdge) -> tuple[core.Point3D, core.Point3D]:
+        sp = coEdge.edge.startVertex.geometry
+        ep = coEdge.edge.endVertex.geometry
+        print('{:0.2f},{:0.2f}  {:0.2f},{:0.2f}'.format(sp.x, sp.y, ep.x, ep.y))
+        
+        return (self.sketch.modelToSketchSpace(sp), self.sketch.modelToSketchSpace(ep))
         
     @classmethod
     def getMidpoint(cls, curve:f.SketchCurve):

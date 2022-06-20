@@ -11,74 +11,72 @@ f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleDecoder:
 
-    def __init__(self, reverse = False, mirror = False):
-        self.isReversed = reverse
-        self.isMirrored = mirror
-        self.transform = core.Matrix3D.create()
-        self.selectedGuideline = None
-        self.sketch = None
-        self.data = None
+    def __init__(self, data:str, sketch:f.Sketch, reverse:bool = False, mirror:bool = False):
+        self.data = data
+        if sketch:
+            self.sketch = sketch
+            self.tsketch = TurtleSketch.createWithSketch(self.sketch)
+        self.isReversed:bool = reverse
+        self.isMirrored:bool = mirror
 
-    @classmethod
-    def create(cls, data, reverse = False, mirror = False):
-        decoder = TurtleDecoder()
-        decoder.data = data
-        decoder.run()
-        return decoder
+        self.parameters = TurtleParams.instance()
 
-    @classmethod
-    def createWithTransform(cls, data, transform:core.Matrix3D, reverse = False, mirror = False):
-        decoder = TurtleDecoder(reverse, mirror)
-        # It doesn't make sense to map transforms, as the sketch transform in fusion isn't constant.
-        # Tt will be based on where the camera is when entering the sketch, so just use identity, and allow flipping.
-        decoder.transform = transform
-        decoder.data = data
-        decoder.run()
-        return decoder
+        self.transform:core.Matrix3D = core.Matrix3D.create()
+        self.userGuideline:f.SketchLine = None
+        self.userStartGuidePoint:core.Point3D = None
+        self.userEndGuidePoint:core.Point3D = None
+
+        self.hasEncodedGuideline = False
+        self.encStartGuidePoint = None
+        self.encEndGuidePoint = None      
+        self.encGuideIndex = -1
+        self.encGuideFlipped = False
+        self.decodeSketchData(self.data)
 
     @classmethod
     def createWithSketch(cls, data, sketch:f.Sketch, reverse = False, mirror = False):
-        decoder = TurtleDecoder(reverse, mirror)
-        decoder.sketch = sketch
-        decoder.data = data
+        decoder = TurtleDecoder(data, sketch, reverse, mirror)
         decoder.run()
         return decoder
 
     @classmethod
-    def createWithGuidelines(cls, data, guidelines, reverse = False, mirror = False):
-        decoder = TurtleDecoder(reverse, mirror)
+    def createWithGuidelines(cls, data, guidelines:list[f.SketchLine], reverse = False, mirror = False):
+        decoder = TurtleDecoder(data, None, reverse, mirror)
         for guideline in guidelines:
-            decoder.data = data
-            decoder.selectedGuideline = guideline
             decoder.sketch = guideline.parentSketch
+            decoder.tsketch = TurtleSketch.createWithSketch(guideline.parentSketch)
+            decoder.userGuideline = guideline
+            decoder.userStartGuidePoint = guideline.startSketchPoint.geometry
+            decoder.userEndGuidePoint = guideline.endSketchPoint.geometry
+            decoder.run()
+        return decoder
+    @classmethod
+    def createWithPointChain(cls, data, sketch:f.Sketch, points:list[tuple[core.Point3D, core.Point3D]], reverse = False, mirror = False):
+        decoder = TurtleDecoder(data, sketch, reverse, mirror)
+        for ptPair in points:
+            decoder.userStartGuidePoint = ptPair[0]
+            decoder.userEndGuidePoint = ptPair[1]
             decoder.run()
         return decoder
 
     def run(self):
-        if not self.sketch:
-            self.sketch = TurtleUtils.getTargetSketch(f.Sketch)
-        if not self.sketch:
-            return
-        
         self.sketch.isComputeDeferred = True
-        self.tsketch = TurtleSketch.createWithSketch(self.sketch)
-        self.tparams = TurtleParams.instance()
-
-        self.encGuideIndex = -1
-        self.guideScale = 1.0
-
-        self.hasEncodedGuideline = False
-        self.startGuidePoint = None
-        self.endGuidePoint = None      
-        self.encGuideIndex = -1
-        self.encGuideFlipped = False
-
+        self.transform.setToIdentity()
         self.assessTransform()
-        self.decodeSketchData(self.data)
         self.decodeFromSketch()
 
         self.sketch.isComputeDeferred = False
         
+    def assessTransform(self):
+        if not self.userStartGuidePoint:
+            self.userStartGuidePoint = self.encStartGuidePoint
+        if not self.userEndGuidePoint:
+            self.userEndGuidePoint = self.encEndGuidePoint
+
+        if self.encStartGuidePoint and self.encEndGuidePoint:
+            scale, originPoint = self.createTransformFromGuidePoints(\
+                self.encStartGuidePoint, self.encEndGuidePoint, self.userStartGuidePoint, self.userEndGuidePoint)
+            self.guideScale = scale
         
     def decodeSketchData(self, data = None):
         data = data if data else self.data
@@ -89,23 +87,21 @@ class TurtleDecoder:
         self.dimensionValues = data["Dimensions"] if "Dimensions" in data else []
         self.profileCentroids = data["ProfileCentroids"] if "ProfileCentroids" in data else []
         self.orgNamedProfiles = data["NamedProfiles"] if "NamedProfiles" in data else {}
-        
-        # gl = data["Guideline"] if "Guideline" in data else None
-        # if gl: #TODO: account for single guide point for postioning centered drawings like motors
-        #     self.hasEncodedGuideline = True
-        #     self.startGuidePoint = self.asPoint3D(gl[0])
-        #     self.endGuidePoint = self.asPoint3D(gl[1])       
-        #     self.encGuideIndex = int(gl[2][1:])
-        #     self.encGuideFlipped =  len(gl) > 2 and gl[3] == "flip"
-        # else:
-        #     self.hasEncodedGuideline = False
-        #     self.startGuidePoint = None
-        #     self.endGuidePoint = None      
-        #     self.encGuideIndex = -1
-        #     self.encGuideFlipped = False
-
+        gl = self.data["Guideline"] if "Guideline" in self.data else None
+        if gl: #TODO: account for single guide point for postioning centered drawings like motors
+            self.hasEncodedGuideline = True
+            self.encStartGuidePoint = self.asTransformedPoint3D(gl[0])
+            self.encEndGuidePoint = self.asTransformedPoint3D(gl[1])       
+            self.encGuideIndex = int(gl[2][1:])
+            self.encGuideFlipped =  len(gl) > 2 and gl[3] == "flip"
+        self.addedDimensions = []
+        self.dimensionNameMap = []
+        idx = 0
+        for dim in self.dimensionValues:
+            regex = re.compile("(?<![a-zA-Z0-9_])__" + str(idx) + "(?![a-zA-Z0-9_])")
+            self.dimensionNameMap.append(regex)
+            idx += 1
         self.namedProfiles = self.orgNamedProfiles.copy()
-        self.assessDimensionNames()
 
     def decodeFromSketch(self):
         self.offsetRefs = {}
@@ -117,9 +113,7 @@ class TurtleDecoder:
         for name in self.params:
             self.addUserParam(name)
 
-        #if self.guideScale == 1.0:
         self.dimensions = self.generateDimensions(self.dimensionValues)
-
         self.profileMap = self.mapProfiles(self.profileCentroids)
     
     def addUserParam(self, name, currentDimIndex:int = -1):
@@ -132,41 +126,7 @@ class TurtleDecoder:
             else:
                 self.forwardExpressions[lastRef] = [name]
         else:
-            self.tparams.addOrGetParam(name, encoding)
-
-
-    def assessDimensionNames(self):
-        self.addedDimensions = []
-        self.dimensionNameMap = []
-        idx = 0
-        for dim in self.dimensionValues:
-            regex = re.compile("(?<![a-zA-Z0-9_])__" + str(idx) + "(?![a-zA-Z0-9_])")
-            self.dimensionNameMap.append(regex)
-            idx += 1
-
-    def assessTransform(self):
-        self.transform = core.Matrix3D.create()
-        gl = self.data["Guideline"] if "Guideline" in self.data else None
-        if gl: #TODO: account for single guide point for postioning centered drawings like motors
-            self.hasEncodedGuideline = True
-            self.startGuidePoint = self.asPoint3D(gl[0])
-            self.endGuidePoint = self.asPoint3D(gl[1])       
-            self.encGuideIndex = int(gl[2][1:])
-            self.encGuideFlipped =  len(gl) > 2 and gl[3] == "flip"
-        else:
-            self.hasEncodedGuideline = False
-            self.startGuidePoint = None
-            self.endGuidePoint = None      
-            self.encGuideIndex = -1
-            self.encGuideFlipped = False
-
-        if self.startGuidePoint and self.endGuidePoint:
-            guide0,guide1 = TurtleSketch.naturalPointOrder(self.selectedGuideline) if self.selectedGuideline else\
-                 (self.startGuidePoint, self.endGuidePoint)
-            scale, originPoint = self.createTransformFromGuidePoints(self.startGuidePoint, self.endGuidePoint, guide0, guide1)
-            self.guideScale = scale
-            # if originPoint:
-            #     originPoint.isFixed = True
+            self.parameters.addOrGetParam(name, encoding)
 
     def createTransformFromGuidePoints(self, enc0:core.Point3D, enc1:core.Point3D, guide0:core.Point3D, guide1:core.Point3D):
             reverseVal = -1 if self.isReversed else 1
@@ -183,10 +143,9 @@ class TurtleDecoder:
                  vc(guideVec.x, guideVec.y * mirrorVal, 0)
 
             gxVec = vc(guideVec.x, guideVec.y * mirrorVal, 0)
-
-            gyVec = vc(-guideVec.y, -guideVec.x * mirrorVal, 0)\
+            gyVec = vc(guideVec.y, -guideVec.x * mirrorVal, 0)\
                 if self.isReversed else\
-                vc(guideVec.y, guideVec.x * mirrorVal, 0)
+                vc(-guideVec.y, guideVec.x * mirrorVal, 0)
                 
             self.transform.setToAlignCoordinateSystems(
                 enc0, 
@@ -215,7 +174,7 @@ class TurtleDecoder:
                 isFixed = True
                 pv.pop()
                 
-            pt = self.asPoint3D(pv)
+            pt = self.asTransformedPoint3D(pv)
             if idx == 0 and pv[0] == 0 and pv[1] == 0:
                 result.append(self.sketch.sketchPoints.item(0))
             else:
@@ -243,23 +202,11 @@ class TurtleDecoder:
                     params = self.parseParams(parse[3:])
                     curve = None
                     if kind == "L":
-                        if False and self.encGuideIndex > -1 and len(result) == self.encGuideIndex:
-                            isOriginalFlipped = TurtleSketch.isLineFlipped(self.selectedGuideline)
-                            isCurrentFlipped = TurtleSketch.isLineFlipped(self.selectedGuideline)
-                            # don't duplicate existing guideline
-                            if self.isXFlipped:
-                                self.replacePoint(params[1], self.selectedGuideline.startSketchPoint)
-                                self.replacePoint(params[0], self.selectedGuideline.endSketchPoint)
-                            else:
-                                self.replacePoint(params[0], self.selectedGuideline.startSketchPoint)
-                                self.replacePoint(params[1], self.selectedGuideline.endSketchPoint)
-                            curve = self.selectedGuideline
-                        else:
-                            curve = self.replaceLine(params[0], params[1]) # check for generated line match, add if present
-                            if not curve: # else create line (normal path)
-                                curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
+                        curve = self.replaceLine(params[0], params[1]) # check for generated line match, add if present
+                        if not curve: # else create line (normal path)
+                            curve = sketchCurves.sketchLines.addByTwoPoints(params[0], params[1])
                     elif kind == "A":
-                        curve = sketchCurves.sketchArcs.addByThreePoints(params[0], self.asPoint3D(params[1]), params[2])
+                        curve = sketchCurves.sketchArcs.addByThreePoints(params[0], self.asTransformedPoint3D(params[1]), params[2])
                         if len(params) > 2:
                             self.replacePoint(params[3], curve.centerSketchPoint)
                     elif kind == "C":
@@ -291,7 +238,7 @@ class TurtleDecoder:
                         curve.isConstruction = isConstruction
                         curve.isFixed = isFixed
                         result.append(curve)
-                        if curve != self.selectedGuideline:
+                        if curve != self.userGuideline:
                              curve.attributes.add("Turtle", "generated", str(len(result) - 1))
                 except:
                     print(seg + ' Curve Generation Failed:\n{}'.format(traceback.format_exc()))
@@ -341,7 +288,7 @@ class TurtleDecoder:
             p2 = params[2] if len(params) > 2 else None
             try:
                 if(kind == "VH"):
-                    if not self.hasRotation and not p0 == self.selectedGuideline: # don't set vert/horz if transforming with rotation
+                    if not self.hasRotation and not p0 == self.userGuideline: # don't set vert/horz if transforming with rotation
                         sp = p0.startSketchPoint.geometry
                         ep = p0.endSketchPoint.geometry
                         if(abs(sp.x - ep.x) < abs(sp.y - ep.y)):
@@ -409,7 +356,7 @@ class TurtleDecoder:
         if len(profileCentroids) != len(self.sketch.profiles):
             return
         # map data centroids to current transform, preserve data indexes
-        dataCentroids = self.pt = self.asPoint3Ds(profileCentroids)
+        dataCentroids = self.pt = self.asTransformedPoint3Ds(profileCentroids)
         # make indexed table of current sketch profile centroids
         # map two tables based on distance diff of centroids
         # adjust namedProfile indexes to reflect new sketch indexes. 
@@ -439,10 +386,6 @@ class TurtleDecoder:
 
         return dataToSketchMap
 
-
-
-
-
     def generateDimensions(self, dims):
         dimensions:f.SketchDimensions = self.sketch.sketchDimensions
         idx = 0
@@ -461,29 +404,29 @@ class TurtleDecoder:
 
             if kind == "SLD": # SketchDistanceDimension
                 if not self.isGuideline(p0, p1):
-                    dimension = dimensions.addDistanceDimension(p0, p1, p2, self.asPoint3D(p4))
+                    dimension = dimensions.addDistanceDimension(p0, p1, p2, self.asTransformedPoint3D(p4))
                     dimension.parameter.expression = p3
             elif kind == "SOD": # SketchOffsetDimension
-                dimension = dimensions.addOffsetDimension(p0,p1,self.asPoint3D(p3))
+                dimension = dimensions.addOffsetDimension(p0,p1,self.asTransformedPoint3D(p3))
                 dimension.parameter.expression = p2
             elif kind == "SAD": # SketchAngularDimension
                 midText = self.textPoint(p0, p1) # this must be mid centers as the quadrant dimensioned is based on the text postion.
                 dimension = dimensions.addAngularDimension(p0,p1, midText)
                 dimension.parameter.expression = p2
             elif kind == "SDD": # SketchDiameterDimension
-                dimension = dimensions.addDiameterDimension(p0, self.asPoint3D(p2)) 
+                dimension = dimensions.addDiameterDimension(p0, self.asTransformedPoint3D(p2)) 
                 dimension.parameter.expression = p1
             elif kind == "SRD": # SketchRadialDimension
-                dimension = dimensions.addRadialDimension(p0, self.asPoint3D(p2))
+                dimension = dimensions.addRadialDimension(p0, self.asTransformedPoint3D(p2))
                 dimension.parameter.expression = p1
             elif kind == "SMA": # SketchEllipseMajorRadiusDimension
-                dimension = dimensions.addEllipseMajorRadiusDimension(p0, self.asPoint3D(p2))
+                dimension = dimensions.addEllipseMajorRadiusDimension(p0, self.asTransformedPoint3D(p2))
                 dimension.parameter.expression = p1
             elif kind == "SMI": # SketchEllipseMinorRadiusDimension
-                dimension = dimensions.addEllipseMinorRadiusDimension(p0, self.asPoint3D(p2))
+                dimension = dimensions.addEllipseMinorRadiusDimension(p0, self.asTransformedPoint3D(p2))
                 dimension.parameter.expression = p1
             elif kind == "SCC": # SketchConcentricCircleDimension
-                dimension = dimensions.addConcentricCircleDimension(p0,p1,self.asPoint3D(p3))
+                dimension = dimensions.addConcentricCircleDimension(p0,p1,self.asTransformedPoint3D(p3))
                 dimension.parameter.expression = p2
             elif kind == "SOC": # SketchOffsetCurvesDimension
                 parameter = self.offsetRefs[p0]
@@ -498,8 +441,8 @@ class TurtleDecoder:
 
     def isGuideline(self, p0, p1):
         result = False
-        if self.selectedGuideline: 
-            gl = self.selectedGuideline
+        if self.userGuideline: 
+            gl = self.userGuideline
             startMatch = gl.startSketchPoint == p0 or gl.startSketchPoint == p1
             endMatch = gl.endSketchPoint == p0 or gl.endSketchPoint == p1
             # gl = self.selectedGuideline
@@ -528,7 +471,6 @@ class TurtleDecoder:
             x = mid.x + offset * math.cos(angle)
             y = mid.y + offset * math.sin(angle)
             return core.Point3D.create(x, y, 0)
-
 
     def parseParams(self, params):
         result = []
@@ -584,15 +526,14 @@ class TurtleDecoder:
             idx += 1
         return result
 
-    def asPoint3Ds(self, pts):
+    def asTransformedPoint3Ds(self, pts):
         result = []
         for pt in pts:
-            result.append(self.asPoint3D(pt))
+            result.append(self.asTransformedPoint3D(pt))
         return result
 
-    def asPoint3D(self, pts):
+    def asTransformedPoint3D(self, pts):
         if isinstance(pts, Iterable):
-            #tpts = [pts[0], pts[1], 0]
             pts.extend([0.0] * max(0, (3 - len(pts)))) # ensure three elements
             tpts = pts
         elif type(pts) == f.SketchPoint:

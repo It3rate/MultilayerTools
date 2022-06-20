@@ -56,13 +56,11 @@ class MoldBuilder(TurtleCustomCommand):
             projectedList = topSketch.projectList(loop.edges, True)
             cent = self.topFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
             offsetElements, offsetConstraint = topSketch.offset(projectedList, cent, offsetExpr, True)
-            decoder =  TurtleDecoder.createWithGuidelines(pasteData, offsetElements, False, False)
+            #BRepCoEdge objects flow around the outer boundary in a counter-clockwise direction, while inner boundaries are clockwise
+            #decoder =  TurtleDecoder.createWithGuidelines(pasteData, offsetElements, False, False)
+            decoder = TurtleDecoder.createWithPointChain(pasteData, topSketch.sketch, topSketch.getCWPointPairs(loop), False, False)
             break
 
-
-        ui.activeSelections.add(self.backOuterFace.face)
-        ui.activeSelections.add(self.backInnerFace.face)
-    
     # Custom Feature Edit events
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
         pass

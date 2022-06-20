@@ -15,7 +15,7 @@ class SketchData:
         f.close()
 
     @classmethod
-    def getTestData(self):
+    def getTestData(cls):
         return \
 {
 'CoordinateSystem':[
@@ -53,17 +53,12 @@ class SketchData:
 }
 }
 
-
-
-
-
-
-
-
-
+    @classmethod
+    def getDefaultData(cls):
+        return cls.hole()
 
     @classmethod
-    def hole(self):
+    def hole(cls):
         return \
 {
 'CoordinateSystem':[

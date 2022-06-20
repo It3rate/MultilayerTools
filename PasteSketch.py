@@ -185,7 +185,7 @@ class PasteSketchCommand(TurtleUICommand):
         if not self.data:
             clip = TurtleUtils.getClipboardText()
             if clip == None or not (clip.startswith("#Turtle Generated Data")):
-                self.data = SketchData.getTestData()
+                self.data = SketchData.getDefaultData()
             else:
                 self.data = eval(clip)
     
