@@ -54,6 +54,7 @@ class MoldBuilder(TurtleCustomCommand):
         offsetExpr = 'wallThickness + lipWidth'
         curSketch.offset(projectedList, curFace.centroid, offsetExpr)
         pasteData = SketchData.hole()
+        curSketch.areProfilesShown = False
         for loop in curFace.loops:
             projectedList = curSketch.projectList(loop.edges, True)
             cent = curFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
@@ -70,7 +71,7 @@ class MoldBuilder(TurtleCustomCommand):
                 segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], slotLen, slotSpacing)
                 tabbedSegments = tabbedSegments + segs
             decoder = TurtleDecoder.createWithPointChain(pasteData, curSketch.sketch, tabbedSegments, False, False)
-
+        curSketch.areProfilesShown = True
 
     # Custom Feature Edit events
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
@@ -94,6 +95,7 @@ class MoldBuilder(TurtleCustomCommand):
             self.lipThickness = inputs.addDistanceValueCommandInput('txLipWidth', 'Lip Width', self.parameters.createValue(lipWidthParam.expression))
             self.lipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
             
+            # better to specify max slots per wall
             slotLengthParam = self.parameters.addOrGetParam('slotLength', '10.3 mm')
             self.slotLength = inputs.addDistanceValueCommandInput('txSlotLen', 'Slot Length', self.parameters.createValue(slotLengthParam.expression))
             #self.slotLength.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)

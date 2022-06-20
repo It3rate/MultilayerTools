@@ -64,7 +64,6 @@ class TurtleDecoder:
         self.transform.setToIdentity()
         self.assessTransform()
         self.decodeFromSketch()
-
         self.sketch.isComputeDeferred = False
         
     def assessTransform(self):
