@@ -47,21 +47,24 @@ class MoldBuilder(TurtleCustomCommand):
         self.params.setOrCreateParam('lipWidth', self.lipThickness.expression)
         self.params.setOrCreateParam('slotLength', self.slotLength.expression)
 
-        topSketch = self.topFace.createSketchAtPoint(self.topFace.centroid)
-        projectedList = topSketch.projectList(self.topFace.outerLoop.edges, True)
+        curFace = self.topFace
+        #curFace = self.frontOuterFace
+        curSketch = curFace.createSketchAtPoint(curFace.centroid)
+        projectedList = curSketch.projectList(curFace.outerLoop.edges, True)
         offsetExpr = 'wallThickness + lipWidth'
-        topSketch.offset(projectedList, self.topFace.centroid, offsetExpr)
+        curSketch.offset(projectedList, curFace.centroid, offsetExpr)
         pasteData = SketchData.hole()
-        for loop in self.topFace.loops:
-            projectedList = topSketch.projectList(loop.edges, True)
-            cent = self.topFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
-            offsetElements, offsetConstraint = topSketch.offset(projectedList, cent, offsetExpr, True)
+        for loop in curFace.loops:
+            projectedList = curSketch.projectList(loop.edges, True)
+            cent = curFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
+            offsetElements, offsetConstraint = curSketch.offset(projectedList, cent, offsetExpr, True)
             #BRepCoEdge objects flow around the outer boundary in a counter-clockwise direction, while inner boundaries are clockwise
             #decoder =  TurtleDecoder.createWithGuidelines(pasteData, offsetElements, False, False)
             #decoder = TurtleDecoder.createWithPointChain(pasteData, topSketch.sketch, topSketch.getCWPointPairs(loop), False, False)
-            ptPairs = topSketch.getPointChain(offsetElements)
-            decoder = TurtleDecoder.createWithPointChain(pasteData, topSketch.sketch, ptPairs, False, False)
-            break
+            cw = not loop.isOuter
+            ptPairs = curSketch.getPointChain(offsetElements, cw)
+            decoder = TurtleDecoder.createWithPointChain(pasteData, curSketch.sketch, ptPairs, False, False)
+
 
     # Custom Feature Edit events
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):

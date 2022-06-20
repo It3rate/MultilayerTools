@@ -326,7 +326,13 @@ class TurtleSketch:
         #start at min
         minIndex = chain.index(minPt)
         chain = chain[minIndex:] + chain[:minIndex]
-        # todo: iccw
+
+        # ensure clockwise or ccw
+        if len(chain) > 2:
+            isCw = self.arePointsClockwise(chain[0], chain[1], chain[2])
+            if(makeCW and not isCw) or (not makeCW and isCw):
+                chain.reverse()
+
         result = []
         for ptIndex in range(1, len(chain)):
             result.append((chain[ptIndex - 1], chain[ptIndex]))
@@ -342,7 +348,14 @@ class TurtleSketch:
         elif(p0.x == p1.x and p0.y == p1.y and p0.z < p1.z):
             result = p0
         return result
-        
+    
+    def arePointsClockwise(self, a:core.Point3D, b:core.Point3D, c:core.Point3D):
+        return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y) < 0
+    def arePointsCounterClockwise(self, a:core.Point3D, b:core.Point3D, c:core.Point3D):
+        return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y) > 0
+    def arePointsColinear(self, a:core.Point3D, b:core.Point3D, c:core.Point3D):
+        return abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) < 0.000001
+
     @classmethod
     def getMidpoint(cls, curve:f.SketchCurve):
         ev = curve.geometry.evaluator
