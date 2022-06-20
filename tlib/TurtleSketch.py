@@ -287,19 +287,22 @@ class TurtleSketch:
         result = comp.constructionPlanes.add(planeInput)
         return result
 
-    def getCWPointPairs(self, loop:f.BRepLoop) -> list[core.Point3D]:
+    @classmethod
+    def getCWPointPairs(cls, loop:f.BRepLoop) -> list[core.Point3D]:
         result = []
         for coEdge in loop.coEdges:
-            result.append(self.coEdgeToPoints(coEdge))
+            result.append(cls.coEdgeToPoints(coEdge))
         return result
 
-    def coEdgeToPoints(self, coEdge:f.BRepCoEdge) -> tuple[core.Point3D, core.Point3D]:
+    @classmethod
+    def coEdgeToPoints(cls, coEdge:f.BRepCoEdge) -> tuple[core.Point3D, core.Point3D]:
         sp = coEdge.edge.startVertex.geometry
         ep = coEdge.edge.endVertex.geometry
         #print('{:0.2f},{:0.2f}  {:0.2f},{:0.2f}'.format(sp.x, sp.y, ep.x, ep.y))
-        return (self.sketch.modelToSketchSpace(sp), self.sketch.modelToSketchSpace(ep))
+        return (cls.sketch.modelToSketchSpace(sp), cls.sketch.modelToSketchSpace(ep))
 
-    def getPointChain(self, lines:list[f.SketchLine], makeCW:bool=True)->tuple[core.Point3D, core.Point3D]:
+    @classmethod
+    def getPointChain(cls, lines:list[f.SketchLine], makeCW:bool=True)->tuple[core.Point3D, core.Point3D]:
         ptPairs = []
         for line in lines:
             ptPairs.append((line.startSketchPoint.geometry, line.endSketchPoint.geometry))
@@ -320,7 +323,7 @@ class TurtleSketch:
                     resultIndex = ptPairs.index(pair)
                 if(resultIndex > -1):
                     lastPt = chain[len(chain)-1]
-                    minPt = self.minPoint(minPt, chain[len(chain) - 1])
+                    minPt = cls.minPoint(minPt, chain[len(chain) - 1])
                     ptPairs.pop(resultIndex)
                     break
         #start at min
@@ -329,7 +332,7 @@ class TurtleSketch:
 
         # ensure clockwise or ccw
         if len(chain) > 2:
-            isCw = self.arePointsClockwise(chain[0], chain[1], chain[2])
+            isCw = cls.arePointsClockwise(chain[0], chain[1], chain[2])
             if(makeCW and not isCw) or (not makeCW and isCw):
                 chain.reverse()
 
@@ -339,7 +342,8 @@ class TurtleSketch:
         result.append((chain[len(chain) - 1], chain[0]))
         return result
     
-    def minPoint(self, p0:core.Point3D, p1:core.Point3D)->core.Point3D:
+    @classmethod
+    def minPoint(cls, p0:core.Point3D, p1:core.Point3D)->core.Point3D:
         result = p1
         if(p0.x < p1.x):
             result = p0
@@ -349,12 +353,42 @@ class TurtleSketch:
             result = p0
         return result
     
-    def arePointsClockwise(self, a:core.Point3D, b:core.Point3D, c:core.Point3D):
+    @classmethod
+    def arePointsClockwise(cls, a:core.Point3D, b:core.Point3D, c:core.Point3D):
         return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y) < 0
-    def arePointsCounterClockwise(self, a:core.Point3D, b:core.Point3D, c:core.Point3D):
+    @classmethod
+    def arePointsCounterClockwise(cls, a:core.Point3D, b:core.Point3D, c:core.Point3D):
         return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y) > 0
-    def arePointsColinear(self, a:core.Point3D, b:core.Point3D, c:core.Point3D):
+    @classmethod
+    def arePointsColinear(cls, a:core.Point3D, b:core.Point3D, c:core.Point3D):
         return abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) < 0.000001
+    
+    @classmethod
+    def createCenteredTabs(cls, startPoint:core.Point3D, endPoint:core.Point3D, tabWidth:float, tabSpacing:float):
+        lineLen = startPoint.distanceTo(endPoint)
+        tabTotalLen = tabSpacing + tabWidth
+        lineWorking = (lineLen - tabSpacing)
+        slotCount = math.floor(lineWorking / tabTotalLen)
+        offset = (lineLen - (slotCount * tabTotalLen + tabSpacing)) / 2.0
+        result = []
+        curLen = offset + tabSpacing
+        for i in range(slotCount): # each side of center, plus center
+            pt0 = cls.pointAlongLine(startPoint, endPoint, curLen)
+            curLen += tabWidth
+            pt1 = cls.pointAlongLine(startPoint, endPoint, curLen)
+            curLen += tabSpacing
+            result.append((pt0, pt1))
+        return result
+    
+    @classmethod
+    def pointAlongLine(self, startPoint:core.Point3D, endPoint:core.Point3D, length:float):
+        lineVec = startPoint.vectorTo(endPoint)
+        lineLen = lineVec.length
+        ratio = length / lineLen
+        lineVec.scaleBy(ratio)
+        result = startPoint.copy()
+        result.translateBy(lineVec)
+        return result
 
     @classmethod
     def getMidpoint(cls, curve:f.SketchCurve):

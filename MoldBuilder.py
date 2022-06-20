@@ -18,7 +18,7 @@ f,core,app,ui = TurtleUtils.initGlobals()
 
 class MoldBuilder(TurtleCustomCommand):
     def __init__(self):
-        self.params = TurtleParams.instance()
+        self.parameters = TurtleParams.instance()
         self.component:f.Component = TurtleUtils.activeDesign().activeComponent
         cmdId = 'ddwMoldBuilderId'
         cmdName = 'Mold Builder'
@@ -43,9 +43,9 @@ class MoldBuilder(TurtleCustomCommand):
         self.onExecute(eventArgs)
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
-        self.params.setOrCreateParam('wallThickness', self.moldWallThickness.expression)
-        self.params.setOrCreateParam('lipWidth', self.lipThickness.expression)
-        self.params.setOrCreateParam('slotLength', self.slotLength.expression)
+        self.parameters.setOrCreateParam('wallThickness', self.moldWallThickness.expression)
+        self.parameters.setOrCreateParam('lipWidth', self.lipThickness.expression)
+        self.parameters.setOrCreateParam('slotLength', self.slotLength.expression)
 
         curFace = self.topFace
         #curFace = self.frontOuterFace
@@ -63,7 +63,13 @@ class MoldBuilder(TurtleCustomCommand):
             #decoder = TurtleDecoder.createWithPointChain(pasteData, topSketch.sketch, topSketch.getCWPointPairs(loop), False, False)
             cw = not loop.isOuter
             ptPairs = curSketch.getPointChain(offsetElements, cw)
-            decoder = TurtleDecoder.createWithPointChain(pasteData, curSketch.sketch, ptPairs, False, False)
+            slotLen = self.parameters.getParamValueOrDefault('slotLength', 1.5)
+            slotSpacing = .5
+            tabbedSegments = []
+            for pair in ptPairs:
+                segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], slotLen, slotSpacing)
+                tabbedSegments = tabbedSegments + segs
+            decoder = TurtleDecoder.createWithPointChain(pasteData, curSketch.sketch, tabbedSegments, False, False)
 
 
     # Custom Feature Edit events
@@ -79,17 +85,17 @@ class MoldBuilder(TurtleCustomCommand):
     
     def _createDialog(self, inputs):
         try:
-            wallThicknessParam = self.params.addOrGetParam('wallThickness', '4.1 mm')
+            wallThicknessParam = self.parameters.addOrGetParam('wallThickness', '4.1 mm')
             self.moldWallThickness = inputs.addDistanceValueCommandInput('txWallThickness', 'Mold Wall Thickness',\
-                 self.params.createValue(wallThicknessParam.expression))
+                 self.parameters.createValue(wallThicknessParam.expression))
             self.moldWallThickness.setManipulator(self.frontOuterFace.centroid, self.frontNorm)
 
-            lipWidthParam = self.params.addOrGetParam('lipWidth', '2.2 mm')
-            self.lipThickness = inputs.addDistanceValueCommandInput('txLipWidth', 'Lip Width', self.params.createValue(lipWidthParam.expression))
+            lipWidthParam = self.parameters.addOrGetParam('lipWidth', '2.2 mm')
+            self.lipThickness = inputs.addDistanceValueCommandInput('txLipWidth', 'Lip Width', self.parameters.createValue(lipWidthParam.expression))
             self.lipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
             
-            slotLengthParam = self.params.addOrGetParam('slotLength', '20.3 mm')
-            self.slotLength = inputs.addDistanceValueCommandInput('txSlotLen', 'Slot Length', self.params.createValue(slotLengthParam.expression))
+            slotLengthParam = self.parameters.addOrGetParam('slotLength', '10.3 mm')
+            self.slotLength = inputs.addDistanceValueCommandInput('txSlotLen', 'Slot Length', self.parameters.createValue(slotLengthParam.expression))
             #self.slotLength.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
             
             # self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse', True)
