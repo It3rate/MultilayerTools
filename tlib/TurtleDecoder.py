@@ -90,9 +90,10 @@ class TurtleDecoder:
         if self.guidelineValues:
             self.hasEncodedGuideline = True
              # needed for generating transform before points are generated
-            self.parseParam(self.guidelineValues[0])
-            self.encStartGuidePoint,_ = self.parsePoint(self.guidelineValues[0])
-            self.encEndGuidePoint,_ = self.parsePoint(self.guidelineValues[1])
+            g0Index = self.parseIndexOnly(self.guidelineValues[0])
+            g1Index = self.parseIndexOnly(self.guidelineValues[1])
+            self.encStartGuidePoint,_ = self.parsePoint(self.pointValues[g0Index])
+            self.encEndGuidePoint,_ = self.parsePoint(self.pointValues[g1Index])
         self.addedDimensions = []
         self.dimensionNameMap = []
         idx = 0
@@ -107,12 +108,6 @@ class TurtleDecoder:
         self.forwardExpressions = {}
         self.points = self.generatePoints(self.pointValues)
         self.curves = self.generateChains(self.chainValues)
-
-        if self.hasEncodedGuideline: #TODO: account for single guide point for postioning centered drawings like motors
-            self.encStartGuidePoint = self.parseParam(self.guidelineValues[0]).geometry
-            self.encEndGuidePoint = self.parseParam(self.guidelineValues[1]).geometry
-            self.encGuideIndex = int(self.guidelineValues[2][1:])
-            self.encGuideFlipped =  len(self.guidelineValues) > 2 and self.guidelineValues[3] == "flip"
 
         self.constraints = self.generateConstraints(self.constraintValues)
         for name in self.params:
@@ -485,6 +480,10 @@ class TurtleDecoder:
             x = mid.x + offset * math.cos(angle)
             y = mid.y + offset * math.sin(angle)
             return core.Point3D.create(x, y, 0)
+
+    def parseIndexOnly(self, param):
+        val = param[1:]
+        return int(val)
 
     def parseParams(self, params):
         result = []
