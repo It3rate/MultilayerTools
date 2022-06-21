@@ -95,11 +95,6 @@ class SketchData:
 }
 }
 
-
-    @classmethod
-    def getDefaultData(cls):
-        return cls.hole()
-
     @classmethod
     def hole(cls):
         return \
@@ -145,3 +140,8 @@ class SketchData:
 }
 }
 
+
+
+    @classmethod
+    def getDefaultData(cls):
+        return cls.notches()

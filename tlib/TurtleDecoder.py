@@ -27,6 +27,8 @@ class TurtleDecoder:
         self.userEndGuidePoint:core.Point3D = None
 
         self.hasEncodedGuideline = False
+        self.encStartGuideIndex = -1
+        self.encEndGuideIndex = -1
         self.encStartGuidePoint = None
         self.encEndGuidePoint = None      
         self.encGuideIndex = -1
@@ -62,8 +64,19 @@ class TurtleDecoder:
     def run(self):
         self.sketch.isComputeDeferred = True
         self.transform.setToIdentity()
+        # if self.userStartGuidePoint:
+        #     self.userStartGuidePoint.isFixed = True
+        # if self.userEndGuidePoint:
+        #     self.userEndGuidePoint.isFixed = True
+
         self.assessTransform()
         self.decodeFromSketch()
+
+        # if self.userStartGuidePoint:
+        #     self.userStartGuidePoint.isFixed = False
+        # if self.userEndGuidePoint:
+        #     self.userEndGuidePoint.isFixed = False
+
         self.sketch.isComputeDeferred = False
         
     def assessTransform(self):
@@ -90,10 +103,10 @@ class TurtleDecoder:
         if self.guidelineValues:
             self.hasEncodedGuideline = True
              # needed for generating transform before points are generated
-            g0Index = self.parseIndexOnly(self.guidelineValues[0])
-            g1Index = self.parseIndexOnly(self.guidelineValues[1])
-            self.encStartGuidePoint,_ = self.parsePoint(self.pointValues[g0Index])
-            self.encEndGuidePoint,_ = self.parsePoint(self.pointValues[g1Index])
+            self.encStartGuideIndex = self.parseIndexOnly(self.guidelineValues[0])
+            self.encEndGuideIndex = self.parseIndexOnly(self.guidelineValues[1])
+            self.encStartGuidePoint,_ = self.parsePoint(self.pointValues[self.encStartGuideIndex])
+            self.encEndGuidePoint,_ = self.parsePoint(self.pointValues[self.encEndGuideIndex])
         self.addedDimensions = []
         self.dimensionNameMap = []
         idx = 0
@@ -187,8 +200,11 @@ class TurtleDecoder:
                 result.append(self.sketch.sketchPoints.item(0))
             else:
                 result.append(self.sketch.sketchPoints.add(pt))
-
             result[-1].isFixed = isFixed
+
+            if idx == self.encStartGuideIndex or idx == self.encEndGuideIndex:
+                result[-1].isFixed = True
+                
             idx += 1
             if count > 0 and idx >= count:
                 break
