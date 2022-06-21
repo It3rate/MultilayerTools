@@ -60,9 +60,7 @@ class MoldBuilder(TurtleCustomCommand):
         #curFace = self.frontOuterFace
         curTSketch = curFace.createSketchAtPoint(curFace.centroid)
         self.curComponent = TurtleComponent.createFromSketch(curTSketch.sketch)
-        projectedList = curTSketch.projectList(curFace.outerLoop.edges, True)
         offsetExpr = 'wallThickness + lipWidth'
-        curTSketch.offset(projectedList, curFace.centroid, offsetExpr)
         pasteData = SketchData.hole()
         curTSketch.areProfilesShown = False
         l0 = curFace.loops[0]
@@ -73,36 +71,34 @@ class MoldBuilder(TurtleCustomCommand):
             for loop in loops:
                 projectedList = curTSketch.projectList(loop.edges, True) 
                 cent = curFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
-                isConstruction = loop.isOuter
-                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, isConstruction)
+                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, False)
                 offsetChains.append(offsetElements)
         else:
             for loop in loops:
                 projectedList = curTSketch.projectList(loop.edges, True) 
                 cent = curFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
-                isConstruction = loop.isOuter
-                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, isConstruction)
+                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, False)
                 offsetChains.append(offsetElements)
                 chainIndex = 0
-                for chain in offsetChains:
-                    #BRepCoEdge objects flow around the outer boundary in a counter-clockwise direction, while inner boundaries are clockwise
-                    cw = chainIndex > 0
-                    ptPairs = curTSketch.getPointChain(chain, cw)
-                    slotLen = self.parameters.getParamValueOrDefault('slotLength', 1.0)
-                    slotSpc = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
-                    tabbedSegments = []
-                    for pair in ptPairs:
-                        segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], slotLen, slotSpc)
-                        tabbedSegments = tabbedSegments + segs
-                    decoder = TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, tabbedSegments, False, False)
-                    profile = curTSketch.findOuterProfile()
-                    _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
-                    if chainIndex == 0:
-                        extrude = newFeatures[0]
-                        extrude.timelineObject.rollTo(True)
-                        extrude.startExtent = f.FromEntityStartDefinition.create(self.bottomFace.face, self.parameters.createValue('wallThickness'))
-                        extrude.timelineObject.rollTo(False)
-                    chainIndex += 1
+            for chain in offsetChains:
+                #BRepCoEdge objects flow around the outer boundary in a counter-clockwise direction, while inner boundaries are clockwise
+                cw = chainIndex > 0
+                ptPairs = curTSketch.getPointChain(chain, cw)
+                slotLen = self.parameters.getParamValueOrDefault('slotLength', 1.0)
+                slotSpc = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
+                tabbedSegments = []
+                for pair in ptPairs:
+                    segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], slotLen, slotSpc)
+                    tabbedSegments = tabbedSegments + segs
+                decoder = TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, tabbedSegments, False, False)
+                profile = curTSketch.findOuterProfile()
+                _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+                if chainIndex == 0:
+                    extrude = newFeatures[0]
+                    extrude.timelineObject.rollTo(True)
+                    extrude.startExtent = f.FromEntityStartDefinition.create(self.bottomFace.face, self.parameters.createValue('wallThickness'))
+                    extrude.timelineObject.rollTo(False)
+                chainIndex += 1
 
             curTSketch.areProfilesShown = True
 
