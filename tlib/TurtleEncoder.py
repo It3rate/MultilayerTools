@@ -85,9 +85,11 @@ class TurtleEncoder:
             result += "\'Dimensions\':" + self.encodeList(self.data["Dimensions"]) + ",\n" #             [\n\'" + "\',\'".join(self.data["Dimensions"]) + "\'\n],\n")
         if self.guideline:
             guidePoints = self.getSortedPoints(self.guideline)
+            gp0 = self.encodeEntity(guidePoints[0])
+            gp1 = self.encodeEntity(guidePoints[1])
             guideEntity = self.encodeEntity(self.guideline)
             flippedText = "flip" if TurtleSketch.isLineFlipped(self.guideline) else "noFlip"
-            result += "\'Guideline\':[" + self.encodePoints(*guidePoints) + ",\'" + guideEntity + "\',\'" + flippedText + "\'],\n"
+            result += "\'Guideline\':['" + gp0 +"','"+ gp1 + "',\'" + guideEntity + "\',\'" + flippedText + "\'],\n"
         else: 
             result += "\'Guideline\':[],\n" 
 

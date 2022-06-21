@@ -86,13 +86,13 @@ class TurtleDecoder:
         self.dimensionValues = data["Dimensions"] if "Dimensions" in data else []
         self.profileCentroids = data["ProfileCentroids"] if "ProfileCentroids" in data else []
         self.orgNamedProfiles = data["NamedProfiles"] if "NamedProfiles" in data else {}
-        gl = self.data["Guideline"] if "Guideline" in self.data else None
-        if gl: #TODO: account for single guide point for postioning centered drawings like motors
+        self.guidelineValues = self.data["Guideline"] if "Guideline" in self.data else None
+        if self.guidelineValues:
             self.hasEncodedGuideline = True
-            self.encStartGuidePoint = self.asTransformedPoint3D(gl[0])
-            self.encEndGuidePoint = self.asTransformedPoint3D(gl[1])       
-            self.encGuideIndex = int(gl[2][1:])
-            self.encGuideFlipped =  len(gl) > 2 and gl[3] == "flip"
+             # needed for generating transform before points are generated
+            self.parseParam(self.guidelineValues[0])
+            self.encStartGuidePoint,_ = self.parsePoint(self.guidelineValues[0])
+            self.encEndGuidePoint,_ = self.parsePoint(self.guidelineValues[1])
         self.addedDimensions = []
         self.dimensionNameMap = []
         idx = 0
@@ -107,6 +107,12 @@ class TurtleDecoder:
         self.forwardExpressions = {}
         self.points = self.generatePoints(self.pointValues)
         self.curves = self.generateChains(self.chainValues)
+
+        if self.hasEncodedGuideline: #TODO: account for single guide point for postioning centered drawings like motors
+            self.encStartGuidePoint = self.parseParam(self.guidelineValues[0]).geometry
+            self.encEndGuidePoint = self.parseParam(self.guidelineValues[1]).geometry
+            self.encGuideIndex = int(self.guidelineValues[2][1:])
+            self.encGuideFlipped =  len(self.guidelineValues) > 2 and self.guidelineValues[3] == "flip"
 
         self.constraints = self.generateConstraints(self.constraintValues)
         for name in self.params:
@@ -161,12 +167,20 @@ class TurtleDecoder:
             return (scale, origin)
 
         
-    def generatePoints(self, ptVals):
+    def parsePoint(self, pointVal:list[float]) -> tuple[core.Point3D, bool]:
+        isFixed = False
+        if len(pointVal) > 2 and pointVal[2] == 'f':
+            isFixed = True
+            pointVal.pop()
+        pt = self.asTransformedPoint3D(pointVal)
+        return (pt, isFixed)
+
+    def generatePoints(self, ptVals, startIndex:int = 0, count:int = -1) -> list[f.SketchPoint]:
         (origin, xAxis, yAxis, zAxis) = self.transform.getAsCoordinateSystem()
         self.hasRotation = xAxis.y != 0 or yAxis.x!= 0
 
         result = []
-        idx = 0
+        idx = startIndex
         for pv in ptVals:
             isFixed = False
             if len(pv) > 2 and pv[2] == 'f':
@@ -180,8 +194,9 @@ class TurtleDecoder:
                 result.append(self.sketch.sketchPoints.add(pt))
 
             result[-1].isFixed = isFixed
-            
             idx += 1
+            if count > 0 and idx >= count:
+                break
         return result
     
     def generateChains(self, chains):
