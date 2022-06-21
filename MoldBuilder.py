@@ -18,8 +18,8 @@ f,core,app,ui = TurtleUtils.initGlobals()
 
 class MoldBuilder(TurtleCustomCommand):
     def __init__(self):
+        self.rootComponent = TurtleComponent(TurtleUtils.activeRoot())
         self.parameters = TurtleParams.instance()
-        self.component:f.Component = TurtleUtils.activeDesign().activeComponent
         cmdId = 'ddwMoldBuilderId'
         cmdName = 'Mold Builder'
         cmdDescription = 'Generates a laser cuttable mold from a shelled box.'
@@ -30,6 +30,7 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         # investigations of a shelled box
+        self.component:f.Component = TurtleUtils.activeDesign().activeComponent
         if not self.component.bRepBodies.count == 1 or not self.component.bRepBodies.item(0).faces.count == 11:
             return
         self._parseFaces()
@@ -40,38 +41,72 @@ class MoldBuilder(TurtleCustomCommand):
         pass
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
-        self.onExecute(eventArgs)
+        self.setParameters()
+        self.createTop(True)
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
+        self.setParameters()
+        self.createTop(False)
+
+    def setParameters(self):
         self.parameters.setOrCreateParam('wallThickness', self.moldWallThickness.expression)
         self.parameters.setOrCreateParam('lipWidth', self.lipThickness.expression)
         self.parameters.setOrCreateParam('slotLength', self.slotLength.expression)
+        self.parameters.setOrCreateParam('slotSpacing', self.slotSpacing.expression)
 
+
+    def createTop(self, isPreview:bool):
         curFace = self.topFace
         #curFace = self.frontOuterFace
-        curSketch = curFace.createSketchAtPoint(curFace.centroid)
-        projectedList = curSketch.projectList(curFace.outerLoop.edges, True)
+        curTSketch = curFace.createSketchAtPoint(curFace.centroid)
+        self.curComponent = TurtleComponent.createFromSketch(curTSketch.sketch)
+        projectedList = curTSketch.projectList(curFace.outerLoop.edges, True)
         offsetExpr = 'wallThickness + lipWidth'
-        curSketch.offset(projectedList, curFace.centroid, offsetExpr)
+        curTSketch.offset(projectedList, curFace.centroid, offsetExpr)
         pasteData = SketchData.hole()
-        curSketch.areProfilesShown = False
-        for loop in curFace.loops:
-            projectedList = curSketch.projectList(loop.edges, True)
-            cent = curFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
-            offsetElements, offsetConstraint = curSketch.offset(projectedList, cent, offsetExpr, True)
-            #BRepCoEdge objects flow around the outer boundary in a counter-clockwise direction, while inner boundaries are clockwise
-            #decoder =  TurtleDecoder.createWithGuidelines(pasteData, offsetElements, False, False)
-            #decoder = TurtleDecoder.createWithPointChain(pasteData, topSketch.sketch, topSketch.getCWPointPairs(loop), False, False)
-            cw = not loop.isOuter
-            ptPairs = curSketch.getPointChain(offsetElements, cw)
-            slotLen = self.parameters.getParamValueOrDefault('slotLength', 1.5)
-            slotSpacing = .5
-            tabbedSegments = []
-            for pair in ptPairs:
-                segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], slotLen, slotSpacing)
-                tabbedSegments = tabbedSegments + segs
-            decoder = TurtleDecoder.createWithPointChain(pasteData, curSketch.sketch, tabbedSegments, False, False)
-        curSketch.areProfilesShown = True
+        curTSketch.areProfilesShown = False
+        l0 = curFace.loops[0]
+        l1 = curFace.loops[1]
+        loops = [l0, l1] if l0.isOuter else [l1, l0]
+        offsetChains = []
+        if isPreview:
+            for loop in loops:
+                projectedList = curTSketch.projectList(loop.edges, True) 
+                cent = curFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
+                isConstruction = loop.isOuter
+                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, isConstruction)
+                offsetChains.append(offsetElements)
+        else:
+            for loop in loops:
+                projectedList = curTSketch.projectList(loop.edges, True) 
+                cent = curFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
+                isConstruction = loop.isOuter
+                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, isConstruction)
+                offsetChains.append(offsetElements)
+                chainIndex = 0
+                for chain in offsetChains:
+                    #BRepCoEdge objects flow around the outer boundary in a counter-clockwise direction, while inner boundaries are clockwise
+                    cw = chainIndex > 0
+                    ptPairs = curTSketch.getPointChain(chain, cw)
+                    slotLen = self.parameters.getParamValueOrDefault('slotLength', 1.0)
+                    slotSpc = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
+                    tabbedSegments = []
+                    for pair in ptPairs:
+                        segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], slotLen, slotSpc)
+                        tabbedSegments = tabbedSegments + segs
+                    decoder = TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, tabbedSegments, False, False)
+                    profile = curTSketch.findOuterProfile()
+                    _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+                    if chainIndex == 0:
+                        extrude = newFeatures[0]
+                        extrude.timelineObject.rollTo(True)
+                        extrude.startExtent = f.FromEntityStartDefinition.create(self.bottomFace.face, self.parameters.createValue('wallThickness'))
+                        extrude.timelineObject.rollTo(False)
+                    chainIndex += 1
+
+            curTSketch.areProfilesShown = True
+
+
 
     # Custom Feature Edit events
     def onEditCreated(self, eventArgs:core.CommandCreatedEventArgs):
@@ -86,19 +121,23 @@ class MoldBuilder(TurtleCustomCommand):
     
     def _createDialog(self, inputs):
         try:
-            wallThicknessParam = self.parameters.addOrGetParam('wallThickness', '4.1 mm')
+            wallThicknessParam = self.parameters.addOrGetParam('wallThickness', '4 mm')
             self.moldWallThickness = inputs.addDistanceValueCommandInput('txWallThickness', 'Mold Wall Thickness',\
                  self.parameters.createValue(wallThicknessParam.expression))
             self.moldWallThickness.setManipulator(self.frontOuterFace.centroid, self.frontNorm)
 
-            lipWidthParam = self.parameters.addOrGetParam('lipWidth', '2.2 mm')
+            lipWidthParam = self.parameters.addOrGetParam('lipWidth', '2 mm')
             self.lipThickness = inputs.addDistanceValueCommandInput('txLipWidth', 'Lip Width', self.parameters.createValue(lipWidthParam.expression))
             self.lipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
             
             # better to specify max slots per wall
-            slotLengthParam = self.parameters.addOrGetParam('slotLength', '10.3 mm')
+            slotLengthParam = self.parameters.addOrGetParam('slotLength', '10 mm')
             self.slotLength = inputs.addDistanceValueCommandInput('txSlotLen', 'Slot Length', self.parameters.createValue(slotLengthParam.expression))
             #self.slotLength.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
+
+            slotSpacingParam = self.parameters.addOrGetParam('slotSpacing', '12 mm')
+            self.slotSpacing = inputs.addDistanceValueCommandInput('txSlotSpacing', 'Slot Spacing', self.parameters.createValue(slotSpacingParam.expression))
+            
             
             # self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse', True)
             # self.mirrorSelection = inputs.addBoolValueInput('bMirror', 'Mirror', True)
@@ -141,6 +180,13 @@ class MoldBuilder(TurtleCustomCommand):
         self.leftInnerFace:TurtleFace = self.faceWithNormalMatch(self.leftNorm, allFaces, False)
         self.rightOuterFace:TurtleFace = self.faceWithNormalMatch(self.rightNorm, allFaces, True)
         self.rightInnerFace:TurtleFace = self.faceWithNormalMatch(self.rightNorm, allFaces, False)
+
+        topLengths = self.topFace.xyzLengths
+        frontLengths = self.frontOuterFace.xyzLengths
+        sideLengths = self.rightOuterFace.xyzLengths
+        self.frontWidth = frontLengths[0]
+        self.frontHeight = frontLengths[2]
+        self.sideWidth = sideLengths[1]
 
         if self.component.features.shellFeatures.count == 1:
             shellFeature = self.component.features.shellFeatures.item(0)

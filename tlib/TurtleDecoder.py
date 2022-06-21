@@ -126,7 +126,7 @@ class TurtleDecoder:
         for name in self.params:
             self.addUserParam(name)
 
-        self.dimensions = self.generateDimensions(self.dimensionValues)
+        self.generateDimensions(self.dimensionValues) # added to self.addedDimensions
         self.profileMap = self.mapProfiles(self.profileCentroids)
     
     def addUserParam(self, name, currentDimIndex:int = -1):

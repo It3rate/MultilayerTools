@@ -23,6 +23,22 @@ class TurtleFace:
         return self.face.area
         
     @property
+    def boundingBox(self)->core.BoundingBox3D:
+        return self.face.boundingBox
+    @property
+    def xyzLengths(self)->tuple(float,float,float):
+        return (self.xLength,self.yLength,self.zLength)
+    @property
+    def xLength(self)->float:
+        return self.face.boundingBox.maxPoint.x -self.face.boundingBox.minPoint.x
+    @property
+    def yLength(self)->float:
+        return self.face.boundingBox.maxPoint.y -self.face.boundingBox.minPoint.y 
+    @property
+    def zLength(self)->float:
+        return self.face.boundingBox.maxPoint.z -self.face.boundingBox.minPoint.z 
+
+    @property
     def normal(self)->core.Vector3D:
         return self.face.geometry.normal
     @property

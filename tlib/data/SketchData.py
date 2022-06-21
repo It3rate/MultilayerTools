@@ -110,30 +110,26 @@ class SketchData:
 'lipWidth':'d[1.5 mm]',
 'slotLength':'d[10 mm]',
 },
-'PointBounds':[[0.509103,1.772822],	[2.440954,2.692309]],
+'PointBounds':[[0.509103,1.772822],	[2.440954,2.69231]],
 'Points':[
-[0.0,0.0,'f'],	[1.134416,2.692309],	[2.100342,2.43349],	[1.996815,2.04712],	[1.030889,2.305939], # 0 - 4
-[0.509103,2.29046],	[2.440954,1.772822],	[1.475029,2.031641],	[1.617379,2.5629],	[0.992066,2.16105], # 5 - 9
-[1.957992,1.902231]
+[0.0,0.0,'f'],	[1.134416,2.69231],	[2.100342,2.433491],	[1.996814,2.04712],	[1.030888,2.305939], # 0 - 4
+[0.509103,2.29046,'f'],	[2.440954,1.772822,'f'],	[1.475028,2.031641],	[1.617379,2.5629],	[1.513851,2.17653]
 ],
 'Chains':[
-'XFLp4p1 XFLp1p2 XFLp2p3', # 0-2
-'XFLp3p4', # 3
+'XFLp1p2 XFLp2p3 XFLp3p4 XFLp4p1', # 0-3
 'xfLp5p6', # 4
-'xFLp8p7', # 5
-'xFLp4p9', # 6
-'xFLp3p10', # 7
+'xFLp8p7 XFLp9p7', # 5-6
 ],
 'Constraints':[
-'PEc3c0',	'PEc1c2',	'MIp7c4',	'PEc5c3',	'COp9c4', # 0 - 4
-'COp10c4',	'PEc7c4',	'MIp8c1',	'PEc0c1'
+'PEc2c3',	'PEc0c1',	'MIp7c4',	'PEc5c2',	'MIp8c0', # 0 - 4
+'PEc3c0',	'MIp9c2'
 ],
 'Dimensions':[
-'SODc1c4d[lipWidth + wallThickness]v[2.156265,2.124356]',	'SODc0c2d[slotLength]v[1.922666,2.628371]',	'SODc3c4d[lipWidth]v[0.77679,2.356022]'
+'SODc0c4d[lipWidth + wallThickness]v[2.300702,2.070315]',	'SODc3c1d[slotLength]v[2.473555,2.591631]',	'SLDp9p7e0d[lipWidth]v[0.9997,2.275998]'
 ],
-'Guideline':['p5', 'p6','c4','noFlip'],
+'Guideline':['p5','p6','c4','noFlip'],
 'ProfileCentroids':[
-[1.565616,2.369715]
+[1.565615,2.369715]
 ],
 'NamedProfiles':{
     'hole0':[0]
@@ -142,6 +138,8 @@ class SketchData:
 
 
 
+
+
     @classmethod
     def getDefaultData(cls):
-        return cls.notches()
+        return cls.hole()

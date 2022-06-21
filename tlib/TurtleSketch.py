@@ -63,8 +63,6 @@ class TurtleSketch:
         self.path.setConstraints(constraintList)
         self.sketch.isComputeDeferred = False
 
-
-
     def setDistances(self, lines, indexValues):
         self.sketch.isComputeDeferred = True
         for pair in indexValues:
@@ -144,7 +142,7 @@ class TurtleSketch:
         self.lastAddedParameter.expression = distanceExpr
         if makeConstruction:
             for oe in offsetElements:
-                    oe.isConstruction = True
+                oe.isConstruction = True
         return (offsetElements, offsetConstraint)
 
     def addMidpointConstructionLine(self, linex, lengthExpr=None, toLeft=True):
@@ -184,6 +182,18 @@ class TurtleSketch:
             result.add(p)
         return result
         
+    def findOuterProfile(self, profiles:core.ObjectCollection = None):
+        collection = self.profiles if profiles == None else profiles
+        index = 0
+        largestArea = 0
+        for i in range(collection.count):
+            profile = collection.item(i)
+            area = TurtleUtils.bbArea(profile.boundingBox)
+            if area > largestArea:
+                largestArea = area
+                index = i
+        return collection.item(index)
+
     def findLargestProfile(self, profiles:core.ObjectCollection = None):
         collection = self.profiles if profiles == None else profiles
         index = 0

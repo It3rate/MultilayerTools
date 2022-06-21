@@ -45,7 +45,7 @@ class TurtleLayerData:
         for i in range(newLayerCount):
             profile = profiles[i] if len(profiles) > i else profiles[-1]
             thickness = thicknesses[i] if len(thicknesses) > i else thicknesses[-1]
-            layer = TurtleLayerData.createWithoutBody(profile, thickness, isFlipped)
+            layer = cls.createWithoutBody(profile, thickness, isFlipped)
             layerDataList.append(layer)
         return layerDataList
 

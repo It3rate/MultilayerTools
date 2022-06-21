@@ -139,12 +139,18 @@ class TurtleUtils:
         return result
 
     @classmethod
-    def reverseVector(self, vec:adsk.core.Vector3D) -> adsk.core.Vector3D:
+    def reverseVector(cls, vec:adsk.core.Vector3D) -> adsk.core.Vector3D:
         result = vec.copy()
         invMatrix = adsk.core.Matrix3D.create()
         invMatrix.setWithArray([-1,0,0,0,0,-1,0,0,0,0,-1,0,0,0,0,-1])
         result.transformBy(invMatrix)
         return result
+
+    @classmethod
+    def bbArea(cls, bb:adsk.core.BoundingBox3D) -> float:
+        w = bb.maxPoint.x - bb.minPoint.x
+        h = bb.maxPoint.y - bb.minPoint.y
+        return w * h
 
 
 # used to detect overrides - only hook up events if there is a handler implemented
