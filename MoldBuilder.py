@@ -74,7 +74,11 @@ class MoldBuilder(TurtleCustomCommand):
                 offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, False)
                 offsetChains.append(offsetElements)
         else:
+            sortedLoops = []
             for loop in loops:
+                sortedLoops.insert(0, loop) if loop.isOuter else sortedLoops.append(loop)
+                
+            for loop in sortedLoops:
                 projectedList = curTSketch.projectList(loop.edges, True) 
                 cent = curFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
                 offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, False)
