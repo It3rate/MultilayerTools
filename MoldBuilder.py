@@ -75,18 +75,23 @@ class MoldBuilder(TurtleCustomCommand):
                 offsetChains.append(offsetElements)
         else:
             sortedLoops = []
-            for loop in loops:
+            for loop in loops: 
                 sortedLoops.insert(0, loop) if loop.isOuter else sortedLoops.append(loop)
-                
-            for loop in sortedLoops:
+    
+            # need to do offsets first or Fusion gets confused. This could be because profiles and sketch calculations are off.
+            for loop in sortedLoops:           
                 projectedList = curTSketch.projectList(loop.edges, True) 
                 cent = curFace.centroid if(loop.isOuter) else core.Point3D.create(-9999,-9999,-9999)
-                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, False)
+                isConstruction = not loop.isOuter
+                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, isConstruction)
                 offsetChains.append(offsetElements)
-                chainIndex = 0
+
+            chainIndex = 0
             for chain in offsetChains:
                 #BRepCoEdge objects flow around the outer boundary in a counter-clockwise direction, while inner boundaries are clockwise
-                cw = chainIndex > 0
+                isInner = chainIndex > 0
+                cw = isInner
+
                 ptPairs = curTSketch.getPointChain(chain, cw)
                 slotLen = self.parameters.getParamValueOrDefault('slotLength', 1.0)
                 slotSpc = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
@@ -94,14 +99,17 @@ class MoldBuilder(TurtleCustomCommand):
                 for pair in ptPairs:
                     segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], slotLen, slotSpc)
                     tabbedSegments = tabbedSegments + segs
-                decoder = TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, tabbedSegments, False, False)
+                TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, tabbedSegments, False, False)
+
                 profile = curTSketch.findOuterProfile()
                 _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
-                if chainIndex == 0:
+                if not isInner:
                     extrude = newFeatures[0]
                     extrude.timelineObject.rollTo(True)
                     extrude.startExtent = f.FromEntityStartDefinition.create(self.bottomFace.face, self.parameters.createValue('wallThickness'))
                     extrude.timelineObject.rollTo(False)
+                    for line in offsetElements: # make top extrusion have hole
+                        line.isConstruction = False
                 chainIndex += 1
 
             curTSketch.areProfilesShown = True
