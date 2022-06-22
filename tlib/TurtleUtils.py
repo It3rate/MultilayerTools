@@ -67,7 +67,10 @@ class TurtleUtils:
     @classmethod
     def round(cls, val):
         return str(round(val, __decimalPlaces__))
-        
+
+    @classmethod
+    def areFloatsEqual(cls, val0:float, val1:float):
+        return abs(val0 - val1) < 0.000000001        
 
     @classmethod
     def getClipboardText(cls):

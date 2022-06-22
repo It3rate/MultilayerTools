@@ -2,6 +2,7 @@
 import adsk.core, adsk.fusion, traceback
 import os, math, re, sys
 from collections.abc import Iterable
+from functools import cmp_to_key
 from .TurtleUtils import TurtleUtils
 from .TurtlePath import TurtlePath
 from .TurtleParams import TurtleParams
@@ -21,6 +22,7 @@ class TurtleSketch:
         self.sketchLines:f.SketchLines = sketchTarget.sketchCurves.sketchLines
         self.profiles:f.Profiles = sketchTarget.profiles
         self.path:TurtlePath = TurtlePath(self.sketch)
+        
 
     @classmethod
     def createWithSketch(cls, sketch:f.Sketch):
@@ -139,7 +141,8 @@ class TurtleSketch:
             
         offsetElements = self.sketch.offset(lst, direction, .2)
         offsetConstraint = self.lastAddedConstraint
-        self.lastAddedParameter.expression = distanceExpr
+        lastParameter = self.lastAddedParameter
+        lastParameter.expression = distanceExpr
         if makeConstruction:
             for oe in offsetElements:
                 oe.isConstruction = True
@@ -351,7 +354,28 @@ class TurtleSketch:
             result.append((chain[ptIndex - 1], chain[ptIndex]))
         result.append((chain[len(chain) - 1], chain[0]))
         return result
-    
+
+    @classmethod
+    def sortPointsMinToMax(cls, lst:list[core.Point3D])->None:
+        return list.sort(key=cls.comparePoints)
+
+    @classmethod
+    def comparePoints(cls, p0:core.Point3D, p1:core.Point3D):
+        result = 1
+        if(p0.x < p1.x):
+            result = -1
+        elif(p0.x == p1.x and p0.y < p1.y):
+            result = -1
+        elif(p0.x == p1.x and p0.y == p1.y and p0.z < p1.z):
+            result = -1
+        return result
+
+    @classmethod
+    def sortedPointsMinToMax(cls, *args)->list[core.Point3D]:
+        result = list(args)
+        sorted(result, key=cmp_to_key(TurtleSketch.comparePoints), reverse=True)
+        return result
+
     @classmethod
     def minPoint(cls, p0:core.Point3D, p1:core.Point3D)->core.Point3D:
         result = p1
@@ -362,6 +386,7 @@ class TurtleSketch:
         elif(p0.x == p1.x and p0.y == p1.y and p0.z < p1.z):
             result = p0
         return result
+    
     
     @classmethod
     def arePointsClockwise(cls, a:core.Point3D, b:core.Point3D, c:core.Point3D):
@@ -419,3 +444,7 @@ class TurtleSketch:
         sp = line.startSketchPoint.geometry
         ep = line.endSketchPoint.geometry
         return (sp, ep) if not TurtleSketch.isLineFlipped(line) else (ep, sp)
+
+    @classmethod    
+    def veryOuterPoint(cls):
+        return core.Point3D.create(-9999,-9999,-9999)
