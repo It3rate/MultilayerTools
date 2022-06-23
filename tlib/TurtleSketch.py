@@ -299,6 +299,22 @@ class TurtleSketch:
         planeInput.setByAngle(line, adsk.core.ValueInput.createByReal(-math.pi/2.0), self.referencePlane)
         result = comp.constructionPlanes.add(planeInput)
         return result
+    
+    def drawLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint) -> f.SketchLine:
+        return self.sketchLines.addByTwoPoints(startPoint, endPoint)
+
+    def drawPolyLine(self, points:list[f.SketchPoint]) -> list[f.SketchLine]:
+        result = []
+        if len(points) > 0:
+            startPt = None
+            for pt in points:
+                if startPt:
+                    result.append(self.drawLine(startPt, pt))
+                startPt = pt
+        return result
+
+
+
 
     @classmethod
     def getCWPointPairs(cls, loop:f.BRepLoop) -> list[core.Point3D]:

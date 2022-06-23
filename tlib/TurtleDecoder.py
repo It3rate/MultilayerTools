@@ -119,7 +119,7 @@ class TurtleDecoder:
     def decodeFromSketch(self):
         self.offsetRefs = {}
         self.forwardExpressions = {}
-        self.points = self.generatePoints(self.pointValues)
+        self.sketchPoints = self.generatePoints(self.pointValues)
         self.curves = self.generateChains(self.chainValues)
 
         self.constraints = self.generateConstraints(self.constraintValues)
@@ -212,10 +212,13 @@ class TurtleDecoder:
     
     def generateChains(self, chains):
         result = []
+        self.pointChains = []
         sketchCurves = self.sketch.sketchCurves
         self.generatedCurves = []
         for chain in chains:
             segs = chain.split(" ")
+            curPointChain = []
+            self.pointChains.append(curPointChain)
             for seg in segs:
                 try:
                     # can't capture repeating groups with re, so max 4 params. Use pip regex to improve, but sticking with this for now. Could put it in a loop as well.
@@ -263,6 +266,11 @@ class TurtleDecoder:
                         curve.isConstruction = isConstruction
                         curve.isFixed = isFixed
                         result.append(curve)
+
+                        if len(curPointChain) == 0:
+                            curPointChain.append(curve.startSketchPoint)
+                        curPointChain.append(curve.endSketchPoint)
+
                         if curve != self.userGuideline:
                              curve.attributes.add("Turtle", "generated", str(len(result) - 1))
                 except:
@@ -289,8 +297,8 @@ class TurtleDecoder:
     def replacePoint(self, orgPoint, newPoint):
         result = True
         try:
-            idx = self.points.index(orgPoint)
-            self.points[idx] = newPoint
+            idx = self.sketchPoints.index(orgPoint)
+            self.sketchPoints[idx] = newPoint
             orgPoint.deleteMe()
         except:
             print("Error replacing points:")
@@ -514,7 +522,7 @@ class TurtleDecoder:
         val = param[1:]
 
         if kind == "p": # point
-            result = self.points[int(val)]
+            result = self.sketchPoints[int(val)]
         elif kind == "c": # curve
             result = self.curves[int(val)]
         elif kind == "e": # enum
@@ -537,7 +545,7 @@ class TurtleDecoder:
             result = []
             idxs = val.split("|")
             for idx in idxs:
-                result.append(self.points[int(idx)])
+                result.append(self.sketchPoints[int(idx)])
         return result
 
     def parseDParam(self, dParam:str,  forwardRefs = []):
@@ -569,5 +577,21 @@ class TurtleDecoder:
             tpts = [pts.geometry.x,pts.geometry.y,pts.geometry.z]
         result = core.Point3D.create(tpts[0], tpts[1], tpts[2])
         result.transformBy(self.transform)
+        return result
+
+    # todo: These only make sense with single paste. Need to move this to one object that accepts multiple draw calls.
+    def getPointByName(self, name:str) -> f.SketchPoint:
+        return self.parseParam(name)
+
+    def getPointByIndex(self, index:int) -> f.SketchPoint:
+        return self.sketchPoints[index]
+
+    def getLongestPointChain(self) -> list[f.SketchPoint]:
+        result = None
+        maxLen = 0
+        for chain in self.pointChains:
+            if len(chain) > maxLen:
+                result = chain
+                maxLen = len(chain)
         return result
 

@@ -86,9 +86,14 @@ class MoldBuilder(TurtleCustomCommand):
         slotSpc = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
 
         leftSegs = self.new_method(leftPair, slotLen, slotSpc)
-        TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, leftSegs, False, False)
+        leftDecoder = TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, leftSegs, False, False)
         rightSegs = TurtleSketch.createCenteredTabs(*rightPair, slotLen, slotSpc)
-        TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, rightSegs, False, False)
+        rightDecoder = TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, rightSegs, False, False)
+        #longestChain = decoder.getLongestPointChain()
+        #curTSketch.drawLine(leftDecoder.getPointByName('p1'), rightDecoder.getPointByName('p1'))
+        curTSketch.drawLine(ptTL, ptTR)
+        curTSketch.drawLine(ptBL, ptBR)
+
 
         # for pair in ptPairs:
         #     isHorz = TurtleUtils.areFloatsEqual(pair[0].y, pair[1].y)
