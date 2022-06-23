@@ -42,7 +42,7 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        #self.createTopAndBottom(True)
+        self.createTopAndBottom(True)
         self.createFrontAndBack(True)
 
     def onExecute(self, eventArgs:core.CommandEventArgs):

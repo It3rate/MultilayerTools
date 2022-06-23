@@ -136,10 +136,50 @@ class SketchData:
 }
 }
 
+    @classmethod
+    def finger(cls):
+        return \
+{
+'CoordinateSystem':[
+1.0,	0.0,	0.0,	0.0, # 0 - 3
+0.0,	0.0,	1.0,	0.0, # 4 - 7
+0.0,	-1.0,	0.0,	0.0, # 8 - 11
+0.0,	0.0,	0.0,	1.0
+],
+'Params':{
+'slotLength':'d[10 mm]',
+'wallThickness':'d[4 mm]',
+},
+'PointBounds':[[1.880973,-1.314384],	[3.644693,-0.576182]],
+'Points':[
+[0.0,0.0,'f'],	[2.278541,-0.92695],	[2.378017,-1.314384],	[3.346601,-1.065693],	[3.247124,-0.67826], # 0 - 4
+[2.862309,-1.190038],	[2.762833,-0.802605],	[1.880973,-1.029029],	[3.644693,-0.576182]
+],
+'Chains':[
+'XFLp1p2 XFLp2p3 XFLp3p4', # 0-2
+'xFLp5p6', # 3
+'xFLp7p8', # 4
+],
+'Constraints':[
+'PEc1c0',	'MIp5c1',	'PEc3c1',	'COp1c4',	'COp4c4', # 0 - 4
+'MIp6c4',	'PEc0c4',	'PEc2c4'
+],
+'Dimensions':[
+'SLDp2p3e0d[slotLength]v[2.885096,-0.720848]',	'SLDp5p6e0d[wallThickness]v[2.694337,-0.760374]'
+],
+'Guideline':['p7','p8','c4','noFlip'],
+'ProfileCentroids':[
+
+],
+'NamedProfiles':{
+
+}
+}
+
 
 
 
 
     @classmethod
     def getDefaultData(cls):
-        return cls.hole()
+        return cls.finger()
