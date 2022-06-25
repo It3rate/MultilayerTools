@@ -381,6 +381,12 @@ class TurtleSketch:
     def sortPointsMinToMax(cls, lst:list[core.Point3D])->None:
         return list.sort(key=cls.comparePoints)
 
+
+    @classmethod
+    def sortedPoint3DsMinToMax(cls, *args)->list[core.Point3D]:
+        result = list(args)
+        sorted(result, key=cmp_to_key(TurtleSketch.comparePoints), reverse=True)
+        return result
     @classmethod
     def comparePoints(cls, p0:core.Point3D, p1:core.Point3D):
         result = 1
@@ -393,10 +399,13 @@ class TurtleSketch:
         return result
 
     @classmethod
-    def sortedPointsMinToMax(cls, *args)->list[core.Point3D]:
+    def sortedSketchPointsMinToMax(cls, *args)->list[f.SketchPoint]:
         result = list(args)
-        sorted(result, key=cmp_to_key(TurtleSketch.comparePoints), reverse=True)
+        sorted(result, key=cmp_to_key(TurtleSketch.compareSketchPoints), reverse=True)
         return result
+    @classmethod
+    def compareSketchPoints(cls, sp0:f.SketchPoint, sp1:f.SketchPoint):
+        return cls.comparePoints(sp0.geometry, sp1.geometry)
 
     @classmethod
     def minPoint(cls, p0:core.Point3D, p1:core.Point3D)->core.Point3D:

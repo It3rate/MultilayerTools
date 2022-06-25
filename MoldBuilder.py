@@ -24,6 +24,9 @@ class MoldBuilder(TurtleCustomCommand):
         cmdName = 'Mold Builder'
         cmdDescription = 'Generates a laser cuttable mold from a shelled box.'
         self.workingPointList = None
+        self.currentTSketch = None
+        self.slotLengthVal = 1
+        self.slotSpaceVal = 1
         super().__init__(cmdId, cmdName, cmdDescription)
         
     def getTargetPanels(self):
@@ -52,72 +55,40 @@ class MoldBuilder(TurtleCustomCommand):
         self.createFrontAndBack(False)
 
     def setParameters(self):
-        self.parameters.setOrCreateParam('wallThickness', self.moldWallThickness.expression)
-        self.parameters.setOrCreateParam('lipWidth', self.lipThickness.expression)
-        self.parameters.setOrCreateParam('slotLength', self.slotLength.expression)
-        self.parameters.setOrCreateParam('slotSpacing', self.slotSpacing.expression)
+        self.parameters.setOrCreateParam('wallThickness', self.diagMoldWallThickness.expression)
+        self.parameters.setOrCreateParam('lipWidth', self.diagLipThickness.expression)
+        self.parameters.setOrCreateParam('slotLength', self.diagSlotLength.expression)
+        self.parameters.setOrCreateParam('slotSpacing', self.diagSlotSpacing.expression)
+
+        self.wallThicknessVal = self.parameters.getParamValueOrDefault('wallThickness', 1.0)
+        self.lipWidthVal = self.parameters.getParamValueOrDefault('lipWidth', 1.0)
+        self.slotLengthVal = self.parameters.getParamValueOrDefault('slotLength', 1.0)
+        self.slotSpaceVal = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
 
 
 
     def createFrontAndBack(self, isPreview:bool):
         curFace = self.frontOuterFace
-        curTSketch = curFace.createSketchAtPoint(curFace.centroid)
-        self.curComponent = TurtleComponent.createFromSketch(curTSketch.sketch)
+        self.currentTSketch = curFace.createSketchAtPoint(curFace.centroid)
+        self.curComponent = TurtleComponent.createFromSketch(self.currentTSketch.sketch)
         offsetExprPos = 'wallThickness + lipWidth'
         offsetExprNeg = '-(wallThickness + lipWidth)'
-        holeData = SketchData.hole()
-        fingerData = SketchData.finger()
-        curTSketch.areProfilesShown = False
+        self.currentTSketch.areProfilesShown = False
         loop = curFace.loops[0]
 
-        projectedList = curTSketch.projectList(loop.edges, True)
-        sideLines = [projectedList[0], projectedList[2]]
-        pLeft = curTSketch.offset([projectedList[0]], curFace.centroid, offsetExprPos, False)[0][0]
-        pRight = curTSketch.offset([projectedList[2]], curFace.centroid, offsetExprNeg, False)[0][0]
-        ptTL = pLeft.startSketchPoint.geometry
-        ptBL = pLeft.endSketchPoint.geometry
-        ptTR = pRight.startSketchPoint.geometry
-        ptBR = pRight.endSketchPoint.geometry
+        projectedList = self.currentTSketch.projectList(loop.edges, True)
+        pLeft = self.currentTSketch.offset([projectedList[0]], curFace.centroid, offsetExprPos, False)[0][0]
+        pRight = self.currentTSketch.offset([projectedList[2]], curFace.centroid, offsetExprNeg, False)[0][0]
 
-        leftPair = TurtleSketch.sortedPointsMinToMax(ptTL, ptBL)
-        bottomPair = TurtleSketch.sortedPointsMinToMax(ptBL, ptBR)
-        rightPair = TurtleSketch.sortedPointsMinToMax(ptBR, ptTR)
-        topPair = TurtleSketch.sortedPointsMinToMax(ptTR, ptTL)
+        leftPair = TurtleSketch.sortedSketchPointsMinToMax(pLeft.startSketchPoint, pLeft.endSketchPoint)
+        bottomPair = TurtleSketch.sortedSketchPointsMinToMax(pLeft.endSketchPoint, pRight.endSketchPoint)
+        rightPair = TurtleSketch.sortedSketchPointsMinToMax(pRight.endSketchPoint, pRight.startSketchPoint)
+        topPair = TurtleSketch.sortedSketchPointsMinToMax(pRight.startSketchPoint, pLeft.startSketchPoint)
 
-        slotLen = self.parameters.getParamValueOrDefault('slotLength', 1.0)
-        slotSpc = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
-
-        leftSegs = self.new_method(leftPair, slotLen, slotSpc)
-        leftDecoder = TurtleDecoder.createWithPointChain(holeData, curTSketch.sketch, leftSegs, False, False)
-        rightSegs = TurtleSketch.createCenteredTabs(*rightPair, slotLen, slotSpc)
-        rightDecoder = TurtleDecoder.createWithPointChain(holeData, curTSketch.sketch, rightSegs, False, False)
-        #longestChain = decoder.getLongestPointChain()
-        #curTSketch.drawLine(leftDecoder.getPointByName('p1'), rightDecoder.getPointByName('p1'))
-        
-        topSegs = TurtleSketch.createCenteredTabs(ptTL, ptTR, slotLen, slotSpc)
-        self.workingPointList = [ptTL]
-        rightDecoder = TurtleDecoder.createWithPointChain(fingerData, curTSketch.sketch, topSegs, False, True, self.fingerSegmentsCallback)
-        self.workingPointList.append(ptTR)
-        spaces = zip(self.workingPointList[::2], self.workingPointList[1::2])
-        curTSketch.drawLines(spaces)
-        
-        startPt = pLeft.endSketchPoint
-        endPoint = pRight.endSketchPoint
-        callback = self.fingerSegmentsCallback
-        mirror = False
-        segs = TurtleSketch.createCenteredTabs(startPt.geometry, endPoint.geometry, slotLen, slotSpc)
-        self.workingPointList = [startPt]
-        decoder = TurtleDecoder.createWithPointChain(fingerData, curTSketch.sketch, segs, False, mirror, callback)
-        self.workingPointList.append(endPoint)
-        spaces = zip(self.workingPointList[::2], self.workingPointList[1::2])
-        curTSketch.drawLines(spaces)
-
-
-        # for pair in ptPairs:
-        #     isHorz = TurtleUtils.areFloatsEqual(pair[0].y, pair[1].y)
-        #     segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], slotLen, slotSpc)
-        #     if not isHorz:
-        #         TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, segs, False, True)
+        self.drawHoleLine(*leftPair, False)
+        self.drawHoleLine(*rightPair, False)
+        self.drawFingerLine(*topPair, False)
+        self.drawFingerLine(*bottomPair, False)
 
         if isPreview:
             pass
@@ -130,11 +101,9 @@ class MoldBuilder(TurtleCustomCommand):
             #     cw = isInner
 
             #     ptPairs = curTSketch.getPointChain(chain, cw)
-            #     slotLen = self.parameters.getParamValueOrDefault('slotLength', 1.0)
-            #     slotSpc = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
             #     tabbedSegments = []
             #     for pair in ptPairs:
-            #         segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], slotLen, slotSpc)
+            #         segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], self.slotLength, self.slotSpace)
             #         tabbedSegments = tabbedSegments + segs
             #     TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, tabbedSegments, False, False)
 
@@ -149,17 +118,28 @@ class MoldBuilder(TurtleCustomCommand):
             #             line.isConstruction = False
             #     chainIndex += 1
 
-        curTSketch.areProfilesShown = True
+        self.currentTSketch.areProfilesShown = True
+
+    def drawHoleLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint, mirror:bool):
+        drawData = SketchData.hole()
+        segs = TurtleSketch.createCenteredTabs(startPoint.geometry, endPoint.geometry, self.slotLengthVal, self.slotSpaceVal)
+        leftDecoder = TurtleDecoder.createWithPointChain(drawData, self.currentTSketch.sketch, segs, False, mirror)
+
+    def drawFingerLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint, mirror:bool):
+        drawData = SketchData.finger()
+        callback = self.fingerSegmentsCallback
+        segs = TurtleSketch.createCenteredTabs(startPoint.geometry, endPoint.geometry, self.slotLengthVal, self.slotSpaceVal)
+        self.workingPointList = [startPoint]
+        decoder = TurtleDecoder.createWithPointChain(drawData, self.currentTSketch.sketch, segs, False, mirror, callback)
+        self.workingPointList.append(endPoint)
+        spaces = zip(self.workingPointList[::2], self.workingPointList[1::2])
+        self.currentTSketch.drawLines(spaces)
 
     def fingerSegmentsCallback(self, decoder:TurtleDecoder):
         startPt = decoder.getPointByName('p1')
         self.workingPointList.append(startPt)
         endPt = decoder.getPointByName('p4')
         self.workingPointList.append(endPt)
-
-    def new_method(self, leftPair, slotLen, slotSpc):
-        leftSegs = TurtleSketch.createCenteredTabs(*leftPair, slotLen, slotSpc)
-        return leftSegs
 
 
 
@@ -177,21 +157,21 @@ class MoldBuilder(TurtleCustomCommand):
     def _createDialog(self, inputs):
         try:
             wallThicknessParam = self.parameters.addOrGetParam('wallThickness', '4 mm')
-            self.moldWallThickness = inputs.addDistanceValueCommandInput('txWallThickness', 'Mold Wall Thickness',\
+            self.diagMoldWallThickness = inputs.addDistanceValueCommandInput('txWallThickness', 'Mold Wall Thickness',\
                  self.parameters.createValue(wallThicknessParam.expression))
-            self.moldWallThickness.setManipulator(self.frontOuterFace.centroid, self.frontNorm)
+            self.diagMoldWallThickness.setManipulator(self.frontOuterFace.centroid, self.frontNorm)
 
             lipWidthParam = self.parameters.addOrGetParam('lipWidth', '2 mm')
-            self.lipThickness = inputs.addDistanceValueCommandInput('txLipWidth', 'Lip Width', self.parameters.createValue(lipWidthParam.expression))
-            self.lipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
+            self.diagLipThickness = inputs.addDistanceValueCommandInput('txLipWidth', 'Lip Width', self.parameters.createValue(lipWidthParam.expression))
+            self.diagLipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
             
             # better to specify max slots per wall
             slotLengthParam = self.parameters.addOrGetParam('slotLength', '10 mm')
-            self.slotLength = inputs.addDistanceValueCommandInput('txSlotLen', 'Slot Length', self.parameters.createValue(slotLengthParam.expression))
-            #self.slotLength.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
+            self.diagSlotLength = inputs.addDistanceValueCommandInput('txSlotLen', 'Slot Length', self.parameters.createValue(slotLengthParam.expression))
+            #self.diagSlotLength.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
 
             slotSpacingParam = self.parameters.addOrGetParam('slotSpacing', '12 mm')
-            self.slotSpacing = inputs.addDistanceValueCommandInput('txSlotSpacing', 'Slot Spacing', self.parameters.createValue(slotSpacingParam.expression))
+            self.diagSlotSpacing = inputs.addDistanceValueCommandInput('txSlotSpacing', 'Slot Spacing', self.parameters.createValue(slotSpacingParam.expression))
             
             
             # self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse', True)
@@ -272,6 +252,7 @@ class MoldBuilder(TurtleCustomCommand):
         return result
 
     def createTopAndBottom(self, isPreview:bool):
+        # todo: use same sketch for top and bottom, and cut hole in new sketch
         curFace = self.topFace
         #curFace = self.frontOuterFace
         curTSketch = curFace.createSketchAtPoint(curFace.centroid)
@@ -309,11 +290,9 @@ class MoldBuilder(TurtleCustomCommand):
                 cw = isInner
 
                 ptPairs = curTSketch.getPointChain(chain, cw)
-                slotLen = self.parameters.getParamValueOrDefault('slotLength', 1.0)
-                slotSpc = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
                 tabbedSegments = []
                 for pair in ptPairs:
-                    segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], slotLen, slotSpc)
+                    segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], self.slotLengthVal, self.slotSpaceVal)
                     tabbedSegments = tabbedSegments + segs
                 TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, tabbedSegments, False, False)
 
