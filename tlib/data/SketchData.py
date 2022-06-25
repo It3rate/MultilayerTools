@@ -184,4 +184,4 @@ class SketchData:
 
     @classmethod
     def getDefaultData(cls):
-        return cls.finger()
+        return cls.notches()

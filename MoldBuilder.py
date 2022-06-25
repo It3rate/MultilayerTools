@@ -53,7 +53,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.setParameters()
         #self.createTopAndBottom(False)
         self.createFrontAndBack(False)
-
+        
     def setParameters(self):
         self.parameters.setOrCreateParam('wallThickness', self.diagMoldWallThickness.expression)
         self.parameters.setOrCreateParam('lipWidth', self.diagLipThickness.expression)
@@ -66,60 +66,46 @@ class MoldBuilder(TurtleCustomCommand):
         self.slotSpaceVal = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
 
 
-
     def createFrontAndBack(self, isPreview:bool):
-        curFace = self.frontOuterFace
-        self.currentTSketch = curFace.createSketchAtPoint(curFace.centroid)
-        self.curComponent = TurtleComponent.createFromSketch(self.currentTSketch.sketch)
+        projectedList = self.sketchFromFace(self.frontOuterFace, 0, True)
+        self.currentTSketch.areProfilesShown = False
+
         offsetExprPos = 'wallThickness + lipWidth'
         offsetExprNeg = '-(wallThickness + lipWidth)'
-        self.currentTSketch.areProfilesShown = False
-        loop = curFace.loops[0]
 
-        projectedList = self.currentTSketch.projectList(loop.edges, True)
-        pLeft = self.currentTSketch.offset([projectedList[0]], curFace.centroid, offsetExprPos, False)[0][0]
-        pRight = self.currentTSketch.offset([projectedList[2]], curFace.centroid, offsetExprNeg, False)[0][0]
+        # generate side segments
+        pLeft = self.currentTSketch.offset([projectedList[0]], self.frontOuterFace.centroid, offsetExprPos, False)[0][0]
+        pRight = self.currentTSketch.offset([projectedList[2]], self.frontOuterFace.centroid, offsetExprNeg, False)[0][0]
+        (left, bottom, right, top) = \
+            self.getSortedRectSegments(pLeft.startSketchPoint, pRight.startSketchPoint, pRight.endSketchPoint, pLeft.endSketchPoint)
 
-        leftPair = TurtleSketch.sortedSketchPointsMinToMax(pLeft.startSketchPoint, pLeft.endSketchPoint)
-        bottomPair = TurtleSketch.sortedSketchPointsMinToMax(pLeft.endSketchPoint, pRight.endSketchPoint)
-        rightPair = TurtleSketch.sortedSketchPointsMinToMax(pRight.endSketchPoint, pRight.startSketchPoint)
-        topPair = TurtleSketch.sortedSketchPointsMinToMax(pRight.startSketchPoint, pLeft.startSketchPoint)
-
-        self.drawHoleLine(*leftPair, False)
-        self.drawHoleLine(*rightPair, False)
-        self.drawFingerLine(*topPair, False)
-        self.drawFingerLine(*bottomPair, False)
+        self.drawHoleLine(*left, False)
+        self.drawHoleLine(*right, True)
+        self.drawNotchesLine(*top, False)
+        #self.drawFingerLine(*top, False)
+        self.drawFingerLine(*bottom, False)
 
         if isPreview:
             pass
         else:
             pass
-            # chainIndex = 0
-            # for chain in offsetChains:
-            #     #BRepCoEdge objects flow around the outer boundary in a counter-clockwise direction, while inner boundaries are clockwise
-            #     isInner = chainIndex > 0
-            #     cw = isInner
-
-            #     ptPairs = curTSketch.getPointChain(chain, cw)
-            #     tabbedSegments = []
-            #     for pair in ptPairs:
-            #         segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], self.slotLength, self.slotSpace)
-            #         tabbedSegments = tabbedSegments + segs
-            #     TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, tabbedSegments, False, False)
-
-            #     profile = curTSketch.findOuterProfile()
-            #     _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
-            #     if not isInner:
-            #         extrude = newFeatures[0]
-            #         extrude.timelineObject.rollTo(True)
-            #         extrude.startExtent = f.FromEntityStartDefinition.create(self.bottomFace.face, self.parameters.createValue('wallThickness'))
-            #         extrude.timelineObject.rollTo(False)
-            #         for line in offsetElements: # make top extrusion have hole
-            #             line.isConstruction = False
-            #     chainIndex += 1
 
         self.currentTSketch.areProfilesShown = True
 
+    def sketchFromFace(self, face:f.BRepFace, projectLoopIndex:int = 0, asConstruction:bool = True)-> list[f.BRepEdges]:
+        self.currentTSketch = face.createSketchAtPoint(face.centroid)
+        self.curComponent = TurtleComponent.createFromSketch(self.currentTSketch.sketch)
+        loop = face.loops[projectLoopIndex]
+        return self.currentTSketch.projectList(loop.edges, asConstruction)
+
+    # generate sorted point pairs of rect, direction is always left to right and top to bottom
+    def getSortedRectSegments(self, tl:f.SketchPoint, tr:f.SketchPoint, br:f.SketchPoint, bl:f.SketchPoint)->list[list[f.SketchPoint]]:
+        leftPair = TurtleSketch.sortedSketchPointsMinToMax(tl, bl)
+        bottomPair = TurtleSketch.sortedSketchPointsMinToMax(bl, br)
+        rightPair = TurtleSketch.sortedSketchPointsMinToMax(br, tr)
+        topPair = TurtleSketch.sortedSketchPointsMinToMax(tl, tr)
+        return [leftPair, bottomPair, rightPair, topPair]
+        
     def drawHoleLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint, mirror:bool):
         drawData = SketchData.hole()
         segs = TurtleSketch.createCenteredTabs(startPoint.geometry, endPoint.geometry, self.slotLengthVal, self.slotSpaceVal)
@@ -134,12 +120,27 @@ class MoldBuilder(TurtleCustomCommand):
         self.workingPointList.append(endPoint)
         spaces = zip(self.workingPointList[::2], self.workingPointList[1::2])
         self.currentTSketch.drawLines(spaces)
-
     def fingerSegmentsCallback(self, decoder:TurtleDecoder):
         startPt = decoder.getPointByName('p1')
         self.workingPointList.append(startPt)
         endPt = decoder.getPointByName('p4')
         self.workingPointList.append(endPt)
+
+    def drawNotchesLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint, mirror:bool):
+        drawData = SketchData.notches()
+        callback = self.notchesSegmentsCallback
+        segs = TurtleSketch.createCenteredTabs(startPoint.geometry, endPoint.geometry, self.slotLengthVal, self.slotSpaceVal)
+        self.workingPointList = [startPoint]
+        decoder = TurtleDecoder.createWithPointChain(drawData, self.currentTSketch.sketch, segs, False, mirror, callback)
+        self.workingPointList.append(endPoint)
+        spaces = zip(self.workingPointList[::2], self.workingPointList[1::2])
+        self.currentTSketch.drawLines(spaces)
+    def notchesSegmentsCallback(self, decoder:TurtleDecoder):
+        startPt = decoder.getPointByName('p1')
+        self.workingPointList.append(startPt)
+        endPt = decoder.getPointByName('p10')
+        self.workingPointList.append(endPt)
+
 
 
 
@@ -252,7 +253,7 @@ class MoldBuilder(TurtleCustomCommand):
         return result
 
     def createTopAndBottom(self, isPreview:bool):
-        # todo: use same sketch for top and bottom, and cut hole in new sketch
+        # todo: use same sketch for top and bottom. Do interior top as a separate sketch and cut.
         curFace = self.topFace
         #curFace = self.frontOuterFace
         curTSketch = curFace.createSketchAtPoint(curFace.centroid)
@@ -275,7 +276,7 @@ class MoldBuilder(TurtleCustomCommand):
             for loop in loops: 
                 sortedLoops.insert(0, loop) if loop.isOuter else sortedLoops.append(loop)
     
-            # need to do offsets first or Fusion gets confused. This could be because profiles and sketch calculations are off.
+            # need to do offsets first or Fusion gets confused. This could be because profiles and sketch calculations are turned off?
             for loop in sortedLoops:           
                 projectedList = curTSketch.projectList(loop.edges, True) 
                 cent = curFace.centroid if(loop.isOuter) else TurtleSketch.veryOuterPoint()
