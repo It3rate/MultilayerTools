@@ -42,7 +42,7 @@ class TurtleDecoder:
         return decoder
 
     @classmethod
-    def createWithGuidelines(cls, data, guidelines:list[f.SketchLine], reverse = False, mirror = False):
+    def createWithGuidelines(cls, data, guidelines:list[f.SketchLine], reverse = False, mirror = False, callback = None):
         decoder = TurtleDecoder(data, None, reverse, mirror)
         for guideline in guidelines:
             decoder.sketch = guideline.parentSketch
@@ -51,14 +51,18 @@ class TurtleDecoder:
             decoder.userStartGuidePoint = guideline.startSketchPoint.geometry
             decoder.userEndGuidePoint = guideline.endSketchPoint.geometry
             decoder.run()
+            if callback:
+                callback(decoder)
         return decoder
     @classmethod
-    def createWithPointChain(cls, data, sketch:f.Sketch, points:list[tuple[core.Point3D, core.Point3D]], reverse = False, mirror = False):
+    def createWithPointChain(cls, data, sketch:f.Sketch, points:list[tuple[core.Point3D, core.Point3D]], reverse = False, mirror = False, callback = None):
         decoder = TurtleDecoder(data, sketch, reverse, mirror)
         for ptPair in points:
             decoder.userStartGuidePoint = ptPair[0]
             decoder.userEndGuidePoint = ptPair[1]
             decoder.run()
+            if callback:
+                callback(decoder)
         return decoder
 
     def run(self):
@@ -579,7 +583,7 @@ class TurtleDecoder:
         result.transformBy(self.transform)
         return result
 
-    # todo: These only make sense with single paste. Need to move this to one object that accepts multiple draw calls.
+    # todo: These only make sense with single paste or callbacks.
     def getPointByName(self, name:str) -> f.SketchPoint:
         return self.parseParam(name)
 

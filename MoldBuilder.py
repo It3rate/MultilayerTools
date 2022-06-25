@@ -23,6 +23,7 @@ class MoldBuilder(TurtleCustomCommand):
         cmdId = 'ddwMoldBuilderId'
         cmdName = 'Mold Builder'
         cmdDescription = 'Generates a laser cuttable mold from a shelled box.'
+        self.workingPointList = None
         super().__init__(cmdId, cmdName, cmdDescription)
         
     def getTargetPanels(self):
@@ -64,7 +65,8 @@ class MoldBuilder(TurtleCustomCommand):
         self.curComponent = TurtleComponent.createFromSketch(curTSketch.sketch)
         offsetExprPos = 'wallThickness + lipWidth'
         offsetExprNeg = '-(wallThickness + lipWidth)'
-        pasteData = SketchData.hole()
+        holeData = SketchData.hole()
+        fingerData = SketchData.finger()
         curTSketch.areProfilesShown = False
         loop = curFace.loops[0]
 
@@ -86,13 +88,29 @@ class MoldBuilder(TurtleCustomCommand):
         slotSpc = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
 
         leftSegs = self.new_method(leftPair, slotLen, slotSpc)
-        leftDecoder = TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, leftSegs, False, False)
+        leftDecoder = TurtleDecoder.createWithPointChain(holeData, curTSketch.sketch, leftSegs, False, False)
         rightSegs = TurtleSketch.createCenteredTabs(*rightPair, slotLen, slotSpc)
-        rightDecoder = TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, rightSegs, False, False)
+        rightDecoder = TurtleDecoder.createWithPointChain(holeData, curTSketch.sketch, rightSegs, False, False)
         #longestChain = decoder.getLongestPointChain()
         #curTSketch.drawLine(leftDecoder.getPointByName('p1'), rightDecoder.getPointByName('p1'))
-        curTSketch.drawLine(ptTL, ptTR)
-        curTSketch.drawLine(ptBL, ptBR)
+        
+        topSegs = TurtleSketch.createCenteredTabs(ptTL, ptTR, slotLen, slotSpc)
+        self.workingPointList = [ptTL]
+        rightDecoder = TurtleDecoder.createWithPointChain(fingerData, curTSketch.sketch, topSegs, False, True, self.fingerSegmentsCallback)
+        self.workingPointList.append(ptTR)
+        spaces = zip(self.workingPointList[::2], self.workingPointList[1::2])
+        curTSketch.drawLines(spaces)
+        
+        startPt = pLeft.endSketchPoint
+        endPoint = pRight.endSketchPoint
+        callback = self.fingerSegmentsCallback
+        mirror = False
+        segs = TurtleSketch.createCenteredTabs(startPt.geometry, endPoint.geometry, slotLen, slotSpc)
+        self.workingPointList = [startPt]
+        decoder = TurtleDecoder.createWithPointChain(fingerData, curTSketch.sketch, segs, False, mirror, callback)
+        self.workingPointList.append(endPoint)
+        spaces = zip(self.workingPointList[::2], self.workingPointList[1::2])
+        curTSketch.drawLines(spaces)
 
 
         # for pair in ptPairs:
@@ -132,6 +150,12 @@ class MoldBuilder(TurtleCustomCommand):
             #     chainIndex += 1
 
         curTSketch.areProfilesShown = True
+
+    def fingerSegmentsCallback(self, decoder:TurtleDecoder):
+        startPt = decoder.getPointByName('p1')
+        self.workingPointList.append(startPt)
+        endPt = decoder.getPointByName('p4')
+        self.workingPointList.append(endPt)
 
     def new_method(self, leftPair, slotLen, slotSpc):
         leftSegs = TurtleSketch.createCenteredTabs(*leftPair, slotLen, slotSpc)

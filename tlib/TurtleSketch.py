@@ -303,6 +303,12 @@ class TurtleSketch:
     def drawLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint) -> f.SketchLine:
         return self.sketchLines.addByTwoPoints(startPoint, endPoint)
 
+    def drawLines(self, pointPairs:list[tuple[f.SketchPoint, f.SketchPoint]]) -> list[f.SketchLine]:
+        result = []
+        for pp in pointPairs:
+            result.append(self.drawLine(pp[0], pp[1]))
+        return result
+
     def drawPolyLine(self, points:list[f.SketchPoint]) -> list[f.SketchLine]:
         result = []
         if len(points) > 0:
