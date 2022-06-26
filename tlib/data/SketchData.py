@@ -58,35 +58,35 @@ class SketchData:
         return \
 {
 'CoordinateSystem':[
-0.0,	0.0,	1.0,	0.0, # 0 - 3
-1.0,	0.0,	0.0,	0.0, # 4 - 7
-0.0,	1.0,	0.0,	0.0, # 8 - 11
+1.0,	0.0,	0.0,	0.0, # 0 - 3
+0.0,	1.0,	0.0,	0.0, # 4 - 7
+0.0,	0.0,	1.0,	0.0, # 8 - 11
 0.0,	0.0,	0.0,	1.0
 ],
 'Params':{
-'lipWidth':'d[1.5 mm]',
 'wallThickness':'d[4 mm]',
-'midThickness':'d[15 mm]',
+'lipWidth':'d[1.5 mm]',
+'slotLength':'d[16 mm]',
+'midThickness':'d[5 mm]',
 },
-'PointBounds':[[0.517059,0.477809],	[2.02521,3.086057]],
+'PointBounds':[[0.773588,0.477809],	[3.0,2.164327]],
 'Points':[
-[0.0,0.0,'f'],	[1.004737,0.477809],	[0.517059,2.878782],	[1.537532,3.086057],	[1.567389,2.939058], # 0 - 4
-[1.175394,2.859438],	[1.255015,2.467442],	[1.64701,2.547063],	[1.945589,1.07708],	[1.553593,0.997459], # 5 - 9
-[1.633214,0.605463],	[2.02521,0.685084]
+[0.0,0.0,'f'],	[1.004737,0.477809,'f'],	[0.773588,1.909266],	[2.353127,2.164327],	[2.377039,2.016245], # 0 - 4
+[1.982155,1.95248],	[2.04592,1.557595],	[2.440804,1.621361],	[2.520511,1.127755],	[2.125626,1.063989], # 5 - 9
+[2.189391,0.669105],	[3.0,0.8]
 ],
 'Chains':[
-'xFLp11p8 xfLp1p11 XFLp1p2 XFLp2p3 XFLp3p4 XFLp4p5 XFLp5p6 XFLp6p7 XFLp7p8', # 0-8
-'XFLp8p9 XFLp9p10', # 9-10
+'XFLp9p10 XFLp8p9 XFLp7p8 XFLp6p7 XFLp5p6 XFLp4p5 XFLp3p4 XFLp2p3 XFLp1p2 xfLp1p11', # 0-9
 ],
 'Constraints':[
-'PEc3c2',	'PEc5c2',	'PEc6c5',	'PEc7c2',	'PEc8c5', # 0 - 4
-'PEc9c8',	'PEc10c9',	'CLc10c6',	'EQc10c6',	'CLc8c4', # 5 - 9
-'CLc8c0',	'PEc1c0',	'COp10c1'
+'PEc7c8',	'PEc5c8',	'PEc4c5',	'PEc3c8',	'PEc2c5', # 0 - 4
+'PEc1c2',	'PEc0c1',	'CLc0c4',	'CLc2c6',	'COp10c9', # 5 - 9
+'PEc8c9',	'EQc4c0'
 ],
 'Dimensions':[
-'SLDp3p4e0d[lipWidth]v[1.084278,2.682401]',	'SLDp9p10e0d[wallThickness]v[1.784042,0.881221]',	'SLDp7p8e0d[midThickness]v[1.706167,1.778391]',	'SLDp8p9e0d[wallThickness]v[1.635527,1.202963]'
+'SLDp8p9e0d[wallThickness]v[2.309405,1.150052]',	'SLDp5p6e0d[wallThickness]v[2.087208,1.761623]',	'SLDp3p4e0d[lipWidth]v[1.877397,1.93553]',	'SLDp2p3e0d[slotLength]v[1.547447,1.956778]',	'SLDp7p8e0d[midThickness]v[2.369184,1.418186]'
 ],
-'Guideline':['p1','p11','c1','noFlip'],
+'Guideline':['p1','p11','c9','noFlip'],
 'ProfileCentroids':[
 
 ],
@@ -94,6 +94,8 @@ class SketchData:
 
 }
 }
+
+
 
     @classmethod
     def hole(cls):

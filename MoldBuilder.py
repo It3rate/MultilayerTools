@@ -80,7 +80,7 @@ class MoldBuilder(TurtleCustomCommand):
             self.getSortedRectSegments(pLeft.startSketchPoint, pRight.startSketchPoint, pRight.endSketchPoint, pLeft.endSketchPoint)
 
         self.drawHoleLine(*left, False)
-        self.drawHoleLine(*right, True)
+        self.drawHoleLine(*right, False)
         self.drawNotchesLine(*top, False)
         #self.drawFingerLine(*top, False)
         self.drawFingerLine(*bottom, False)
