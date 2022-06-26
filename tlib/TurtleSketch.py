@@ -337,10 +337,10 @@ class TurtleSketch:
         return (cls.sketch.modelToSketchSpace(sp), cls.sketch.modelToSketchSpace(ep))
 
     @classmethod
-    def getPointChain(cls, lines:list[f.SketchLine], makeCW:bool=True)->tuple[core.Point3D, core.Point3D]:
+    def getPointChain(cls, lines:list[f.SketchLine], makeCW:bool=True)->list[tuple[core.Point3D, core.Point3D]]:
         ptPairs = []
         for line in lines:
-            ptPairs.append((line.startSketchPoint.geometry, line.endSketchPoint.geometry))
+            ptPairs.append((line.startSketchPoint, line.endSketchPoint))
 
         curPair = ptPairs.pop(0)
         chain = [curPair[1]]
@@ -350,15 +350,15 @@ class TurtleSketch:
         for i in range(pairLen):
             resultIndex = -1
             for pair in ptPairs:
-                if pair[0].isEqualTo(lastPt):
+                if pair[0].geometry.isEqualTo(lastPt.geometry):
                     chain.append(pair[1])
                     resultIndex = ptPairs.index(pair)
-                elif pair[1].isEqualTo(lastPt):
+                elif pair[1].geometry.isEqualTo(lastPt.geometry):
                     chain.append(pair[0])
                     resultIndex = ptPairs.index(pair)
                 if(resultIndex > -1):
                     lastPt = chain[len(chain)-1]
-                    minPt = cls.minPoint(minPt, chain[len(chain) - 1])
+                    minPt = cls.minSketchPoint(minPt, chain[len(chain) - 1])
                     ptPairs.pop(resultIndex)
                     break
         #start at min
@@ -367,7 +367,7 @@ class TurtleSketch:
 
         # ensure clockwise or ccw
         if len(chain) > 2:
-            isCw = cls.arePointsClockwise(chain[0], chain[1], chain[2])
+            isCw = cls.arePointsClockwise(chain[0].geometry, chain[1].geometry, chain[2].geometry)
             if(makeCW and not isCw) or (not makeCW and isCw):
                 chain.reverse()
 
@@ -380,29 +380,30 @@ class TurtleSketch:
     @classmethod
     def sortPointsMinToMax(cls, lst:list[core.Point3D])->None:
         return list.sort(key=cls.comparePoints)
-
-
     @classmethod
     def sortedPoint3DsMinToMax(cls, *args)->list[core.Point3D]:
         result = list(args)
-        sorted(result, key=cmp_to_key(TurtleSketch.comparePoints), reverse=True)
-        return result
-    @classmethod
-    def comparePoints(cls, p0:core.Point3D, p1:core.Point3D):
-        result = 1
-        if(p0.x < p1.x):
-            result = -1
-        elif(p0.x == p1.x and p0.y < p1.y):
-            result = -1
-        elif(p0.x == p1.x and p0.y == p1.y and p0.z < p1.z):
-            result = -1
+        sorted(result, key=cmp_to_key(TurtleSketch.comparePoints), reverse=False)
         return result
 
     @classmethod
     def sortedSketchPointsMinToMax(cls, *args)->list[f.SketchPoint]:
         result = list(args)
-        sorted(result, key=cmp_to_key(TurtleSketch.compareSketchPoints), reverse=True)
+        result=sorted(result, key=cmp_to_key(TurtleSketch.compareSketchPoints), reverse=False)
         return result
+
+    @classmethod
+    def comparePoints(cls, p0:core.Point3D, p1:core.Point3D):
+        result = 1
+        tolerance = 0.000001
+        if p0.x - p1.x < -tolerance:
+            result = -1
+        elif abs(p0.x - p1.x) < tolerance and p0.y - p1.y < -tolerance:
+            result = -1
+        elif abs(p0.x - p1.x) < tolerance and abs(p0.y - p1.y) < tolerance:
+            result = 0
+        return result
+
     @classmethod
     def compareSketchPoints(cls, sp0:f.SketchPoint, sp1:f.SketchPoint):
         return cls.comparePoints(sp0.geometry, sp1.geometry)
@@ -410,14 +411,16 @@ class TurtleSketch:
     @classmethod
     def minPoint(cls, p0:core.Point3D, p1:core.Point3D)->core.Point3D:
         result = p1
-        if(p0.x < p1.x):
+        tolerance = 0.000001
+        if (p0.x - p1.x) < -tolerance:
             result = p0
-        elif(p0.x == p1.x and p0.y < p1.y):
-            result = p0
-        elif(p0.x == p1.x and p0.y == p1.y and p0.z < p1.z):
+        elif abs(p0.x - p1.x) < tolerance and (p0.y - p1.y) < -tolerance:
             result = p0
         return result
-    
+
+    @classmethod
+    def minSketchPoint(cls, p0:f.SketchPoint, p1:f.SketchPoint)->f.SketchPoint:
+        return p0 if cls.minPoint(p0.geometry, p1.geometry).isEqualTo(p0.geometry) else p1
     
     @classmethod
     def arePointsClockwise(cls, a:core.Point3D, b:core.Point3D, c:core.Point3D):

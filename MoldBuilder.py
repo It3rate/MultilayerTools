@@ -46,13 +46,13 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        self.createTopAndBottom(True)
-        self.createFrontAndBack(True)
+        self.createTop(True)
+        #self.createFrontAndBack(True)
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        #self.createTopAndBottom(False)
-        self.createFrontAndBack(False)
+        self.createTop(False)
+        #self.createFrontAndBack(False)
         
     def setParameters(self):
         self.parameters.setOrCreateParam('wallThickness', self.diagMoldWallThickness.expression)
@@ -65,11 +65,79 @@ class MoldBuilder(TurtleCustomCommand):
         self.slotLengthVal = self.parameters.getParamValueOrDefault('slotLength', 1.0)
         self.slotSpaceVal = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
 
+    def createTop(self, isPreview:bool):
+        outerLoopIndex = 0 if self.topFace.loops[0].isOuter else 1
+        projectedList = self.sketchFromFace(self.topFace, outerLoopIndex, True)
+        self.currentTSketch.areProfilesShown = False
+        offsetExpr = 'wallThickness + lipWidth'
+        
+        outerRect, _ = self.currentTSketch.offset(projectedList, self.topFace.centroid, offsetExpr, False)
+        ptPairs = self.currentTSketch.getPointChain(outerRect, True)
+        for pp in ptPairs:
+            self.drawHoleLine(*pp, True)
+
+        self.currentTSketch.areProfilesShown = True
+        return
+        # todo: use same sketch for top and bottom. Do interior top as a separate sketch and cut.
+        curFace = self.topFace
+        #curFace = self.frontOuterFace
+        curTSketch = curFace.createSketchAtPoint(curFace.centroid)
+        self.curComponent = TurtleComponent.createFromSketch(curTSketch.sketch)
+        offsetExpr = 'wallThickness + lipWidth'
+        pasteData = SketchData.hole()
+        curTSketch.areProfilesShown = False
+        l0 = curFace.loops[0]
+        l1 = curFace.loops[1]
+        loops = [l0, l1] if l0.isOuter else [l1, l0]
+        offsetChains = []
+        if isPreview:
+            for loop in loops:
+                projectedList = curTSketch.projectList(loop.edges, True) 
+                cent = curFace.centroid if(loop.isOuter) else TurtleSketch.veryOuterPoint()
+                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, False)
+                offsetChains.append(offsetElements)
+        else:
+            sortedLoops = []
+            for loop in loops: 
+                sortedLoops.insert(0, loop) if loop.isOuter else sortedLoops.append(loop)
+    
+            # need to do offsets first or Fusion gets confused. This could be because profiles and sketch calculations are turned off?
+            for loop in sortedLoops:           
+                projectedList = curTSketch.projectList(loop.edges, True) 
+                cent = curFace.centroid if(loop.isOuter) else TurtleSketch.veryOuterPoint()
+                isConstruction = not loop.isOuter
+                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, isConstruction)
+                offsetChains.append(offsetElements)
+
+            chainIndex = 0
+            for chain in offsetChains:
+                #BRepCoEdge objects flow around the outer boundary in a counter-clockwise direction, while inner boundaries are clockwise
+                isInner = chainIndex > 0
+                cw = isInner
+
+                ptPairs = curTSketch.getPointChain(chain, cw)
+                tabbedSegments = []
+                for pair in ptPairs:
+                    segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], self.slotLengthVal, self.slotSpaceVal)
+                    tabbedSegments = tabbedSegments + segs
+                TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, tabbedSegments, False, False)
+
+                profile = curTSketch.findOuterProfile()
+                _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+                if not isInner:
+                    extrude = newFeatures[0]
+                    extrude.timelineObject.rollTo(True)
+                    extrude.startExtent = f.FromEntityStartDefinition.create(self.bottomFace.face, self.parameters.createValue('wallThickness'))
+                    extrude.timelineObject.rollTo(False)
+                    for line in offsetElements: # make top extrusion have hole
+                        line.isConstruction = False
+                chainIndex += 1
+
+            curTSketch.areProfilesShown = True
 
     def createFrontAndBack(self, isPreview:bool):
         projectedList = self.sketchFromFace(self.frontOuterFace, 0, True)
         self.currentTSketch.areProfilesShown = False
-
         offsetExprPos = 'wallThickness + lipWidth'
         offsetExprNeg = '-(wallThickness + lipWidth)'
 
@@ -81,14 +149,9 @@ class MoldBuilder(TurtleCustomCommand):
 
         self.drawHoleLine(*left, False)
         self.drawHoleLine(*right, False)
-        self.drawNotchesLine(*top, False)
-        #self.drawFingerLine(*top, False)
+        #self.drawNotchesLine(*top, False)
+        self.drawFingerLine(*top, True)
         self.drawFingerLine(*bottom, False)
-
-        if isPreview:
-            pass
-        else:
-            pass
 
         self.currentTSketch.areProfilesShown = True
 
@@ -251,61 +314,3 @@ class MoldBuilder(TurtleCustomCommand):
         if result:
             tfaces.remove(result)
         return result
-
-    def createTopAndBottom(self, isPreview:bool):
-        # todo: use same sketch for top and bottom. Do interior top as a separate sketch and cut.
-        curFace = self.topFace
-        #curFace = self.frontOuterFace
-        curTSketch = curFace.createSketchAtPoint(curFace.centroid)
-        self.curComponent = TurtleComponent.createFromSketch(curTSketch.sketch)
-        offsetExpr = 'wallThickness + lipWidth'
-        pasteData = SketchData.hole()
-        curTSketch.areProfilesShown = False
-        l0 = curFace.loops[0]
-        l1 = curFace.loops[1]
-        loops = [l0, l1] if l0.isOuter else [l1, l0]
-        offsetChains = []
-        if isPreview:
-            for loop in loops:
-                projectedList = curTSketch.projectList(loop.edges, True) 
-                cent = curFace.centroid if(loop.isOuter) else TurtleSketch.veryOuterPoint()
-                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, False)
-                offsetChains.append(offsetElements)
-        else:
-            sortedLoops = []
-            for loop in loops: 
-                sortedLoops.insert(0, loop) if loop.isOuter else sortedLoops.append(loop)
-    
-            # need to do offsets first or Fusion gets confused. This could be because profiles and sketch calculations are turned off?
-            for loop in sortedLoops:           
-                projectedList = curTSketch.projectList(loop.edges, True) 
-                cent = curFace.centroid if(loop.isOuter) else TurtleSketch.veryOuterPoint()
-                isConstruction = not loop.isOuter
-                offsetElements, offsetConstraint = curTSketch.offset(projectedList, cent, offsetExpr, isConstruction)
-                offsetChains.append(offsetElements)
-
-            chainIndex = 0
-            for chain in offsetChains:
-                #BRepCoEdge objects flow around the outer boundary in a counter-clockwise direction, while inner boundaries are clockwise
-                isInner = chainIndex > 0
-                cw = isInner
-
-                ptPairs = curTSketch.getPointChain(chain, cw)
-                tabbedSegments = []
-                for pair in ptPairs:
-                    segs = TurtleSketch.createCenteredTabs(pair[0], pair[1], self.slotLengthVal, self.slotSpaceVal)
-                    tabbedSegments = tabbedSegments + segs
-                TurtleDecoder.createWithPointChain(pasteData, curTSketch.sketch, tabbedSegments, False, False)
-
-                profile = curTSketch.findOuterProfile()
-                _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
-                if not isInner:
-                    extrude = newFeatures[0]
-                    extrude.timelineObject.rollTo(True)
-                    extrude.startExtent = f.FromEntityStartDefinition.create(self.bottomFace.face, self.parameters.createValue('wallThickness'))
-                    extrude.timelineObject.rollTo(False)
-                    for line in offsetElements: # make top extrusion have hole
-                        line.isConstruction = False
-                chainIndex += 1
-
-            curTSketch.areProfilesShown = True
