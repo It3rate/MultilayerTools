@@ -95,10 +95,47 @@ class SketchData:
 }
 }
 
-
-
     @classmethod
     def hole(cls):
+        return \
+{
+'CoordinateSystem':[
+1.0,	0.0,	0.0,	0.0, # 0 - 3
+0.0,	0.0,	1.0,	0.0, # 4 - 7
+0.0,	-1.0,	0.0,	0.0, # 8 - 11
+0.0,	0.0,	0.0,	1.0
+],
+'Params':{
+'slotLength':'d[16 mm]',
+'wallThickness':'d[4 mm]',
+},
+'PointBounds':[[1.565922,-4.165594],	[4.460214,-3.190977]],
+'Points':[
+[0.0,0.0,'f'],	[1.565922,-3.190977],	[4.460214,-3.957327],	[2.239718,-3.369384],	[2.137334,-3.756059], # 0 - 4
+[3.684034,-4.165594],	[3.786418,-3.778919],	[3.013068,-3.574152]
+],
+'Chains':[
+'xfLp1p2', # 0
+'XFLp4p5 XFLp5p6 XFLp3p6 XFLp3p4', # 1-4
+],
+'Constraints':[
+'COp3c0',	'PEc4c0',	'PEc1c4',	'COp6c0',	'PEc2c0', # 0 - 4
+'MIp7c3',	'MIp7c0'
+],
+'Dimensions':[
+'SLDp4p5e0d[slotLength]v[2.903598,-4.031639]',	'SLDp5p6e0d[wallThickness]v[3.83367,-3.970938]'
+],
+'Guideline':['p1','p2','c0','noFlip'],
+'ProfileCentroids':[
+[2.961876,-3.767489]
+],
+'NamedProfiles':{
+
+}
+}
+
+    @classmethod
+    def offsetHole(cls):
         return \
 {
 'CoordinateSystem':[
