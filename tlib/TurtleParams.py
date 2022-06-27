@@ -61,7 +61,7 @@ class TurtleParams:
             result.expression = val
         return result
 
-    def createValue(self, val, unitKind=""):
+    def createValue(self, val, unitKind="")->core.ValueInput:
         units = self.curUnits if unitKind=="" else unitKind
         if isinstance(val, str):
             return core.ValueInput.createByString(val)

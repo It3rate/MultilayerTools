@@ -114,20 +114,20 @@ class SketchData:
 },
 'PointBounds':[[0.509103,1.772822],	[2.440954,2.69231]],
 'Points':[
-[0.0,0.0,'f'],	[1.134416,2.69231],	[2.100342,2.433491],	[1.996814,2.04712],	[1.030888,2.305939], # 0 - 4
-[0.509103,2.29046,'f'],	[2.440954,1.772822,'f'],	[1.475028,2.031641],	[1.617379,2.5629],	[1.513851,2.17653]
+[0.0,0.0,'f'],	[1.134415,2.69231],	[2.100341,2.433491],	[1.996814,2.04712],	[1.030888,2.305939], # 0 - 4
+[0.509103,2.29046,'f'],	[2.440954,1.772822,'f'],	[1.475028,2.031641],	[1.617378,2.5629],	[1.513851,2.17653]
 ],
 'Chains':[
-'XFLp1p2 XFLp2p3 XFLp3p4 XFLp4p1', # 0-3
+'XFLp2p3 XFLp3p4 XFLp4p1 XFLp1p2', # 0-3
 'xfLp5p6', # 4
-'xFLp8p7 XFLp9p7', # 5-6
+'xFLp8p7 xFLp9p7', # 5-6
 ],
 'Constraints':[
-'PEc2c3',	'PEc0c1',	'MIp7c4',	'PEc5c2',	'MIp8c0', # 0 - 4
-'PEc3c0',	'MIp9c2'
+'PEc1c2',	'PEc3c0',	'MIp7c4',	'PEc5c1',	'MIp8c3', # 0 - 4
+'PEc2c3',	'MIp9c1'
 ],
 'Dimensions':[
-'SODc0c4d[lipWidth + wallThickness]v[2.300702,2.070315]',	'SODc3c1d[slotLength]v[2.473555,2.591631]',	'SLDp9p7e0d[lipWidth]v[0.9997,2.275998]'
+'SODc3c4d[lipWidth + wallThickness]v[2.437089,2.019286]',	'SODc2c0d[slotLength]v[2.86289,2.615331]',	'SLDp9p7e0d[lipWidth]v[1.090963,2.364511]'
 ],
 'Guideline':['p5','p6','c4','noFlip'],
 'ProfileCentroids':[
@@ -137,6 +137,8 @@ class SketchData:
     'hole0':[0]
 }
 }
+
+
 
     @classmethod
     def finger(cls):
@@ -186,4 +188,4 @@ class SketchData:
 
     @classmethod
     def getDefaultData(cls):
-        return cls.notches()
+        return cls.hole()

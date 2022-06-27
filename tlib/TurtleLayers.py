@@ -72,6 +72,19 @@ class TurtleLayers:
 
         return result, newFeatures
 
+    @classmethod
+    def changeExturdeToPlaneOrigin(cls, extrude:f.ExtrudeFeature, faceOrPlane:f.BRepFace, offsetValue:core.ValueInput):
+        extrude.timelineObject.rollTo(True)
+        extrude.startExtent = f.FromEntityStartDefinition.create(faceOrPlane, offsetValue)
+        extrude.timelineObject.rollTo(False)
+
+    @classmethod
+    def changeExtrudeToCut(cls, extrude:f.ExtrudeFeature, praticipantBodies:list[f.BRepBody]):
+        extrude.timelineObject.rollTo(True)
+        extrude.operation = f.FeatureOperations.CutFeatureOperation
+        extrude.participantBodies = praticipantBodies
+        extrude.timelineObject.rollTo(False)
+
 
     def extrudeForLayer(self, extrudeIndex:int) -> f.ExtrudeFeature:  
         return self.layers[index].extrude if len(self.layers) > index else None

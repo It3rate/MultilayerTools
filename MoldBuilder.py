@@ -46,12 +46,12 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        self.createTop(True)
+        self.createTopAndBottom(True)
         #self.createFrontAndBack(True)
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        self.createTop(False)
+        self.createTopAndBottom(False)
         #self.createFrontAndBack(False)
         
     def setParameters(self):
@@ -65,7 +65,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.slotLengthVal = self.parameters.getParamValueOrDefault('slotLength', 1.0)
         self.slotSpaceVal = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
 
-    def createTop(self, isPreview:bool):
+    def createTopAndBottom(self, isPreview:bool):
         outerLoopIndex = 0 if self.topFace.loops[0].isOuter else 1
         projectedList = self.sketchFromFace(self.topFace, outerLoopIndex, True)
         self.currentTSketch.areProfilesShown = False
@@ -76,7 +76,30 @@ class MoldBuilder(TurtleCustomCommand):
         for pp in ptPairs:
             self.drawHoleLine(*pp, True)
 
+        # top, uncut
+        profile = self.currentTSketch.findOuterProfile()
+        _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+        topBody = newFeatures[0].bodies[0]
+        # bottom
+        profile = self.currentTSketch.findOuterProfile()
+        _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['-wallThickness'])
+        TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.bottomFace.face, self.parameters.createValue(0))
         self.currentTSketch.areProfilesShown = True
+
+        # top lid hole
+        innerLoopIndex = 1 if self.topFace.loops[0].isOuter else 0
+        projectedList = self.sketchFromFace(self.topFace, innerLoopIndex, False)
+        self.currentTSketch.areProfilesShown = False
+        innerRect, _ = self.currentTSketch.offset(projectedList, self.topFace.centroid, offsetExpr, False)
+        ptPairs = self.currentTSketch.getPointChain(innerRect, True)
+        for pp in ptPairs:
+            self.drawHoleLine(*pp, False)
+
+        profile = self.currentTSketch.allButOuterProfile()
+        _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+        TurtleLayers.changeExtrudeToCut(newFeatures[0], [topBody])
+        self.currentTSketch.areProfilesShown = True
+
         return
         # todo: use same sketch for top and bottom. Do interior top as a separate sketch and cut.
         curFace = self.topFace

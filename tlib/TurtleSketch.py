@@ -197,6 +197,14 @@ class TurtleSketch:
                 index = i
         return collection.item(index)
 
+    def allButOuterProfile(self):
+        profiles = core.ObjectCollection.create()
+        for profile in self.sketch.profiles:
+            profiles.add(profile)
+        outer = self.findOuterProfile(profiles)   
+        profiles.removeByItem(outer)
+        return profiles
+
     def findLargestProfile(self, profiles:core.ObjectCollection = None):
         collection = self.profiles if profiles == None else profiles
         index = 0
