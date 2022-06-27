@@ -46,13 +46,17 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        self.createTopAndBottom(True)
-        #self.createFrontAndBack(True)
+        # self.createTopAndBottom(True)
+        # self.createFrontAndBack(True)
+        self.createLeftAndRight(True)
+        self.curComponent.colorBodiesByOrder()
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
         self.createTopAndBottom(False)
-        #self.createFrontAndBack(False)
+        self.createFrontAndBack(False)
+        self.createLeftAndRight(True)
+        self.curComponent.colorBodiesByOrder()
         
     def setParameters(self):
         self.parameters.setOrCreateParam('wallThickness', self.diagMoldWallThickness.expression)
@@ -65,32 +69,45 @@ class MoldBuilder(TurtleCustomCommand):
         self.slotLengthVal = self.parameters.getParamValueOrDefault('slotLength', 1.0)
         self.slotSpaceVal = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
 
+    def createLeftAndRight(self, isPreview:bool):
+        projectedList = self.sketchFromFace(self.leftOuterFace, 0, True)
+        self.currentTSketch.areProfilesShown = False
+        ptPairs = self.currentTSketch.getPointChain(projectedList, True)
+        for pp in ptPairs:
+            self.drawFingerLine(*pp, True)
+        self.currentTSketch.areProfilesShown = True
+        #left wall extrude
+        profile = self.currentTSketch.findOuterProfile()
+        _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+        #right wall extrude
+        _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['-wallThickness'])
+        TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.rightOuterFace.face, self.parameters.createValue(0))
+        self.currentTSketch.areProfilesShown = True
+
     def createTopAndBottom(self, isPreview:bool):
         outerLoopIndex = 0 if self.topFace.loops[0].isOuter else 1
         projectedList = self.sketchFromFace(self.topFace, outerLoopIndex, True)
         self.currentTSketch.areProfilesShown = False
-        offsetExpr = 'wallThickness + lipWidth'
         
-        outerRect, _ = self.currentTSketch.offset(projectedList, self.topFace.centroid, offsetExpr, False)
+        outerRect, _ = self.currentTSketch.offset(projectedList, self.topFace.centroid, 'wallThickness + lipWidth', False)
         ptPairs = self.currentTSketch.getPointChain(projectedList, True)
         for pp in ptPairs:
             self.drawHoleLine(*pp, True)
 
-        # top, uncut
+        # extrude top, uncut
         profile = self.currentTSketch.findOuterProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
         topBody = newFeatures[0].bodies[0]
-        # bottom
+        #extrude  bottom
         profile = self.currentTSketch.findOuterProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['-wallThickness'])
         TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.bottomFace.face, self.parameters.createValue(0))
         self.currentTSketch.areProfilesShown = True
-
-        # top lid hole
+        # cut top lid hole
         innerLoopIndex = 1 if self.topFace.loops[0].isOuter else 0
         projectedList = self.sketchFromFace(self.topFace, innerLoopIndex, False)
         self.currentTSketch.areProfilesShown = False
-        innerRect, _ = self.currentTSketch.offset(projectedList, self.topFace.centroid, offsetExpr, False)
+        innerRect, _ = self.currentTSketch.offset(projectedList, self.topFace.centroid, 'wallThickness + lipWidth', False)
         ptPairs = self.currentTSketch.getPointChain(projectedList, True)
         for pp in ptPairs:
             self.drawHoleLine(*pp, False)
@@ -101,26 +118,27 @@ class MoldBuilder(TurtleCustomCommand):
         self.currentTSketch.areProfilesShown = True
         return
 
-
-
     def createFrontAndBack(self, isPreview:bool):
         projectedList = self.sketchFromFace(self.frontOuterFace, 0, True)
         self.currentTSketch.areProfilesShown = False
-        offsetExprPos = 'wallThickness + lipWidth'
-        offsetExprNeg = '-(wallThickness + lipWidth)'
-
         # generate side segments
-        pLeft = self.currentTSketch.offset([projectedList[0]], self.frontOuterFace.centroid, offsetExprPos, False)[0][0]
-        pRight = self.currentTSketch.offset([projectedList[2]], self.frontOuterFace.centroid, offsetExprNeg, False)[0][0]
+        orgLeft = projectedList[0]
+        orgRight = projectedList[2]
+        pLeft = self.currentTSketch.offset([orgLeft], self.frontOuterFace.centroid, 'wallThickness + lipWidth', False)[0][0]
+        pRight = self.currentTSketch.offset([orgRight], self.frontOuterFace.centroid, '-(wallThickness + lipWidth)', False)[0][0]
         (left, bottom, right, top) = \
             self.getSortedRectSegments(pLeft.startSketchPoint, pRight.startSketchPoint, pRight.endSketchPoint, pLeft.endSketchPoint)
 
-        self.drawHoleLine(*left, False)
-        self.drawHoleLine(*right, False)
-        #self.drawNotchesLine(*top, False)
+        self.drawHoleLine(orgLeft.startSketchPoint, orgLeft.endSketchPoint, False)
+        self.drawHoleLine(orgRight.startSketchPoint, orgRight.endSketchPoint, True)
         self.drawFingerLine(*top, True)
         self.drawFingerLine(*bottom, False)
-
+        #front wall extrude
+        profile = self.currentTSketch.findOuterProfile()
+        _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+        #back wall extrude
+        _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['-wallThickness'])
+        TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.backOuterFace.face, self.parameters.createValue(0))
         self.currentTSketch.areProfilesShown = True
 
     def sketchFromFace(self, face:f.BRepFace, projectLoopIndex:int = 0, asConstruction:bool = True)-> list[f.BRepEdges]:

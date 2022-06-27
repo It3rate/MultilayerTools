@@ -136,11 +136,19 @@ class TurtleComponent:
         for body in extruded.bodies:
             body.appearance = appr
 
+    def colorBodiesByOrder(self):
+        bodies = self.getBodies()
+        index = 0
+        for body in bodies:
+            appr = self.appearances.getAppearanceByIndex(index)
+            body.appearance = appr
+            index += 1
+
     def getBodies(self):
         bodies = []
         for body in self.component.bRepBodies:
             bodies.append(body)
-        return pBodies
+        return bodies
 
     @classmethod
     def createComponent(cls, parent:f.Component, name):
