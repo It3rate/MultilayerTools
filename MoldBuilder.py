@@ -58,12 +58,12 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        # self.createTopAndBottom(False)
+        self.createTopAndBottom(False)
         self.createFloor(False)
         self.createInnerLeftAndRight(False)
         self.createInnerFrontAndBack(False)
-        # self.createOuterFrontAndBack(False)
-        # self.createOuterLeftAndRight(False)
+        self.createOuterFrontAndBack(False)
+        self.createOuterLeftAndRight(False)
         self.curComponent.colorBodiesByOrder([0])
 
 
@@ -84,12 +84,6 @@ class MoldBuilder(TurtleCustomCommand):
         self.drawHoleOutline(*ptPairs[1], True) # right 
         self.drawFingerLine(*ptPairs[2], False) # bottom 
         self.drawHoleOutline(*ptPairs[3], False) # left 
-
-        # ptPairs = self.currentTSketch.getPointChain(projectedList, True)
-        # self.drawHoleOutline(*ptPairs[0], False) # left side
-        # self.drawFingerLine(*ptPairs[1], True) # top 
-        # self.drawHoleOutline(*ptPairs[2], False) # right side
-        # self.drawFingerLine(*ptPairs[3], False) # bottom 
 
         #left wall extrude
         profile = self.currentTSketch.findLargestProfile()

@@ -345,6 +345,7 @@ class TurtleDecoder:
                 elif(kind == "CO"):
                     constraint = constraints.addCoincident(p0, p1)
                 elif(kind == "MI"):
+                    # fusion API is missing the second line property when two lines are connected by midpoints?
                     constraint = constraints.addMidPoint(p0, p1)
                 elif(kind == "SY"):
                     constraint = constraints.addSymmetry(p0, p1, p2)
