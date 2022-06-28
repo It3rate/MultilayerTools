@@ -441,11 +441,11 @@ class TurtleSketch:
         return abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) < 0.000001
     
     @classmethod
-    def createCenteredTabs(cls, startPoint:core.Point3D, endPoint:core.Point3D, tabWidth:float, tabSpacing:float):
+    def createCenteredTabs(cls, startPoint:core.Point3D, endPoint:core.Point3D, tabWidth:float, tabSpacing:float, count:int = -1):
         lineLen = startPoint.distanceTo(endPoint)
         tabTotalLen = tabSpacing + tabWidth
         lineWorking = (lineLen - tabSpacing)
-        slotCount = math.floor(lineWorking / tabTotalLen)
+        slotCount = math.floor(lineWorking / tabTotalLen) if count < 0 else count
         offset = (lineLen - (slotCount * tabTotalLen + tabSpacing)) / 2.0
         result = []
         curLen = offset + tabSpacing
@@ -456,6 +456,23 @@ class TurtleSketch:
             curLen += tabSpacing
             result.append((pt0, pt1))
         return result
+    
+    # @classmethod
+    # def createCenteredTabsAuto(cls, startPoint:core.Point3D, endPoint:core.Point3D, tabWidth:float, tabSpacing:float):
+    #     lineLen = startPoint.distanceTo(endPoint)
+    #     tabTotalLen = tabSpacing + tabWidth
+    #     lineWorking = (lineLen - tabSpacing)
+    #     slotCount = math.floor(lineWorking / tabTotalLen)
+    #     offset = (lineLen - (slotCount * tabTotalLen + tabSpacing)) / 2.0
+    #     result = []
+    #     curLen = offset + tabSpacing
+    #     for i in range(slotCount): # each side of center, plus center
+    #         pt0 = cls.pointAlongLine(startPoint, endPoint, curLen)
+    #         curLen += tabWidth
+    #         pt1 = cls.pointAlongLine(startPoint, endPoint, curLen)
+    #         curLen += tabSpacing
+    #         result.append((pt0, pt1))
+    #     return result
     
     @classmethod
     def pointAlongLine(self, startPoint:core.Point3D, endPoint:core.Point3D, length:float):
