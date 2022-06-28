@@ -71,7 +71,8 @@ class MoldBuilder(TurtleCustomCommand):
         self.curComponent.colorBodiesByOrder([0])
 
 
-
+    # project face, offset lines, make ring, draw slots (type, count, mirror/neg - per edge), 
+    # find profile, extrude/cut, offset to other wall, name, color
 
     def createFloor(self, isPreview:bool):
         projectedList = self.sketchFromFace(self.floorFace, 0, False)
