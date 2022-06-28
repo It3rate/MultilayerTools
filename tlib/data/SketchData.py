@@ -175,6 +175,47 @@ class SketchData:
 }
 }
 
+    @classmethod
+    def holeOutline(cls):
+        return \
+{
+'CoordinateSystem':[
+1.0,	0.0,	0.0,	0.0, # 0 - 3
+0.0,	0.0,	1.0,	0.0, # 4 - 7
+0.0,	-1.0,	0.0,	0.0, # 8 - 11
+0.0,	0.0,	0.0,	1.0
+],
+'Params':{
+'slotLength':'d[16 mm]',
+'wallThickness':'d[4 mm]',
+},
+'PointBounds':[[1.565922,-4.165594],	[4.460214,-3.190977]],
+'Points':[
+[0.0,0.0,'f'],	[1.565922,-3.190977,'f'],	[4.460214,-3.957327,'f'],	[2.239718,-3.369385],	[2.137334,-3.75606], # 0 - 4
+[3.684034,-4.165594],	[3.786418,-3.778919],	[2.910684,-3.960827],	[3.013068,-3.574152]
+],
+'Chains':[
+'xfLp1p2', # 0
+'XFLp3p4 XFLp4p5 XFLp5p6', # 1-3
+'xFLp7p8', # 4
+],
+'Constraints':[
+'COp3c0',	'PEc1c0',	'PEc2c1',	'COp6c0',	'PEc3c0', # 0 - 4
+'MIp7c2',	'MIp8c0',	'PEc4c0'
+],
+'Dimensions':[
+'SLDp4p5e0d[slotLength]v[2.721045,-3.993624]',	'SLDp5p6e0d[wallThickness]v[3.708759,-4.056609]'
+],
+'Guideline':['p1','p2','c0','noFlip'],
+'ProfileCentroids':[
+
+],
+'NamedProfiles':{
+
+}
+}
+
+
 
 
     @classmethod

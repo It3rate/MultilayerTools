@@ -136,15 +136,19 @@ class TurtleComponent:
         for body in extruded.bodies:
             body.appearance = appr
 
-    def colorBodiesByOrder(self):
+    def colorBodiesByOrder(self, ignoreIndexes:list[int]=[]):
         bodies = self.getBodies()
         index = 0
         for body in bodies:
-            appr = self.appearances.getAppearanceByIndex(index)
-            body.appearance = appr
+            if not index in ignoreIndexes:
+                appr = self.appearances.getAppearanceByIndex(index)
+                body.appearance = appr
             index += 1
 
-    def getBodies(self):
+    def getBodyByIndex(self, index:int)->f.BRepBody:
+        return self.component.bRepBodies.item(index) if index < self.component.bRepBodies.count else None
+
+    def getBodies(self)->list[f.BRepBody]:
         bodies = []
         for body in self.component.bRepBodies:
             bodies.append(body)
