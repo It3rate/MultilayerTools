@@ -297,6 +297,7 @@ class SketchData:
     @classmethod
     def finger(cls):
         return \
+\
 {#Turtle Generated Data
 'CoordinateSystem':[
 1.0,	0.0,	0.0,	0.0, # 0 - 3
@@ -308,22 +309,22 @@ class SketchData:
 'slotLength':'d[10 mm]',
 'wallThickness':'d[24 mm]',
 },
-'PointBounds':[[2.415458,-3.211172],	[4.019041,-0.631445]],
+'PointBounds':[[1.88671,-0.821077],	[3.708539,1.81794]],
 'Points':[
-[0.0,0.0,'f'],	[2.415458,-0.898015],	[3.055226,-3.211172],	[4.019041,-2.944603],	[3.379274,-0.631445], # 0 - 4
-[3.537134,-3.077887],	[2.897366,-0.76473],	[2.415458,-0.898015,'f'],	[3.379274,-0.631445,'f']
+[0.0,0.0,'f'],	[1.88671,1.570111],	[2.855514,1.81794],	[3.450303,-0.507189],	[2.371112,1.694026], # 0 - 4
+[2.965901,-0.631103],	[2.481499,-0.755018],	[2.223263,-0.821077],	[3.708539,-0.44113]
 ],
 'Chains':[
-'XFLp1p2 XFLp2p3 XFLp3p4', # 0-2
-'xFLp5p6', # 3
+'XFLp6p1 XFLp1p2 XFLp2p3', # 0-2
+'xFLp4p5', # 3
 'xFLp7p8', # 4
 ],
 'Constraints':[
-'PEc1c0',	'MIp5c1',	'PEc3c1',	'COp1c4',	'COp4c4', # 0 - 4
-'MIp6c4',	'PEc0c4',	'PEc2c4',	'COp7p1'
+'PEc1c0',	'MIp4c1',	'PEc1c2',	'COp6c4',	'SYp7p8c3', # 0 - 4
+'PEc0c4',	'MIp5c4',	'COp3c4'
 ],
 'Dimensions':[
-'SLDp2p3e0d[slotLength]v[3.238997,-2.054909]',	'SLDp5p6e0d[wallThickness]v[3.372915,-1.937731]'
+'SLDp1p2e0d[slotLength]v[2.735424,-0.152974]',	'SLDp4p5e0d[wallThickness]v[2.858077,0.669195]'
 ],
 'Guideline':['p7','p8','c4','noFlip'],
 'ProfileCentroids':[
@@ -333,6 +334,10 @@ class SketchData:
 
 }
 }
+
+
+
+
 
 
 

@@ -141,14 +141,17 @@ class TurtleSketch:
         else:
             lst = elements
             
-        offsetElements = self.sketch.offset(lst, direction, .2)
+        offsetElements = self.sketch.offset(lst, direction, .01)
         offsetConstraint = self.lastAddedConstraint
         lastParameter = self.lastAddedParameter
         lastParameter.expression = distanceExpr
         if makeConstruction:
             for oe in offsetElements:
                 oe.isConstruction = True
-        return (offsetElements, offsetConstraint)
+        # The order of offsets is random and varies per run.
+        # Need to sort elements tip to tail and clockwise. Allow for broken chains.
+        pointChain = self.getRectPointChain(offsetElements)
+        return (pointChain, offsetConstraint)
 
     def addMidpointConstructionLine(self, linex, lengthExpr=None, toLeft=True):
         baseLine:f.SketchLine = self.path.fromLineOrIndex(linex)
@@ -346,36 +349,55 @@ class TurtleSketch:
 
     def getRectPointChain(self, lines:list[f.SketchLine], makeCW:bool=True)->list[tuple[core.Point3D, core.Point3D]]:
         ptPairs = []
-        if len(lines) == 2: # special case where rect is defined by left and right side, or top and bottom
-            l0 = self.sortedSketchPointsMinToMax(lines[0].startSketchPoint, lines[0].endSketchPoint)
-            l1 = self.sortedSketchPointsMinToMax(lines[1].startSketchPoint, lines[1].endSketchPoint)
+        # allow lines or existing pointPairs to be sorted here
+        normList = []
+        for line in lines:
+            if isinstance(line, tuple): # assumes list[p0, p1]
+                normList.append((line[0], line[1]))
+            elif line.length > 0.000001:
+                normList.append((line.startSketchPoint, line.endSketchPoint))
+        
+        if len(normList) == 2: # special case where rect is defined by left and right side, or top and bottom
+            l0 = self.sortedSketchPointsMinToMax(normList[0][0], normList[0][1])
+            l1 = self.sortedSketchPointsMinToMax(normList[1][0], normList[1][1])
             ptPairs.append((l0[0], l0[1]))
             ptPairs.append((l0[1], l1[1]))
             ptPairs.append((l1[1], l1[0]))
             ptPairs.append((l1[0], l0[0]))
         else: #normal rect or even polyline
-            for line in lines:
-                ptPairs.append((line.startSketchPoint, line.endSketchPoint))
+            ptPairs = normList
 
         curPair = ptPairs.pop(0)
-        chain = [curPair[1]]
-        minPt = curPair[1]
+        chain = [curPair[0], curPair[1]]
+        firstPt = curPair[0]
         lastPt = curPair[1]
+        minPt = self.minSketchPoint(firstPt, lastPt)
         pairLen = len(ptPairs)
         for i in range(pairLen):
-            resultIndex = -1
+            match = None
             for pair in ptPairs:
                 if pair[0].geometry.isEqualTo(lastPt.geometry):
-                    chain.append(pair[1])
-                    resultIndex = ptPairs.index(pair)
+                    lastPt = pair[1]
+                    chain.append(lastPt)
+                    match = (pair, 1)
                 elif pair[1].geometry.isEqualTo(lastPt.geometry):
-                    chain.append(pair[0])
-                    resultIndex = ptPairs.index(pair)
+                    lastPt = pair[0]
+                    chain.append(lastPt)
+                    match = (pair, 0)
+                elif pair[0].geometry.isEqualTo(firstPt.geometry):
+                    firstPt = pair[1]
+                    chain.insert(0, firstPt)
+                    match = (pair, 1)
+                elif pair[1].geometry.isEqualTo(firstPt.geometry):
+                    firstPt = pair[0]
+                    chain.insert(0, firstPt)
+                    match = (pair, 0)
                     
-                if(resultIndex > -1):
-                    lastPt = chain[len(chain)-1]
-                    minPt = self.minSketchPoint(minPt, chain[len(chain) - 1])
-                    ptPairs.pop(resultIndex)
+                if(match):
+                    matchPair = match[0]
+                    matchIndex = match[1]
+                    minPt = self.minSketchPoint(minPt, matchPair[matchIndex])
+                    ptPairs.pop(ptPairs.index(matchPair))
                     break
         #start at min
         #todo: min point needs to account for xDirection and yDirection
@@ -547,17 +569,44 @@ class TurtleSketch:
     def printSketchDir(self):
         self.printPoint3D(self.sketch.xDirection)
         self.printPoint3D(self.sketch.yDirection)
+
     def printPointPairs(self, pointPairs:list):
         for pp in pointPairs:
             self.printSketchPoints(*pp)
             print(" ")
+        print(' ')
+
     def printSketchPoint(self, pt):
         self.printPoint3D(pt.geometry)
+
     def printSketchPoints(self, *args):
-        for pt in args:
-            self.printPoint3D(pt.geometry)
+        if isinstance(args[0], core.ObjectCollection) or isinstance(args[0], list):
+            for pt in args[0]:
+                self.printPoint3D(pt.geometry)
+        else:
+            for pt in args:
+                self.printPoint3D(pt.geometry)
+
+    def printSketchLines(self, *args):
+        if isinstance(args[0], core.ObjectCollection) or isinstance(args[0], list):
+            for ln in args[0]:
+                self.printLine3D(ln.geometry)
+                print(' ')
+        else:
+            for ln in args:
+                self.printLine3D(ln.geometry)
+                print(' ')
+        print(' ')
+
     def printPoint3Ds(self, *args):
         for pt in args:
             self.printPoint3D(pt)
     def printPoint3D(self, pt):
         print("(",round(pt.x, 2),",",round(pt.y, 2),",",round(pt.z, 2),") ", end = '')
+
+    def printLine3D(self, line):
+        print('[', end='')
+        self.printPoint3D(line.startPoint)
+        print(' - ', end='')
+        self.printPoint3D(line.endPoint)
+        print(']', end='')
