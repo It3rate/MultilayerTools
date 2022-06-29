@@ -1,6 +1,7 @@
 from __future__ import annotations
 import adsk.core, adsk.fusion, traceback
 import os, math, re, sys
+from enum import Enum
 from .TurtleUtils import TurtleUtils
 from .TurtleParams import TurtleParams
 from .TurtleSketch import TurtleSketch
@@ -13,6 +14,7 @@ class TurtleFace:
         self.parameters = TurtleParams.instance()
         self.body = face.body
         self.component = face.body.parentComponent
+        self._surfaceKind = SurfaceKind.none
 
     @classmethod
     def createWithFace(cls, face:f.BRepFace):
@@ -71,6 +73,13 @@ class TurtleFace:
         maxPt = self.face.boundingBox.maxPoint
         return next((vertex.geometry for vertex in self.face.vertices if vertex.geometry.isEqualTo(maxPt)) , None)
 
+    @property
+    def surfaceKind(self):
+        return self._surfaceKind    
+    @surfaceKind.setter
+    def surfaceKind(self, val):
+        self._surfaceKind = val
+
     def reverseNormal(self)->core.Vector3D:
         return TurtleUtils.reverseVector(self.normal)
 
@@ -101,3 +110,25 @@ class TurtleFace:
         if name:
             result.name = name
         return result
+
+
+class SurfaceKind(Enum):
+    none = 0
+    topInner= 1
+    topOuter = 2
+    topCenter = 3
+    bottomInner= 4
+    bottomOuter = 5
+    bottomCenter = 6
+    frontInner= 7
+    frontOuter = 8
+    frontCenter = 9
+    backInner= 10
+    backOuter = 11
+    backCenter = 12
+    leftInner= 13
+    leftOuter = 14
+    leftCenter = 15
+    rightInner= 16
+    rightOuter = 17
+    rightCenter = 18

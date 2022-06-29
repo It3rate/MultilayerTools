@@ -35,16 +35,18 @@ class TurtleSketch:
 
     @property
     def name(self):
-        return self.sketch.name
+        return self.sketch.name    
+    @name.setter
+    def name(self, val):
+        self.sketch.name = val
+
     @property
     def lastAddedConstraint(self):
         return self.constraints.item(self.constraints.count - 1) if self.constraints.count > 0 else None
     @property
     def lastAddedParameter(self):
         return self.component.modelParameters[self.component.modelParameters.count - 1] if self.component.modelParameters.count > 0 else None
-    @name.setter
-    def name(self, val):
-        self.sketch.name = val
+
 
     def draw(self, line:f.SketchLine, *data:str):
         data = " ".join(data)
@@ -337,18 +339,23 @@ class TurtleSketch:
             result.append(cls.coEdgeToPoints(coEdge))
         return result
 
-    @classmethod
-    def coEdgeToPoints(cls, coEdge:f.BRepCoEdge) -> tuple[core.Point3D, core.Point3D]:
+    def coEdgeToPoints(self, coEdge:f.BRepCoEdge) -> tuple[core.Point3D, core.Point3D]:
         sp = coEdge.edge.startVertex.geometry
         ep = coEdge.edge.endVertex.geometry
-        #print('{:0.2f},{:0.2f}  {:0.2f},{:0.2f}'.format(sp.x, sp.y, ep.x, ep.y))
-        return (cls.sketch.modelToSketchSpace(sp), cls.sketch.modelToSketchSpace(ep))
+        return (self.sketch.modelToSketchSpace(sp), self.sketch.modelToSketchSpace(ep))
 
-    @classmethod
-    def getPointChain(cls, lines:list[f.SketchLine], makeCW:bool=True)->list[tuple[core.Point3D, core.Point3D]]:
+    def getRectPointChain(self, lines:list[f.SketchLine], makeCW:bool=True)->list[tuple[core.Point3D, core.Point3D]]:
         ptPairs = []
-        for line in lines:
-            ptPairs.append((line.startSketchPoint, line.endSketchPoint))
+        if len(lines) == 2: # special case where rect is defined by left and right side, or top and bottom
+            l0 = self.sortedSketchPointsMinToMax(lines[0].startSketchPoint, lines[0].endSketchPoint)
+            l1 = self.sortedSketchPointsMinToMax(lines[1].startSketchPoint, lines[1].endSketchPoint)
+            ptPairs.append((l0[0], l0[1]))
+            ptPairs.append((l0[1], l1[1]))
+            ptPairs.append((l1[1], l1[0]))
+            ptPairs.append((l1[0], l0[0]))
+        else: #normal rect or even polyline
+            for line in lines:
+                ptPairs.append((line.startSketchPoint, line.endSketchPoint))
 
         curPair = ptPairs.pop(0)
         chain = [curPair[1]]
@@ -364,26 +371,38 @@ class TurtleSketch:
                 elif pair[1].geometry.isEqualTo(lastPt.geometry):
                     chain.append(pair[0])
                     resultIndex = ptPairs.index(pair)
+                    
                 if(resultIndex > -1):
                     lastPt = chain[len(chain)-1]
-                    minPt = cls.minSketchPoint(minPt, chain[len(chain) - 1])
+                    minPt = self.minSketchPoint(minPt, chain[len(chain) - 1])
                     ptPairs.pop(resultIndex)
                     break
         #start at min
+        #todo: min point needs to account for xDirection and yDirection
         minIndex = chain.index(minPt)
         chain = chain[minIndex:] + chain[:minIndex]
 
         # ensure clockwise or ccw
         if len(chain) > 2:
-            isCw = cls.arePointsClockwise(chain[0].geometry, chain[1].geometry, chain[2].geometry)
+            isCw = self.areSketchPointsClockwise(chain[0], chain[1], chain[2])
             if(makeCW and not isCw) or (not makeCW and isCw):
                 chain.reverse()
 
+        # turn points into pairs
         result = []
-        for ptIndex in range(1, len(chain)):
+        for ptIndex in range(1, len(chain)): # start at one as we are reaching back
             result.append((chain[ptIndex - 1], chain[ptIndex]))
-        result.append((chain[len(chain) - 1], chain[0]))
+        result.append((chain[len(chain) - 1], chain[0])) # and wrap around
         return result
+
+    def areSketchPointsClockwise(self, a:core.Point3D, b:core.Point3D, c:core.Point3D, isFlipped:bool = False)->bool:
+        return self.arePointsClockwise(a.geometry, b.geometry, c.geometry, self.isSketchCWFlipped())
+    def areSketchPointsCounterClockwise(self, a:core.Point3D, b:core.Point3D, c:core.Point3D, isFlipped:bool = False)->bool:
+        return self.arePointsCounterClockwise(a.geometry, b.geometry, c.geometry, self.isSketchCWFlipped())
+    def areSketchPointsColinear(self, a:core.Point3D, b:core.Point3D, c:core.Point3D)->bool:
+        return self.arePointsColinear(a.geometry, b.geometry, c.geometry)
+    def isSketchCWFlipped(self)->bool:
+        return self.isCWFlipped(self.sketch)
 
     @classmethod
     def sortPointsMinToMax(cls, lst:list[core.Point3D])->None:
@@ -431,15 +450,28 @@ class TurtleSketch:
         return p0 if cls.minPoint(p0.geometry, p1.geometry).isEqualTo(p0.geometry) else p1
     
     @classmethod
-    def arePointsClockwise(cls, a:core.Point3D, b:core.Point3D, c:core.Point3D):
-        return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y) < 0
+    def arePointsClockwise(cls, a:core.Point3D, b:core.Point3D, c:core.Point3D, isFlipped:bool = False)->bool:
+        #return (float(b.y - a.y) * (c.x - b.x)) - (float(b.x - a.x) * (c.y - b.y)) > 0.000001
+        result = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y) < -0.000001
+        return not result if isFlipped else result
     @classmethod
-    def arePointsCounterClockwise(cls, a:core.Point3D, b:core.Point3D, c:core.Point3D):
-        return (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y) > 0
+    def arePointsCounterClockwise(cls, a:core.Point3D, b:core.Point3D, c:core.Point3D, isFlipped:bool = False)->bool:
+        #return (float(b.y - a.y) * (c.x - b.x)) - (float(b.x - a.x) * (c.y - b.y)) < -0.000001
+        result = (b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y) > 0.000001
+        return not result if isFlipped else result
     @classmethod
-    def arePointsColinear(cls, a:core.Point3D, b:core.Point3D, c:core.Point3D):
+    def arePointsColinear(cls, a:core.Point3D, b:core.Point3D, c:core.Point3D)->bool:
         return abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) < 0.000001
-    
+
+    @classmethod
+    def isCWFlipped(cls, sketch:f.Sketch)->bool:
+        result = 1
+        if sketch.xDirection.x < 0:
+            result *= -1
+        if sketch.yDirection.y < 0:
+            result *= -1
+        return result < 0
+
     @classmethod
     def createCenteredTabs(cls, startPoint:core.Point3D, endPoint:core.Point3D, tabWidth:float, tabSpacing:float, count:int = -1):
         lineLen = startPoint.distanceTo(endPoint)
@@ -507,3 +539,25 @@ class TurtleSketch:
     @classmethod    
     def veryOuterPoint(cls):
         return core.Point3D.create(-9999,-9999,-9999)
+
+
+
+
+
+    def printSketchDir(self):
+        self.printPoint3D(self.sketch.xDirection)
+        self.printPoint3D(self.sketch.yDirection)
+    def printPointPairs(self, pointPairs:list):
+        for pp in pointPairs:
+            self.printSketchPoints(*pp)
+            print(" ")
+    def printSketchPoint(self, pt):
+        self.printPoint3D(pt.geometry)
+    def printSketchPoints(self, *args):
+        for pt in args:
+            self.printPoint3D(pt.geometry)
+    def printPoint3Ds(self, *args):
+        for pt in args:
+            self.printPoint3D(pt)
+    def printPoint3D(self, pt):
+        print("(",round(pt.x, 2),",",round(pt.y, 2),",",round(pt.z, 2),") ", end = '')

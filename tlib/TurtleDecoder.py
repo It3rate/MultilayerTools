@@ -8,6 +8,7 @@ from .data.SketchData import *
 #from .data.SketchData import BuiltInDrawing
 from .TurtleParams import TurtleParams
 from .TurtlePath import TurtlePath
+from modulefinder import Module
 
 f,core,app,ui = TurtleUtils.initGlobals()
 
@@ -34,7 +35,7 @@ class TurtleDecoder:
         self.encGuideIndex = -1
         self.encGuideFlipped = False
         
-        self.addedDimensions:list = None
+        self.addedDimensions:list[f.SketchDimension] = None
         self.dimensionNameMap:list = None
 
         self.data = data
@@ -407,7 +408,7 @@ class TurtleDecoder:
         idx = 0
         paramIndex = 0
         for dim in dims:
-            dimension = None
+            dimension:f.SketchDimension = None
             orientation = f.DimensionOrientations.AlignedDimensionOrientation
             parse = re.findall(r"(SLD|SOD|SAD|SDD|SRD|SMA|SMI|SCC|SOC)([pcvo][^pcvod]*|d\[[^\]]*\])([pcvoe][^pcvoed]*|d\[[^\]]*\])?([pcvoe][^pcvoed]*|d\[[^\]]*\])?([pcvoe][^pcvoed]*|d\[[^\]]*\])?([pcvoe][^pcvoed]*|d\[[^\]]*\])?", dim)[0]
             kind = parse[0]

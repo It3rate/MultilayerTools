@@ -1,3 +1,4 @@
+from modulefinder import Module
 import adsk.core, adsk.fusion, adsk.cam, traceback, os
 import tkinter as tk
 
@@ -8,7 +9,7 @@ class TurtleUtils:
         super().__init__()
         
     @classmethod
-    def initGlobals(cls):
+    def initGlobals(cls) -> tuple[Module("adsk.core.fusion"), Module("adsk.core.core"), adsk.core.Application, adsk.core.UserInterface]:
         global f
         global core
         global app
@@ -21,7 +22,7 @@ class TurtleUtils:
         ui  = app.userInterface
         # design:f.Design = app.activeProduct
         # root:f.Component = design.rootComponent
-        return f,core,app,ui#,design,root
+        return (f,core,app,ui)#,design,root
 
     @classmethod
     def activeDesign(cls):
