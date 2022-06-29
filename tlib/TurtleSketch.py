@@ -366,6 +366,9 @@ class TurtleSketch:
             ptPairs.append((l1[0], l0[0]))
         else: #normal rect or even polyline
             ptPairs = normList
+        
+        if len(ptPairs) < 3: # sometimes just one line is extruded
+            return ptPairs
 
         curPair = ptPairs.pop(0)
         chain = [curPair[0], curPair[1]]
@@ -399,16 +402,21 @@ class TurtleSketch:
                     minPt = self.minSketchPoint(minPt, matchPair[matchIndex])
                     ptPairs.pop(ptPairs.index(matchPair))
                     break
-        #start at min
-        #todo: min point needs to account for xDirection and yDirection
-        minIndex = chain.index(minPt)
-        chain = chain[minIndex:] + chain[:minIndex]
+        
+        # ensure no double points at ends
+        if chain[0].geometry.isEqualTo(chain[-1].geometry):
+            chain.pop() # removes last element
 
         # ensure clockwise or ccw
         if len(chain) > 2:
             isCw = self.areSketchPointsClockwise(chain[0], chain[1], chain[2])
             if(makeCW and not isCw) or (not makeCW and isCw):
                 chain.reverse()
+
+        #start at min
+        #todo: min point needs to account for xDirection and yDirection
+        minIndex = chain.index(minPt)
+        chain = chain[minIndex:] + chain[:minIndex]
 
         # turn points into pairs
         result = []
