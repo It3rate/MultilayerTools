@@ -1,6 +1,116 @@
 
+import adsk.core, adsk.fusion, adsk.cam, traceback
+import os, math, re, ast
+from enum import Enum
+from ..TurtleUtils import TurtleUtils
+
+f,core,app,ui = TurtleUtils.initGlobals()
+
+class BuiltInDrawing(Enum):
+    default = 0
+    notches = 1
+    hole = 2
+    offsetHole = 3
+    holeOutline = 4
+    finger = 5
+
 class SketchData:
     
+    def __init__(self,data:str):
+        self.coordinateSystem :list[float] = None
+        self.params :dict[str,str] = None
+        self.pointBounds :list[tuple[float, float]] = None
+        self.pointValues :list[tuple[float, float, str]] = None
+        self.chainValues :list[str] = None
+        self.constraintValues :list[str] = None
+        self.dimensionValues :list[str] = None
+        self.guideline :tuple[str,str, str, str] = None
+        self.profileCentroids :tuple[float, float] = None
+        self.namedProfiles :list[int] = None
+        self.hasEncodedGuideline:bool = False
+        self.encStartGuideIndex:int = None
+        self.encEndGuideIndex:int = None
+        self.encStartGuidePoint:core.Point3D = None
+        self.encEndGuidePoint:core.Point3D = None
+
+        self.decodeSketchData(data)
+
+    @classmethod
+    def createFromFile(cls, filename:str):
+        f = open(filename, "r")
+        str = f.read()
+        f.close()
+        if str == None or not (str.startswith("{#Turtle Generated Data")):
+            data = SketchData.getDefaultRawData()
+        else:
+            data = eval(str)
+        return cls(data)
+
+    @classmethod
+    def createFromClipboard(cls):
+        clip = TurtleUtils.getClipboardText()
+        if clip == None or not (clip.startswith("{#Turtle Generated Data")):
+            data = SketchData.getDefaultRawData()
+        else:
+            data = eval(clip)
+        return cls(data)
+
+    @classmethod
+    def createFromNamed(cls, name:str):
+        namedMethod = getattr(cls, name, None)
+        if callable(namedMethod):
+            data = namedMethod(cls)
+        else:
+            data = SketchData.getDefaultRawData()
+        return cls(data)
+
+    @classmethod
+    def createFromBuiltIn(cls, kind:BuiltInDrawing):
+        if kind == BuiltInDrawing.notches:
+            data = cls.notches()
+        elif kind == BuiltInDrawing.hole:
+            data = cls.hole()
+        elif kind == BuiltInDrawing.offsetHole:
+            data = cls.offsetHole()
+        elif kind == BuiltInDrawing.holeOutline:
+            data = cls.holeOutline()
+        elif kind == BuiltInDrawing.finger:
+            data = cls.finger()
+        else:
+            data = cls.getDefaultRawData()
+        
+        return cls(data)
+
+    @classmethod
+    def createFromData(cls, data:list):
+        return cls(data)
+
+    def decodeSketchData(self, data):
+        self.orgStringData = data
+        self.params = data["Params"] if "Params" in data else {}
+        self.pointValues = data["Points"] if "Points" in data else []
+        self.chainValues = data["Chains"] if "Chains" in data else []
+        self.constraintValues = data["Constraints"] if "Constraints" in data else []
+        self.dimensionValues = data["Dimensions"] if "Dimensions" in data else []
+        self.guidelineValues = data["Guideline"] if "Guideline" in data else None
+        self.profileCentroids = data["ProfileCentroids"] if "ProfileCentroids" in data else []
+        self.namedProfiles = data["NamedProfiles"] if "NamedProfiles" in data else {}
+        if self.guidelineValues:
+            self.hasEncodedGuideline = True
+
+
+    def parseIndexOnly(self, param):
+        val = param[1:]
+        return int(val)
+
+    def parsePoint(self, pointVal:list[float]) -> tuple[core.Point3D, bool]:
+        isFixed = False
+        if len(pointVal) > 2 and pointVal[2] == 'f':
+            isFixed = True
+            pointVal.pop()
+        pt = self.asTransformedPoint3D(pointVal)
+        return (pt, isFixed)
+
     @classmethod
     def loadData(cls, filename:str):
         f = open(filename, "r")
@@ -14,49 +124,15 @@ class SketchData:
         f.write(data)
         f.close()
 
-    @classmethod
-    def getTestData(cls):
-        return \
-{
-'CoordinateSystem':[
-1.0,	0.0,	0.0,	0.0, # 0 - 3
-0.0,	0.0,	1.0,	0.0, # 4 - 7
-0.0,	-1.0,	0.0,	0.0, # 8 - 11
-0.0,	0.0,	0.0,	1.0
-],
-'Params':{
-},
-'PointBounds':[[0.275,-2.739607],	[4.275,-0.389607]],
-'Points':[
-[0.0,0.0,'f'],	[3.0,-0.889607],	[4.275,-0.889607],	[1.0,-2.239607],	[0.275,-0.389607], # 0 - 4
-[1.275,-0.889607],	[1.275,-1.964607],	[1.275,-2.239607],	[4.275,-0.389607],	[0.275,-0.889607], # 5 - 9
-[1.0,-2.739607],	[3.0,-2.739607],	[1.0,-1.964607],	[1.0,-1.164607],	[1.275,-1.164607]
-],
-'Chains':[
-'XFLp11p1 XFLp1p2 XFLp2p8 XFLp8p4 XFLp4p9 XFLp9p5 XFLp5p14 XFLp14p13 XFLp13p12 XFLp12p6 XFLp6p7 XFLp7p3 XFLp3p10 XFLp10p11', # 0-13
-],
-'Constraints':[
-'VHc3',	'PEc4c3',	'PEc5c4',	'PEc6c5',	'PEc7c6', # 0 - 4
-'PEc8c7',	'PEc9c8',	'PEc10c9',	'PEc11c8',	'PEc12c11', # 5 - 9
-'PEc13c12',	'PEc0c13',	'PEc1c0',	'PEc2c3',	'EQc12c4', # 10 - 14
-'CLc10c6',	'CLc1c5'
-],
-'Dimensions':[
-'SLDp13p12e2d[8 mm]v[-0.654818,-1.812213]',	'SLDp4p9e2d[5 mm]v[-1.194238,0.549307]'
-],
-'Guideline':[[0.275,-0.389607],	[4.275,-0.389607],'c3','noFlip'],
-'ProfileCentroids':[
-[2.122632,-1.397903]
-],
-'NamedProfiles':{
 
-}
-}
+
+
+
 
     @classmethod
     def notches(cls):
         return \
-{
+{#Turtle Generated Data
 'CoordinateSystem':[
 1.0,	0.0,	0.0,	0.0, # 0 - 3
 0.0,	1.0,	0.0,	0.0, # 4 - 7
@@ -98,7 +174,7 @@ class SketchData:
     @classmethod
     def hole(cls):
         return \
-{
+{#Turtle Generated Data
 'CoordinateSystem':[
 1.0,	0.0,	0.0,	0.0, # 0 - 3
 0.0,	0.0,	1.0,	0.0, # 4 - 7
@@ -137,7 +213,7 @@ class SketchData:
     @classmethod
     def offsetHole(cls):
         return \
-{
+{#Turtle Generated Data
 'CoordinateSystem':[
 1.0,	0.0,	0.0,	0.0, # 0 - 3
 0.0,	1.0,	0.0,	0.0, # 4 - 7
@@ -178,7 +254,7 @@ class SketchData:
     @classmethod
     def holeOutline(cls):
         return \
-{
+{#Turtle Generated Data
 'CoordinateSystem':[
 1.0,	0.0,	0.0,	0.0, # 0 - 3
 0.0,	0.0,	1.0,	0.0, # 4 - 7
@@ -221,7 +297,7 @@ class SketchData:
     @classmethod
     def finger(cls):
         return \
-{
+{#Turtle Generated Data
 'CoordinateSystem':[
 1.0,	0.0,	0.0,	0.0, # 0 - 3
 0.0,	1.0,	0.0,	0.0, # 4 - 7
@@ -247,7 +323,7 @@ class SketchData:
 'MIp6c4',	'PEc0c4',	'PEc2c4',	'COp7p1'
 ],
 'Dimensions':[
-'SLDp2p3e0d[slotLength]v[3.176184,-2.505851]',	'SLDp5p6e0d[wallThickness]v[2.689405,-0.77777]'
+'SLDp2p3e0d[slotLength]v[3.238997,-2.054909]',	'SLDp5p6e0d[wallThickness]v[3.372915,-1.937731]'
 ],
 'Guideline':['p7','p8','c4','noFlip'],
 'ProfileCentroids':[
@@ -263,6 +339,7 @@ class SketchData:
 
 
 
+
     @classmethod
-    def getDefaultData(cls):
+    def getDefaultRawData(cls):
         return cls.finger()

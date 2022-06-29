@@ -4,6 +4,8 @@ import os, math, re, ast
 from collections.abc import Iterable
 from .TurtleUtils import TurtleUtils
 from .TurtleSketch import TurtleSketch
+from .data.SketchData import *
+#from .data.SketchData import BuiltInDrawing
 from .TurtleParams import TurtleParams
 from .TurtlePath import TurtlePath
 
@@ -11,8 +13,7 @@ f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleDecoder:
 
-    def __init__(self, data:str, sketch:f.Sketch, reverse:bool = False, mirror:bool = False):
-        self.data = data
+    def __init__(self, data:SketchData, sketch:f.Sketch, reverse:bool = False, mirror:bool = False):
         if sketch:
             self.sketch = sketch
             self.tsketch = TurtleSketch.createWithSketch(self.sketch)
@@ -26,23 +27,26 @@ class TurtleDecoder:
         self.userStartGuidePoint:core.Point3D = None
         self.userEndGuidePoint:core.Point3D = None
 
-        self.hasEncodedGuideline = False
         self.encStartGuideIndex = -1
         self.encEndGuideIndex = -1
         self.encStartGuidePoint = None
         self.encEndGuidePoint = None      
         self.encGuideIndex = -1
         self.encGuideFlipped = False
-        self.decodeSketchData(self.data)
+        
+        self.addedDimensions:list = None
+        self.dimensionNameMap:list = None
+
+        self.data = data
 
     @classmethod
-    def createWithSketch(cls, data, sketch:f.Sketch, reverse = False, mirror = False):
+    def createWithSketch(cls, data:SketchData, sketch:f.Sketch, reverse = False, mirror = False):
         decoder = TurtleDecoder(data, sketch, reverse, mirror)
         decoder.run()
         return decoder
 
     @classmethod
-    def createWithGuidelines(cls, data, guidelines:list[f.SketchLine], reverse = False, mirror = False, callback = None):
+    def createWithGuidelines(cls, data:SketchData, guidelines:list[f.SketchLine], reverse = False, mirror = False, callback = None):
         decoder = TurtleDecoder(data, None, reverse, mirror)
         for guideline in guidelines:
             decoder.sketch = guideline.parentSketch
@@ -55,7 +59,7 @@ class TurtleDecoder:
                 callback(decoder)
         return decoder
     @classmethod
-    def createWithPointChain(cls, data, sketch:f.Sketch, points:list[tuple[core.Point3D, core.Point3D]], reverse = False, mirror = False, callback = None):
+    def createWithPointChain(cls, data:SketchData, sketch:f.Sketch, points:list[tuple[core.Point3D, core.Point3D]], reverse = False, mirror = False, callback = None):
         decoder = TurtleDecoder(data, sketch, reverse, mirror)
         for ptPair in points:
             decoder.userStartGuidePoint = ptPair[0]
@@ -68,22 +72,17 @@ class TurtleDecoder:
     def run(self):
         self.sketch.isComputeDeferred = True
         self.transform.setToIdentity()
-        # if self.userStartGuidePoint:
-        #     self.userStartGuidePoint.isFixed = True
-        # if self.userEndGuidePoint:
-        #     self.userEndGuidePoint.isFixed = True
-
         self.assessTransform()
         self.decodeFromSketch()
-
-        # if self.userStartGuidePoint:
-        #     self.userStartGuidePoint.isFixed = False
-        # if self.userEndGuidePoint:
-        #     self.userEndGuidePoint.isFixed = False
-
         self.sketch.isComputeDeferred = False
         
     def assessTransform(self):
+        if self.data.hasEncodedGuideline:
+            self.encStartGuideIndex = self.parseIndexOnly(self.data.guidelineValues[0])
+            self.encEndGuideIndex = self.parseIndexOnly(self.data.guidelineValues[1])
+            self.encStartGuidePoint,_ = self.parsePoint(self.data.pointValues[self.encStartGuideIndex])
+            self.encEndGuidePoint,_ = self.parsePoint(self.data.pointValues[self.encEndGuideIndex])
+            
         if not self.userStartGuidePoint:
             self.userStartGuidePoint = self.encStartGuidePoint
         if not self.userEndGuidePoint:
@@ -93,49 +92,24 @@ class TurtleDecoder:
             scale, originPoint = self.createTransformFromGuidePoints(\
                 self.encStartGuidePoint, self.encEndGuidePoint, self.userStartGuidePoint, self.userEndGuidePoint)
             self.guideScale = scale
-        
-    def decodeSketchData(self, data = None):
-        data = data if data else self.data
-        self.params = data["Params"] if "Params" in data else {}
-        self.pointValues = data["Points"] if "Points" in data else []
-        self.chainValues = data["Chains"] if "Chains" in data else []
-        self.constraintValues = data["Constraints"] if "Constraints" in data else []
-        self.dimensionValues = data["Dimensions"] if "Dimensions" in data else []
-        self.profileCentroids = data["ProfileCentroids"] if "ProfileCentroids" in data else []
-        self.orgNamedProfiles = data["NamedProfiles"] if "NamedProfiles" in data else {}
-        self.guidelineValues = self.data["Guideline"] if "Guideline" in self.data else None
-        if self.guidelineValues:
-            self.hasEncodedGuideline = True
-             # needed for generating transform before points are generated
-            self.encStartGuideIndex = self.parseIndexOnly(self.guidelineValues[0])
-            self.encEndGuideIndex = self.parseIndexOnly(self.guidelineValues[1])
-            self.encStartGuidePoint,_ = self.parsePoint(self.pointValues[self.encStartGuideIndex])
-            self.encEndGuidePoint,_ = self.parsePoint(self.pointValues[self.encEndGuideIndex])
-        self.addedDimensions = []
-        self.dimensionNameMap = []
-        idx = 0
-        for dim in self.dimensionValues:
-            regex = re.compile("(?<![a-zA-Z0-9_])__" + str(idx) + "(?![a-zA-Z0-9_])")
-            self.dimensionNameMap.append(regex)
-            idx += 1
-        self.namedProfiles = self.orgNamedProfiles.copy()
 
     def decodeFromSketch(self):
         self.offsetRefs = {}
         self.forwardExpressions = {}
-        self.sketchPoints = self.generatePoints(self.pointValues)
-        self.curves = self.generateChains(self.chainValues)
+        self.addedDimensions = []
+        self.dimensionNameMap = []
 
-        self.constraints = self.generateConstraints(self.constraintValues)
-        for name in self.params:
+        self.sketchPoints = self.generatePoints(self.data.pointValues)
+        self.curves = self.generateChains(self.data.chainValues)
+        self.constraints = self.generateConstraints(self.data.constraintValues)
+        for name in self.data.params:
             self.addUserParam(name)
-
-        self.generateDimensions(self.dimensionValues) # added to self.addedDimensions
-        self.profileMap = self.mapProfiles(self.profileCentroids)
+        self.generateDimensions(self.data.dimensionValues) # added to self.addedDimensions
+        self.profileMap = self.mapProfiles(self.data.profileCentroids)
     
     def addUserParam(self, name, currentDimIndex:int = -1):
         forwardRefs = []
-        encoding = self.parseDParam(self.params[name], forwardRefs)
+        encoding = self.parseDParam(self.data.params[name], forwardRefs)
         if(len(forwardRefs) > 0):
             lastRef:int = forwardRefs[-1]
             if lastRef in self.forwardExpressions:
@@ -416,15 +390,19 @@ class TurtleDecoder:
             logMinDists.append(minDist)
         
         self.namedProfiles = {}
-        for key in self.orgNamedProfiles:
+        for key in self.data.namedProfiles:
             mappedIndexes = []
-            for index in self.orgNamedProfiles[key]:
+            for index in self.data.namedProfiles[key]:
                 mappedIndexes.append(dataToSketchMap[index])
             self.namedProfiles[key] = mappedIndexes
 
         return dataToSketchMap
 
     def generateDimensions(self, dims):
+        for idx in range(len(self.data.dimensionValues)):
+            regex = re.compile("(?<![a-zA-Z0-9_])__" + str(idx) + "(?![a-zA-Z0-9_])")
+            self.dimensionNameMap.append(regex)
+
         dimensions:f.SketchDimensions = self.sketch.sketchDimensions
         idx = 0
         paramIndex = 0

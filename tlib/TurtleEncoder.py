@@ -73,7 +73,7 @@ class TurtleEncoder:
         self.data["Dimensions"] = self.dimensions.values()
         self.data["ProfileCentroids"] = self.profiles.values()
 
-        result = "#Turtle Generated Data\n{\n"
+        result = "{#Turtle Generated Data\n"
         result += "\'CoordinateSystem\':" + self.encodeList(self.sketch.transform.asArray(), False, 4) + ",\n"
         result += "\'Params\':{\n" + self.encodeParams() + "},\n"
         result += "\'PointBounds\':[" + self.encodePoints(self.bounds[0], self.bounds[1]) + "],\n"

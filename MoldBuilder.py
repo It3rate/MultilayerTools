@@ -2,6 +2,7 @@
 # # Generates a laser cuttable mold from a shelled box.
 
 from xmlrpc.client import Boolean
+from enum import Enum
 import adsk.core, adsk.fusion, traceback
 from .tlib.TurtleUtils import TurtleUtils
 from .tlib.TurtleFace import TurtleFace
@@ -12,9 +13,63 @@ from .tlib.TurtleComponent import TurtleComponent
 from .tlib.TurtleLayers import TurtleLayers
 from .tlib.TurtleCustomCommand import TurtleCustomCommand
 from .tlib.TurtleDecoder import TurtleDecoder
-from .tlib.data.SketchData import SketchData
+from .tlib.data.SketchData import BuiltInDrawing, SketchData
 
 f,core,app,ui = TurtleUtils.initGlobals()
+
+class Surface(Enum):
+    none = 0
+    topInner= 1
+    topOuter = 2
+    topCenter = 3
+    bottomInner= 4
+    bottomOuter = 5
+    bottomCenter = 6
+    frontInner= 7
+    frontOuter = 8
+    frontCenter = 9
+    backInner= 10
+    backOuter = 11
+    backCenter = 12
+    leftInner= 13
+    leftOuter = 14
+    leftCenter = 15
+    rightInner= 16
+    rightOuter = 17
+    rightCenter = 18
+
+class WallData():
+    def __init__(self, wallKind:Surface, face:f.BRepFace, extrudeDistance, ):
+        self.wallKind:Surface = wallKind
+        self.face:f.BRepFace = face
+        self.slotData:list
+        self.extrudeDistance = extrudeDistance
+            
+	# kind # outerFront, innerLeft etc 
+	# faceRef # BRepFace
+	# extrude distance
+	# slotKind # drawing to paste
+	# wallThickness # default from table
+	# slotCount # default from table
+	# isMirrored # default no,or drawings all consistant?
+	# isNegated # default no, or drawings all consistant?
+	# profileKind # default outer, largest, [index list]
+	# extrudeKind # default new, cut, join, intersect
+	# makeSymetricCopy # always true?
+	# name # optional body/component name
+	# colorIndex # optional color
+
+    # global:
+	# wallThickness # list, or one value - interior from model, exteriors all same
+	# slotcounts[] #width, depth, height (inner is one less?) 
+	# slotLength
+    # lipLength
+	# slotSpacingPercent?
+	
+	
+	# # project face, offset lines, make ring, draw slots (type, count, mirror/neg - per edge), 
+    # # find profile, extrude/cut, offset to other wall, name, color
+
 
 class MoldBuilder(TurtleCustomCommand):
     def __init__(self):
@@ -51,12 +106,12 @@ class MoldBuilder(TurtleCustomCommand):
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
         #self.createTopAndBottom(True)
-        self.createFloor(True)
-        # self.createInnerLeftAndRight(True)
-        # self.createInnerFrontAndBack(True)
-        self.createOuterFrontAndBack(True)
-        self.createOuterLeftAndRight(True)
-        self.curComponent.colorBodiesByOrder([0])
+        #self.createFloor(True)
+        self.createInnerLeftAndRight(True)
+        self.createInnerFrontAndBack(True)
+        #self.createOuterFrontAndBack(True)
+        #self.createOuterLeftAndRight(True)
+        #self.curComponent.colorBodiesByOrder([0])
         #orgBody = self.curComponent.getBodyByIndex(0)
         #orgBody.isVisible = False
 
@@ -70,9 +125,6 @@ class MoldBuilder(TurtleCustomCommand):
         self.createOuterLeftAndRight(False)
         self.curComponent.colorBodiesByOrder([0])
 
-
-    # project face, offset lines, make ring, draw slots (type, count, mirror/neg - per edge), 
-    # find profile, extrude/cut, offset to other wall, name, color
 
     def createFloor(self, isPreview:bool):
         projectedList = self.sketchFromFace(self.floorFace, 0, False)
@@ -246,12 +298,12 @@ class MoldBuilder(TurtleCustomCommand):
 
 
     def drawHoleLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint, mirror:bool, count:int = -1) -> TurtleDecoder:
-        drawData = SketchData.hole()
+        drawData = SketchData.createFromBuiltIn(BuiltInDrawing.hole)
         segs = TurtleSketch.createCenteredTabs(startPoint.geometry, endPoint.geometry, self.slotLengthVal, self.slotSpaceVal, count)
         return TurtleDecoder.createWithPointChain(drawData, self.currentTSketch.sketch, segs, False, mirror)
 
     def drawFingerLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint, mirror:bool, count:int = -1) -> TurtleDecoder:
-        drawData = SketchData.finger()
+        drawData = SketchData.createFromBuiltIn(BuiltInDrawing.finger)
         callback = self.fingerSegmentsCallback
         segs = TurtleSketch.createCenteredTabs(startPoint.geometry, endPoint.geometry, self.slotLengthVal, self.slotSpaceVal, count)
         self.workingPointList = [startPoint]
@@ -267,7 +319,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.workingPointList.append(endPt)
 
     def drawHoleOutline(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint, mirror:bool, count:int = -1) -> TurtleDecoder:
-        drawData = SketchData.holeOutline()
+        drawData = SketchData.createFromBuiltIn(BuiltInDrawing.holeOutline)
         callback = self.holeOutlineCallback
         segs = TurtleSketch.createCenteredTabs(startPoint.geometry, endPoint.geometry, self.slotLengthVal, self.slotSpaceVal, count)
         self.workingPointList = [startPoint]
@@ -283,7 +335,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.workingPointList.append(endPt)
 
     def drawNotchesLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint, mirror:bool, count:int = -1) -> TurtleDecoder:
-        drawData = SketchData.notches()
+        drawData = SketchData.createFromBuiltIn(BuiltInDrawing.notches)
         callback = self.notchesSegmentsCallback
         segs = TurtleSketch.createCenteredTabs(startPoint.geometry, endPoint.geometry, self.slotLengthVal, self.slotSpaceVal, count)
         self.workingPointList = [startPoint]

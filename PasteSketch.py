@@ -6,7 +6,7 @@ from .tlib.TurtleUtils import TurtleUtils
 from .tlib.TurtleUICommand import TurtleUICommand
 from .tlib.TurtleSketch import TurtleSketch
 from .tlib.TurtleDecoder import TurtleDecoder
-from .tlib.data.SketchData import SketchData
+from .tlib.data.SketchData import *
 
 f,core,app,ui = TurtleUtils.initGlobals()
 
@@ -116,8 +116,9 @@ class PasteSketchCommand(TurtleUICommand):
                 else:
                     filename = self._loadSketch()
                     if filename != "":
-                        textData = SketchData.loadData(filename)
-                        self.data = eval(textData)
+                        self.data = SketchData.createFromFile(filename)
+                        # textData = SketchData.loadData(filename)
+                        # self.data = eval(textData)
                     self.btLoadText.listItems.clear()
             
             self._resetUI()
@@ -183,11 +184,12 @@ class PasteSketchCommand(TurtleUICommand):
 
     def _ensureSketchData(self):
         if not self.data:
-            clip = TurtleUtils.getClipboardText()
-            if clip == None or not (clip.startswith("#Turtle Generated Data")):
-                self.data = SketchData.getDefaultData()
-            else:
-                self.data = eval(clip)
+            self.data = SketchData.createFromClipboard()
+            # clip = TurtleUtils.getClipboardText()
+            # if clip == None or not (clip.startswith("{#Turtle Generated Data")):
+            #     self.data = SketchData.createFromBuiltIn(BuiltInDrawing.default)
+            # else:
+            #     self.data = eval(clip)
     
     def _resetUI(self):
         if self.hasGuideline() or self.isInSketch:
