@@ -551,6 +551,10 @@ class TurtleSketch:
         ev = curve.geometry.evaluator
         pe = ev.getParameterExtents()
         return ev.getPointAtParameter((pe[2] - pe[1]) * 0.5)[1]
+
+    @classmethod
+    def getMidpointOfPoints(cls, p0:core.Point3D, p1:core.Point3D)->core.Point3D:
+        return core.Point3D.create((p1.x - p0.x)/2.0 + p0.x, (p1.y - p0.y)/2.0 + p0.y, (p1.z - p0.z)/2.0 + p0.z)
         
     @classmethod
     def isLineFlipped(cls, line:f.SketchLine):

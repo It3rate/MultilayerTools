@@ -89,11 +89,11 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        #self.createTopAndBottom(True)
+        # self.createTopAndBottom(True)
         # self.createFloor(True)
-        self.createInnerLeftAndRight(True)
-        self.createInnerFrontAndBack(True)
-        # self.createOuterFrontAndBack(True)
+        # self.createInnerLeftAndRight(True)
+        # self.createInnerFrontAndBack(True)
+        self.createOuterFrontAndBack(True)
         # self.createOuterLeftAndRight(True)
         self.curComponent.colorBodiesByOrder([0])
         #orgBody = self.curComponent.getBodyByIndex(0)
@@ -101,11 +101,11 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        # self.createTopAndBottom(False)
+        self.createTopAndBottom(False)
         # self.createFloor(False)
-        self.createInnerLeftAndRight(False)
-        self.createInnerFrontAndBack(False)
-        # self.createOuterFrontAndBack(False)
+        # self.createInnerLeftAndRight(False)
+        # self.createInnerFrontAndBack(False)
+        self.createOuterFrontAndBack(False)
         # self.createOuterLeftAndRight(False)
         self.curComponent.colorBodiesByOrder([0])
 
@@ -129,9 +129,7 @@ class MoldBuilder(TurtleCustomCommand):
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
 
     def createInnerFrontAndBack(self, isPreview:bool):
-        # all wall coordinates are  from the perspective of pointing into the material
         projectedList = self.sketchFromFace(self.backInnerFace, 0, True)
-
         # shrink bottom only, make holes in the sides, fingers in the bottom and top
         offsetLines = self.currentTSketch.offset([projectedList[3]], self.backInnerFace.centroid, '-wallThickness', True)[0]
         topLine = projectedList[1]
@@ -142,7 +140,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.drawHoleOutline(*ptPairs[0], False, False, self.slotCountHeight) # right
         self.drawFingerLine(*ptPairs[1], False, False, self.slotCountWidth) # top
         self.drawHoleOutline(*ptPairs[2], False, False, self.slotCountHeight) # left  
-        self.drawFingerLine(*ptPairs[3], False, False, self.slotCountWidth) # bottom  
+        self.drawFingerLine(*ptPairs[3], True, False, self.slotCountWidth) # bottom  
 
         #inner back wall extrude
         profile = self.currentTSketch.findLargestProfile()
@@ -202,7 +200,7 @@ class MoldBuilder(TurtleCustomCommand):
         
         outerRect, _ = self.currentTSketch.offset(projectedList, self.topFace.centroid, 'wallThickness + lipWidth', False)
         ptPairs = self.currentTSketch.getRectPointChain(projectedList, True)
-        slotCounts = [self.slotCountWidth+1,self.slotCountDepth+1,self.slotCountWidth+1,self.slotCountDepth+1]
+        slotCounts = [self.slotCountDepth+1,self.slotCountWidth+1,self.slotCountDepth+1,self.slotCountWidth+1]
         for pp in zip(ptPairs,slotCounts):
             self.drawHoleLine(*pp[0], False, True, pp[1])
 
@@ -214,6 +212,7 @@ class MoldBuilder(TurtleCustomCommand):
         profile = self.currentTSketch.findOuterProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['-wallThickness'])
         TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.bottomOuterFace.face, self.parameters.createValue(0))
+
         # cut top lid hole
         innerLoopIndex = 1 if self.topFace.loops[0].isOuter else 0
         projectedList = self.sketchFromFace(self.topFace, innerLoopIndex, False)
@@ -245,9 +244,10 @@ class MoldBuilder(TurtleCustomCommand):
         ptPairs = self.currentTSketch.getRectPointChain([leftLine, rightLine], True)
         #ptPairs = self.currentTSketch.getRectPointChain(projectedList, True)
         self.drawHoleLine(*ptPairs[0], False, False, self.slotCountHeight + 1) #left
-        self.drawFingerLine(*ptPairs[1], False, True, self.slotCountWidth + 1) #top
+        self.drawFingerLine(*ptPairs[1], False, False, self.slotCountWidth + 1) #top
         self.drawHoleLine(*ptPairs[2], False, False, self.slotCountHeight + 1) #right
-        self.drawFingerLine(*ptPairs[3], True, True, self.slotCountWidth + 1) #bottom
+        self.drawFingerLine(*ptPairs[3], False, False, self.slotCountWidth + 1) #bottom
+
         #front wall extrude
         profile = self.currentTSketch.findOuterProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])

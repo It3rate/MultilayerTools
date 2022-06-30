@@ -421,7 +421,9 @@ class TurtleDecoder:
 
             if kind == "SLD": # SketchDistanceDimension
                 if not self.isGuideline(p0, p1):
-                    dimension = dimensions.addDistanceDimension(p0, p1, p2, self.asTransformedPoint3D(p4))
+                    line = core.Line3D.create(p0.geometry, p1.geometry)
+                    midPt = TurtleSketch.getMidpointOfPoints(p0.geometry, p1.geometry)
+                    dimension = dimensions.addDistanceDimension(p0, p1, p2, midPt)# self.asTransformedPoint3D(p4))
                     dimension.parameter.expression = p3
             elif kind == "SOD": # SketchOffsetDimension
                 dimension = dimensions.addOffsetDimension(p0,p1,self.asTransformedPoint3D(p3))

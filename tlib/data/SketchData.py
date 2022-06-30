@@ -297,7 +297,6 @@ class SketchData:
     @classmethod
     def finger(cls):
         return \
-\
 {#Turtle Generated Data
 'CoordinateSystem':[
 1.0,	0.0,	0.0,	0.0, # 0 - 3
@@ -320,11 +319,11 @@ class SketchData:
 'xFLp7p8', # 4
 ],
 'Constraints':[
-'PEc1c0',	'MIp4c1',	'PEc1c2',	'COp6c4',	'SYp7p8c3', # 0 - 4
-'PEc0c4',	'MIp5c4',	'COp3c4'
+'PEc1c0',	'MIp4c1',	'PEc1c2',	'COp6c4',	'PEc0c4', # 0 - 4
+'MIp5c4',	'COp3c4',	'PEc3c4'
 ],
 'Dimensions':[
-'SLDp1p2e0d[slotLength]v[2.735424,-0.152974]',	'SLDp4p5e0d[wallThickness]v[2.858077,0.669195]'
+'SLDp1p2e0d[slotLength]v[2.371112,1.694026]',	'SLDp4p5e0d[wallThickness]v[2.668506,0.531461]'
 ],
 'Guideline':['p7','p8','c4','noFlip'],
 'ProfileCentroids':[
@@ -334,6 +333,7 @@ class SketchData:
 
 }
 }
+
 
 
 
