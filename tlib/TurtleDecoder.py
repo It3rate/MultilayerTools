@@ -1,6 +1,7 @@
 
 import adsk.core, adsk.fusion, adsk.cam, traceback
 import os, math, re, ast
+from functools import cmp_to_key
 from collections.abc import Iterable
 from .TurtleUtils import TurtleUtils
 from .TurtleSketch import TurtleSketch
@@ -289,6 +290,7 @@ class TurtleDecoder:
 
     def generateConstraints(self, cons):
         result = []
+        cons = self.sortConstraintsByDrawOrder(cons)
         constraints:f.GeometricConstraints = self.sketch.geometricConstraints
         index = 0
         for con in cons:
@@ -583,3 +585,12 @@ class TurtleDecoder:
                 maxLen = len(chain)
         return result
 
+    def sortConstraintsByDrawOrder(self, lst:list)->list:
+        result=sorted(lst, key=cmp_to_key(self.compareConstraints), reverse=False)
+        return result
+
+    def compareConstraints(self, c0:str, c1:str)->int:
+        order = ['CO', 'EQ', 'PE', 'PA', 'VH', 'MI', 'CL', 'SY', 'TA', 'CC', 'SM', 'OF']
+        pre0 = order.index(c0[:2])
+        pre1 = order.index(c1[:2])
+        return pre0 - pre1

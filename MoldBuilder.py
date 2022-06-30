@@ -56,15 +56,15 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        # self.createTopAndBottom(True)
-        # self.createFloor(True)
-        # self.createInnerLeftAndRight(True)
-        # self.createInnerFrontAndBack(True)
+        self.createTopAndBottom(True)
+        self.createFloor(True)
+        self.createInnerLeftAndRight(True)
+        self.createInnerFrontAndBack(True)
         self.createOuterFrontAndBack(True)
         self.createOuterLeftAndRight(True)
         self.curComponent.colorBodiesByOrder([0])
-        #orgBody = self.curComponent.getBodyByIndex(0)
-        #orgBody.isVisible = False
+        orgBody = self.curComponent.getBodyByIndex(0)
+        orgBody.isVisible = False
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
@@ -136,9 +136,9 @@ class MoldBuilder(TurtleCustomCommand):
         # self.currentTSketch.printPointPairs(ptPairs)
 
         self.drawFingerLine(*ptPairs[0], False, True, self.slotCountHeight) # left side
-        self.drawFingerLine(*ptPairs[1], True, True, self.slotCountDepth) # bottom 
+        self.drawFingerLine(*ptPairs[1], False, True, self.slotCountDepth) # bottom 
         self.drawFingerLine(*ptPairs[2], False, True, self.slotCountHeight) # right side
-        self.drawFingerLine(*ptPairs[3], True, True, self.slotCountDepth) # top 
+        self.drawFingerLine(*ptPairs[3], False, True, self.slotCountDepth) # top 
 
         #left wall extrude
         profile = self.currentTSketch.findLargestProfile()

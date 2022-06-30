@@ -178,7 +178,7 @@ class TurtlePath:
             else:
                 val = data[index]
                 line = self.curLines[val] if (type(val) == int)  else val # else is a line
-                p0:SketchPoint = line.startSketchPoint if data[index + 1] == 0 else line.endSketchPoint
+                p0:f.SketchPoint = line.startSketchPoint if data[index + 1] == 0 else line.endSketchPoint
                 result.append(p0)
                 index += 2
         return result, index
@@ -202,12 +202,12 @@ class TurtlePath:
         p0.merge(p1)
     
     def makeVertHorz(self, a:f.SketchLine):
-        sp = self.curLines[index].startSketchPoint.geometry
-        ep = self.curLines[index].endSketchPoint.geometry
+        sp = self.a.startSketchPoint.geometry
+        ep = self.a.endSketchPoint.geometry
         if(abs(sp.x - ep.x) < abs(sp.y - ep.y)):
-            self.constraints.addVertical(self.curLines[index])
+            self.constraints.addVertical(a)
         else:
-            self.constraints.addHorizontal(self.curLines[index])
+            self.constraints.addHorizontal(a)
 
     def makeParallel(self, a:f.SketchLine, b:f.SketchLine):
         self.constraints.addParallel(a, b)
@@ -275,7 +275,7 @@ class TurtlePath:
         if type(expr) == float or type(expr) == int:
             result = expr
         else:
-            result = self.unitsManager.evaluateExpression(expr)
+            result = cls.unitsManager.evaluateExpression(expr)
         return result
         
     @classmethod

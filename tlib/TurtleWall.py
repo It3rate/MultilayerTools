@@ -24,6 +24,9 @@ class TurtleWall:
     def sketch(self)->f.Sketch:
         return self.tSketch.sketch
     
+    def getLineByGlobalOrientation(self, orientation:Orientation)->f.SketchLine:
+        pass
+    
     def getXVector(self)->core.Vector3D:
         return self.sketch.xDirection
     def getYVector(self)->core.Vector3D:
@@ -35,8 +38,6 @@ class TurtleWall:
     def getSlotCountForEdge(self, orientation:Orientation)->int:
         pass
     
-    def getLineByGlobalOrientation(self, orientation:Orientation)->f.SketchLine:
-        pass
 
     def offsetLines(self, lines, orientations:list[Orientation], extrudeDistance)->list[f.SketchLine]:
         pass

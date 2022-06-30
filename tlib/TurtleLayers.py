@@ -89,7 +89,7 @@ class TurtleLayers:
 
 
     def extrudeForLayer(self, extrudeIndex:int) -> f.ExtrudeFeature:  
-        return self.layers[index].extrude if len(self.layers) > index else None
+        return self.layers[extrudeIndex].extrude if len(self.layers) > extrudeIndex else None
 
     def firstLayerExtrude(self) -> f.ExtrudeFeature:  
         return self.layers[0].extrude if len(self.layers) > 0 else None
@@ -142,7 +142,7 @@ class TurtleLayers:
 
     def modifyWithProfiles(self, profiles, operation:f.FeatureOperations):
         extrusions = []
-        profiles = profiles if isinstance(profiles, list) else [profiles] * len(layerIndexes)
+        profiles = profiles if isinstance(profiles, list) else [profiles] * len(self.layerIndexes)
         for i, layer in enumerate(self.layers):
             bodies = self.getBodiesFrom(i)
             pindex = min(i, len(profiles) - 1)
