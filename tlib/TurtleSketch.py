@@ -368,6 +368,9 @@ class TurtleSketch:
             ptPairs.append((l1[0], l0[0]))
         else: #normal rect or even polyline
             ptPairs = normList
+        
+        if len(ptPairs) < 3: # sometimes just one line is extruded
+            return ptPairs
 
         curPair = ptPairs.pop(0)
         chain = [curPair[0], curPair[1]]
@@ -401,16 +404,21 @@ class TurtleSketch:
                     minPt = self.minSketchPoint(minPt, matchPair[matchIndex])
                     ptPairs.pop(ptPairs.index(matchPair))
                     break
-        #start at min
-        #todo: min point needs to account for xDirection and yDirection
-        minIndex = chain.index(minPt)
-        chain = chain[minIndex:] + chain[:minIndex]
+        
+        # ensure no double points at ends
+        if chain[0].geometry.isEqualTo(chain[-1].geometry):
+            chain.pop() # removes last element
 
         # ensure clockwise or ccw
         if len(chain) > 2:
             isCw = self.areSketchPointsClockwise(chain[0], chain[1], chain[2])
             if(makeCW and not isCw) or (not makeCW and isCw):
                 chain.reverse()
+
+        #start at min
+        #todo: min point needs to account for xDirection and yDirection
+        minIndex = chain.index(minPt)
+        chain = chain[minIndex:] + chain[:minIndex]
 
         # turn points into pairs
         result = []
@@ -545,6 +553,10 @@ class TurtleSketch:
         ev = curve.geometry.evaluator
         pe = ev.getParameterExtents()
         return ev.getPointAtParameter((pe[2] - pe[1]) * 0.5)[1]
+
+    @classmethod
+    def getMidpointOfPoints(cls, p0:core.Point3D, p1:core.Point3D)->core.Point3D:
+        return core.Point3D.create((p1.x - p0.x)/2.0 + p0.x, (p1.y - p0.y)/2.0 + p0.y, (p1.z - p0.z)/2.0 + p0.z)
         
     @classmethod
     def isLineFlipped(cls, line:f.SketchLine):
