@@ -3,6 +3,8 @@ import os, math, re
 from .TurtleUtils import TurtleUtils
 from .JointMaker import JointMaker
 
+f:adsk.fusion
+core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 _handlers = []

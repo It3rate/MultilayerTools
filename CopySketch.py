@@ -8,6 +8,8 @@ from .tlib.TurtleSketch import TurtleSketch
 from .tlib.TurtleEncoder import TurtleEncoder
 from .tlib.data.SketchData import SketchData
 
+f:adsk.fusion
+core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class CopySketchCommand(TurtleUICommand):

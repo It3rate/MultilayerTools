@@ -15,42 +15,9 @@ from .tlib.TurtleCustomCommand import TurtleCustomCommand
 from .tlib.TurtleDecoder import TurtleDecoder
 from .tlib.data.SketchData import BuiltInDrawing, SketchData
 
+f:adsk.fusion
+core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
-
-
-class WallData():
-    def __init__(self, wallKind:SurfaceKind, face:f.BRepFace, extrudeDistance, ):
-        self.wallKind:SurfaceKind = wallKind
-        self.face:f.BRepFace = face
-        self.sketchKinds:list[BuiltInDrawing]
-        self.extrudeDistance = extrudeDistance
-        self.extrudeLineIndexes: list[int]
-            
-	# kind # outerFront, innerLeft etc 
-	# faceRef # BRepFace
-	# extrude distance
-	# slotKind # drawing to paste
-	# wallThickness # default from table
-	# slotCount # default from table
-	# isMirrored # default no,or drawings all consistant?
-	# isNegated # default no, or drawings all consistant?
-	# profileKind # default outer, largest, [index list]
-	# extrudeKind # default new, cut, join, intersect
-	# makeSymetricCopy # always true?
-	# name # optional body/component name
-	# colorIndex # optional color
-
-    # global:
-	# wallThickness # list, or one value - interior from model, exteriors all same
-	# slotcounts[] #width, depth, height (inner is one less?) 
-	# slotLength
-    # lipLength
-	# slotSpacingPercent?
-	
-	
-	# # project face, offset lines, make ring, draw slots (type, count, mirror/neg - per edge), 
-    # # find profile, extrude/cut, offset to other wall, name, color
-
 
 class MoldBuilder(TurtleCustomCommand):
     def __init__(self):

@@ -1,6 +1,7 @@
 from modulefinder import Module
 import adsk.core, adsk.fusion, adsk.cam, traceback, os
 import tkinter as tk
+from enum import Enum
 
 __decimalPlaces__ = 6
 
@@ -165,3 +166,33 @@ def baseMethod(method):
 def hasOverride(method):
     return not hasattr(method, 'isBaseMethod')
     
+
+class SurfaceKind(Enum):
+    none = 0
+    topInner= 1
+    topOuter = 2
+    topCenter = 3
+    bottomInner= 4
+    bottomOuter = 5
+    bottomCenter = 6
+    frontInner= 7
+    frontOuter = 8
+    frontCenter = 9
+    backInner= 10
+    backOuter = 11
+    backCenter = 12
+    leftInner= 13
+    leftOuter = 14
+    leftCenter = 15
+    rightInner= 16
+    rightOuter = 17
+    rightCenter = 18
+    
+class Orientation(Enum):
+    none = 0
+    top= 1
+    right = 2
+    left = 3
+    bottom= 4
+    front = 5
+    back = 6

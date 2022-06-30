@@ -6,7 +6,8 @@ from .JointMaker import JointMaker
 from .TurtleEncoder import TurtleEncoder
 from .TurtleDecoder import TurtleDecoder
 
-# command
+f:adsk.fusion
+core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class CreateShelves(TurtleCommand):

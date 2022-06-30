@@ -8,6 +8,8 @@ from .TurtleParams import TurtleParams
 from .TurtlePath import TurtlePath
 from .TurtleLayers import TurtleLayers
 
+f:adsk.fusion
+core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 pMID = "mid"

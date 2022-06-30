@@ -1,9 +1,10 @@
-
-import adsk.core, adsk.fusion, adsk.cam, traceback
-import os, math, re, ast
+import os, math, re, ast, traceback
 from enum import Enum
+import adsk.core, adsk.fusion, adsk.cam
 from ..TurtleUtils import TurtleUtils
 
+f:adsk.fusion
+core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class BuiltInDrawing(Enum):
@@ -37,19 +38,19 @@ class SketchData:
 
     @classmethod
     def createFromFile(cls, filename:str):
-        f = open(filename, "r")
-        str = f.read()
-        f.close()
-        if str == None or not (str.startswith("{#Turtle Generated Data")):
+        file = open(filename, "r")
+        sData = file.read()
+        file.close()
+        if sData is None or not sData.startswith("{#Turtle Generated Data"):
             data = SketchData.getDefaultRawData()
         else:
-            data = eval(str)
+            data = eval(sData)
         return cls(data)
 
     @classmethod
     def createFromClipboard(cls):
         clip = TurtleUtils.getClipboardText()
-        if clip == None or not (clip.startswith("{#Turtle Generated Data")):
+        if clip is None or not clip.startswith("{#Turtle Generated Data"):
             data = SketchData.getDefaultRawData()
         else:
             data = eval(clip)
@@ -103,26 +104,19 @@ class SketchData:
         val = param[1:]
         return int(val)
 
-    def parsePoint(self, pointVal:list[float]) -> tuple[core.Point3D, bool]:
-        isFixed = False
-        if len(pointVal) > 2 and pointVal[2] == 'f':
-            isFixed = True
-            pointVal.pop()
-        pt = self.asTransformedPoint3D(pointVal)
-        return (pt, isFixed)
 
     @classmethod
     def loadData(cls, filename:str):
-        f = open(filename, "r")
-        result = f.read()
-        f.close()
+        file = open(filename, "r")
+        result = file.read()
+        file.close()
         return result
 
     @classmethod
     def saveData(cls, filename:str, data:str):
-        f = open(filename, "w")
-        f.write(data)
-        f.close()
+        file = open(filename, "w")
+        file.write(data)
+        file.close()
 
 
 

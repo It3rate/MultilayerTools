@@ -3,6 +3,8 @@ import adsk.core, adsk.fusion, traceback
 import os, math, re, sys
 from .TurtleUtils import TurtleUtils
 
+f:adsk.fusion
+core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtlePath:

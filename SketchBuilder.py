@@ -10,6 +10,8 @@ from .tlib.TurtleComponent import TurtleComponent
 from .tlib.TurtleLayers import TurtleLayers
 from .tlib.TurtleCustomCommand import TurtleCustomCommand
 
+f:adsk.fusion
+core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class SketchBuilder(TurtleCustomCommand):

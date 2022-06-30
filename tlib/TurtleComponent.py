@@ -7,7 +7,8 @@ from .TurtleParams import TurtleParams
 from .TurtlePath import TurtlePath
 from .TurtleAppearance import TurtleAppearance
 
-
+f:adsk.fusion
+core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleComponent:

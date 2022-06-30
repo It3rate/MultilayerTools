@@ -1,10 +1,10 @@
 from __future__ import annotations
 import adsk.core, adsk.fusion, traceback
 import os, math, re, sys
-from enum import Enum
 from .TurtleUtils import TurtleUtils
 from .TurtleParams import TurtleParams
 from .TurtleSketch import TurtleSketch
+from .TurtleWall import *
 
 f,core,app,ui = TurtleUtils.initGlobals()
 
@@ -111,24 +111,3 @@ class TurtleFace:
             result.name = name
         return result
 
-
-class SurfaceKind(Enum):
-    none = 0
-    topInner= 1
-    topOuter = 2
-    topCenter = 3
-    bottomInner= 4
-    bottomOuter = 5
-    bottomCenter = 6
-    frontInner= 7
-    frontOuter = 8
-    frontCenter = 9
-    backInner= 10
-    backOuter = 11
-    backCenter = 12
-    leftInner= 13
-    leftOuter = 14
-    leftCenter = 15
-    rightInner= 16
-    rightOuter = 17
-    rightCenter = 18

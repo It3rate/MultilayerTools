@@ -7,6 +7,8 @@ from .TurtleUtils import TurtleUtils
 from .TurtlePath import TurtlePath
 from .TurtleParams import TurtleParams
 
+f:adsk.fusion
+core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleSketch:
@@ -70,7 +72,7 @@ class TurtleSketch:
     def setDistances(self, lines, indexValues):
         self.sketch.isComputeDeferred = True
         for pair in indexValues:
-             self.addLineLength(self.sketch, lines[pair[0]], pair[1])
+             self.addLineLength(lines[pair[0]], pair[1])
         self.sketch.isComputeDeferred = False
 
     def makeVertHorz(self, lines, indexes):

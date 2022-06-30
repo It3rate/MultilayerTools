@@ -2,6 +2,8 @@
 import adsk.core, adsk.fusion, traceback
 from .TurtleUtils import TurtleUtils
 
+f:adsk.fusion
+core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleAppearance(list):
