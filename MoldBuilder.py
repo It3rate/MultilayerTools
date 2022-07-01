@@ -45,6 +45,7 @@ class MoldBuilder(TurtleCustomCommand):
     def onCreated(self, eventArgs:core.CommandCreatedEventArgs):
         # investigations of a shelled box
         self.component:f.Component = TurtleUtils.activeDesign().activeComponent
+        self.tComponent:TurtleComponent = TurtleComponent.createFromExisting(self.component)
         if not self.component.bRepBodies.count == 1 or not self.component.bRepBodies.item(0).faces.count == 11:
             return
         self._parseFaces()
@@ -56,25 +57,25 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        self.createTopAndBottom(True)
         self.createFloor(True)
-        self.createInnerLeftAndRight(True)
-        self.createInnerFrontAndBack(True)
-        self.createOuterFrontAndBack(True)
-        self.createOuterLeftAndRight(True)
-        self.curComponent.colorBodiesByOrder([0])
-        orgBody = self.curComponent.getBodyByIndex(0)
-        orgBody.isVisible = False
+        # self.createTopAndBottom(True)
+        # self.createInnerLeftAndRight(True)
+        # self.createInnerFrontAndBack(True)
+        # self.createOuterFrontAndBack(True)
+        # self.createOuterLeftAndRight(True)
+        # self.curComponent.colorBodiesByOrder([0])
+        # orgBody = self.curComponent.getBodyByIndex(0)
+        # orgBody.isVisible = False
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        self.createTopAndBottom(False)
         self.createFloor(False)
+        self.createTopAndBottom(False)
         self.createInnerLeftAndRight(False)
         self.createInnerFrontAndBack(False)
         self.createOuterFrontAndBack(False)
         self.createOuterLeftAndRight(False)
-        self.curComponent.colorBodiesByOrder([0])
+        #self.curComponent.colorBodiesByOrder([0])
 
 
     # def getExpandedRectPoints(self, edges)->list[tuple[core.Point3D,core.Point3D]]:
@@ -94,6 +95,7 @@ class MoldBuilder(TurtleCustomCommand):
         #floor extrude
         profile = self.currentTSketch.findLargestProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],0)
 
     def createInnerFrontAndBack(self, isPreview:bool):
         projectedList = self.sketchFromFace(self.backInnerFace, 0, True)
@@ -112,8 +114,10 @@ class MoldBuilder(TurtleCustomCommand):
         #inner back wall extrude
         profile = self.currentTSketch.findLargestProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],1)
         #inner front wall extrude
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['-wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],1)
         TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.frontInnerFace.face, self.parameters.createValue(0))
 
 
@@ -143,8 +147,10 @@ class MoldBuilder(TurtleCustomCommand):
         #left wall extrude
         profile = self.currentTSketch.findLargestProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],2)
         #right wall extrude
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['-wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],2)
         TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.leftInnerFace.face, self.parameters.createValue(0))
 
     def createOuterLeftAndRight(self, isPreview:bool):
@@ -157,8 +163,10 @@ class MoldBuilder(TurtleCustomCommand):
         #left wall extrude
         profile = self.currentTSketch.findOuterProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],2)
         #right wall extrude
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['-wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],2)
         TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.rightOuterFace.face, self.parameters.createValue(0))
 
     def createTopAndBottom(self, isPreview:bool):
@@ -174,10 +182,12 @@ class MoldBuilder(TurtleCustomCommand):
         # extrude top, uncut
         profile = self.currentTSketch.findOuterProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],0)
         topBody = newFeatures[0].bodies[0]
         #extrude  bottom
         profile = self.currentTSketch.findOuterProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['-wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],0)
         TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.bottomOuterFace.face, self.parameters.createValue(0))
 
         # cut top lid hole
@@ -218,8 +228,10 @@ class MoldBuilder(TurtleCustomCommand):
         #front wall extrude
         profile = self.currentTSketch.findOuterProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],1)
         #back wall extrude
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['-wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],1)
         TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.backOuterFace.face, self.parameters.createValue(0))
 
 
