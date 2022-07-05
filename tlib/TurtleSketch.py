@@ -323,6 +323,25 @@ class TurtleSketch:
         for pp in pointPairs:
             result.append(self.drawLine(pp[0], pp[1]))
         return result
+    def drawHVLines(self, pointPairs:list[tuple[f.SketchPoint, f.SketchPoint]]) -> list[f.SketchLine]:
+        result = []
+        lastLine = None
+        for pp in pointPairs:
+            line = self.drawLine(pp[0], pp[1])
+            if lastLine:
+                line.parentSketch.geometricConstraints.addCollinear(lastLine, line)
+            #self.makeLineHV(line)
+            result.append(line)
+        return result
+        
+    def makeLineHV(self, line:f.SketchLine):
+        sp = line.startSketchPoint.geometry
+        ep = line.endSketchPoint.geometry
+        if(abs(sp.x - ep.x) < abs(sp.y - ep.y)):
+            constraint = line.parentSketch.geometricConstraints.addVertical(line)
+        else:
+            constraint = line.parentSketch.geometricConstraints.addHorizontal(line)
+        return constraint
 
     def drawPolyLine(self, points:list[f.SketchPoint]) -> list[f.SketchLine]:
         result = []
@@ -557,6 +576,22 @@ class TurtleSketch:
     @classmethod
     def getMidpointOfPoints(cls, p0:core.Point3D, p1:core.Point3D)->core.Point3D:
         return core.Point3D.create((p1.x - p0.x)/2.0 + p0.x, (p1.y - p0.y)/2.0 + p0.y, (p1.z - p0.z)/2.0 + p0.z)
+    @classmethod
+    def getMidpointOfGeometry(cls, p0)->core.Point3D:
+        result = p0
+        if isinstance(p0, core.Vector3D):
+            result = p0.asPoint()
+        elif isinstance(p0, core.Line3D) or isinstance(p0, core.Arc3D):
+            result = cls.getMidpointOfPoints(p0.startPoint, p0.endPoint)
+        elif isinstance(p0, core.Circle3D) or isinstance(p0, core.Ellipse3D) or isinstance(p0, core.EllipticalArc3D):
+            result = cls.getMidpointOfPoints(p0.center)
+        elif isinstance(p0, core.BoundingBox3D):
+            result = cls.getMidpointOfPoints(p0.minPoint, p0.maxPoint)
+        elif isinstance(p0, core.OrientedBoundingBox3D):
+            result = cls.getMidpointOfPoints(p0.centerPoint)
+        elif isinstance(p0, core.InfiniteLine3D):
+            result = cls.getMidpointOfPoints(p0.origin)
+        return result
         
     @classmethod
     def isLineFlipped(cls, line:f.SketchLine):

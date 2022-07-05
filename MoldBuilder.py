@@ -57,12 +57,13 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        self.createFloor(True)
+        #self.createFloor(True)
         # self.createTopAndBottom(True)
         # self.createInnerLeftAndRight(True)
-        # self.createInnerFrontAndBack(True)
+        self.createInnerFrontAndBack(True)
         # self.createOuterFrontAndBack(True)
         # self.createOuterLeftAndRight(True)
+
         # self.curComponent.colorBodiesByOrder([0])
         # orgBody = self.curComponent.getBodyByIndex(0)
         # orgBody.isVisible = False
@@ -282,12 +283,17 @@ class MoldBuilder(TurtleCustomCommand):
         decoder = TurtleDecoder.createWithPointChain(drawData, self.currentTSketch.sketch, segs, reverse, mirror, callback)
         self.workingPointList.append(endPoint)
         spaces = zip(self.workingPointList[::2], self.workingPointList[1::2])
-        self.currentTSketch.drawLines(spaces)
+        self.currentTSketch.drawHVLines(spaces)
         return decoder
     def fingerSegmentsCallback(self, decoder:TurtleDecoder):
-        startPt = decoder.getPointByName('p6')
+        startPt = decoder.getPointByName('p1')
         self.workingPointList.append(startPt)
-        endPt = decoder.getPointByName('p3')
+        endPt = decoder.getPointByName('p8')
+
+        # dimPt = TurtleSketch.getMidpointOfPoints(startPt.geometry, endPt.geometry)
+        # dimension = startPt.parentSketch.sketchDimensions.addDistanceDimension(startPt, endPt, 0, dimPt)
+        # dimension.parameter.expression = 'slotLength'
+
         self.workingPointList.append(endPt)
 
     def drawHoleOutline(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint, reverse:bool, mirror:bool, count:int = -1) -> TurtleDecoder:
@@ -298,12 +304,17 @@ class MoldBuilder(TurtleCustomCommand):
         decoder = TurtleDecoder.createWithPointChain(drawData, self.currentTSketch.sketch, segs, reverse, mirror, callback)
         self.workingPointList.append(endPoint)
         spaces = zip(self.workingPointList[::2], self.workingPointList[1::2])
-        self.currentTSketch.drawLines(spaces)
+        self.currentTSketch.drawHVLines(spaces)
         return decoder
     def holeOutlineCallback(self, decoder:TurtleDecoder):
-        startPt = decoder.getPointByName('p3')
+        startPt = decoder.getPointByName('p1')
         self.workingPointList.append(startPt)
-        endPt = decoder.getPointByName('p6')
+        endPt = decoder.getPointByName('p2')
+        
+        # dimPt = TurtleSketch.getMidpointOfPoints(startPt.geometry, endPt.geometry)
+        # dimension = startPt.parentSketch.sketchDimensions.addDistanceDimension(startPt, endPt, 0, dimPt)
+        # dimension.parameter.expression = 'slotLength'
+
         self.workingPointList.append(endPt)
 
     def drawNotchesLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint, reverse:bool, mirror:bool, count:int = -1) -> TurtleDecoder:

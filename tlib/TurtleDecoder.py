@@ -293,6 +293,7 @@ class TurtleDecoder:
         cons = self.sortConstraintsByDrawOrder(cons)
         constraints:f.GeometricConstraints = self.sketch.geometricConstraints
         index = 0
+        unhandledConstraints = []
         for con in cons:
             constraint = None
             parse = re.findall(r"(VH|PA|PE|EQ|CC|CL|CO|MI|OC|OF|SY|SM|TA)([pcav][0-9|\[\]\.\-,]*)([pcav][0-9|\[\]\.\-,]*)?([pcav][0-9|\[\]\.\-,]*)?", con)[0]
@@ -305,12 +306,13 @@ class TurtleDecoder:
             try:
                 if(kind == "VH"):
                     if not self.hasRotation and not p0 == self.userGuideline: # don't set vert/horz if transforming with rotation
-                        sp = p0.startSketchPoint.geometry
-                        ep = p0.endSketchPoint.geometry
-                        if(abs(sp.x - ep.x) < abs(sp.y - ep.y)):
-                            constraint = constraints.addVertical(p0)
-                        else:
-                            constraint = constraints.addHorizontal(p0)
+                        constraint = self.tsketch.makeLineHV(p0)
+                        # sp = p0.startSketchPoint.geometry
+                        # ep = p0.endSketchPoint.geometry
+                        # if(abs(sp.x - ep.x) < abs(sp.y - ep.y)):
+                        #     constraint = constraints.addVertical(p0)
+                        # else:
+                        #     constraint = constraints.addHorizontal(p0)
                 elif(kind == "PA"):
                     constraint = constraints.addParallel(p0, p1)
                 elif(kind == "PE"):
@@ -365,6 +367,7 @@ class TurtleDecoder:
 
             except:
                 print("Unable to generate constraint: " + con)
+                unhandledConstraints.append(con)
             index += 1
         return result
 
@@ -423,33 +426,36 @@ class TurtleDecoder:
             p3 = params[3] if len(params) > 3 else None
             p4 = params[4] if len(params) > 4 else None
 
+            dimPt = TurtleSketch.getMidpointOfPoints(p0.geometry, p1.geometry)\
+                 if p1 and isinstance(p1, f.SketchPoint) else \
+                    TurtleSketch.getMidpointOfGeometry(p0.geometry)
+
             if kind == "SLD": # SketchDistanceDimension
                 if not self.isGuideline(p0, p1):
                     line = core.Line3D.create(p0.geometry, p1.geometry)
-                    midPt = TurtleSketch.getMidpointOfPoints(p0.geometry, p1.geometry)
-                    dimension = dimensions.addDistanceDimension(p0, p1, p2, midPt)# self.asTransformedPoint3D(p4))
+                    dimension = dimensions.addDistanceDimension(p0, p1, p2, dimPt)# self.asTransformedPoint3D(p4))
                     dimension.parameter.expression = p3
             elif kind == "SOD": # SketchOffsetDimension
-                dimension = dimensions.addOffsetDimension(p0,p1,self.asTransformedPoint3D(p3))
+                dimension = dimensions.addOffsetDimension(p0,p1,dimPt)#self.asTransformedPoint3D(p3))
                 dimension.parameter.expression = p2
             elif kind == "SAD": # SketchAngularDimension
                 midText = self.textPoint(p0, p1) # this must be mid centers as the quadrant dimensioned is based on the text postion.
                 dimension = dimensions.addAngularDimension(p0,p1, midText)
                 dimension.parameter.expression = p2
             elif kind == "SDD": # SketchDiameterDimension
-                dimension = dimensions.addDiameterDimension(p0, self.asTransformedPoint3D(p2)) 
+                dimension = dimensions.addDiameterDimension(p0, dimPt)#self.asTransformedPoint3D(p2)) 
                 dimension.parameter.expression = p1
             elif kind == "SRD": # SketchRadialDimension
-                dimension = dimensions.addRadialDimension(p0, self.asTransformedPoint3D(p2))
+                dimension = dimensions.addRadialDimension(p0,dimPt)# self.asTransformedPoint3D(p2))
                 dimension.parameter.expression = p1
             elif kind == "SMA": # SketchEllipseMajorRadiusDimension
-                dimension = dimensions.addEllipseMajorRadiusDimension(p0, self.asTransformedPoint3D(p2))
+                dimension = dimensions.addEllipseMajorRadiusDimension(p0, dimPt)#self.asTransformedPoint3D(p2))
                 dimension.parameter.expression = p1
             elif kind == "SMI": # SketchEllipseMinorRadiusDimension
-                dimension = dimensions.addEllipseMinorRadiusDimension(p0, self.asTransformedPoint3D(p2))
+                dimension = dimensions.addEllipseMinorRadiusDimension(p0, dimPt)#self.asTransformedPoint3D(p2))
                 dimension.parameter.expression = p1
             elif kind == "SCC": # SketchConcentricCircleDimension
-                dimension = dimensions.addConcentricCircleDimension(p0,p1,self.asTransformedPoint3D(p3))
+                dimension = dimensions.addConcentricCircleDimension(p0,p1,dimPt)#self.asTransformedPoint3D(p3))
                 dimension.parameter.expression = p2
             elif kind == "SOC": # SketchOffsetCurvesDimension
                 parameter = self.offsetRefs[p0]
@@ -590,7 +596,7 @@ class TurtleDecoder:
         return result
 
     def compareConstraints(self, c0:str, c1:str)->int:
-        order = ['CO', 'EQ', 'PE', 'PA', 'VH', 'MI', 'CL', 'SY', 'TA', 'CC', 'SM', 'OF']
+        order = ['CO', 'PE', 'VH', 'TA', 'EQ', 'PA', 'MI', 'SY', 'CL', 'CC', 'SM', 'OF']
         pre0 = order.index(c0[:2])
         pre1 = order.index(c1[:2])
         return pre0 - pre1

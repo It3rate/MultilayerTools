@@ -74,9 +74,9 @@ class SketchData:
         elif kind == BuiltInDrawing.offsetHole:
             data = cls.offsetHole()
         elif kind == BuiltInDrawing.holeOutline:
-            data = cls.holeOutline()
+            data = cls.edgeFilletHole()
         elif kind == BuiltInDrawing.finger:
-            data = cls.finger()
+            data = cls.edgeFilletFinger()
         else:
             data = cls.getDefaultRawData()
         
@@ -246,37 +246,75 @@ class SketchData:
 }
 
     @classmethod
-    def holeOutline(cls):
+    def edgeHole(cls):
         return \
 {#Turtle Generated Data
 'CoordinateSystem':[
 1.0,	0.0,	0.0,	0.0, # 0 - 3
-0.0,	0.0,	1.0,	0.0, # 4 - 7
-0.0,	-1.0,	0.0,	0.0, # 8 - 11
+0.0,	1.0,	0.0,	0.0, # 4 - 7
+0.0,	0.0,	1.0,	0.0, # 8 - 11
 0.0,	0.0,	0.0,	1.0
 ],
 'Params':{
-'slotLength':'d[16 mm]',
-'wallThickness':'d[4 mm]',
+'wallThickness':'d[24 mm]',
 },
-'PointBounds':[[1.565922,-4.165594],	[4.460214,-3.190977]],
+'PointBounds':[[0.757969,0.284003],	[1.596632,2.684003]],
 'Points':[
-[0.0,0.0,'f'],	[1.565922,-3.190977,'f'],	[4.460214,-3.957327,'f'],	[2.239718,-3.369385],	[2.137334,-3.75606], # 0 - 4
-[3.684034,-4.165594],	[3.786418,-3.778919],	[2.910684,-3.960827],	[3.013068,-3.574152]
+[0.0,0.0,'f'],	[0.757969,2.684003],	[1.596632,2.684003],	[1.596632,0.284003],	[0.757969,0.284003]
 ],
 'Chains':[
-'xfLp1p2', # 0
-'XFLp3p4 XFLp4p5 XFLp5p6', # 1-3
-'xFLp7p8', # 4
+'XFLp2p3 XFLp3p4 XFLp4p1 xFLp1p2', # 0-3
 ],
 'Constraints':[
-'COp3c0',	'PEc1c0',	'PEc2c1',	'COp6c0',	'PEc3c0', # 0 - 4
-'MIp7c2',	'MIp8c0',	'PEc4c0'
+'VHc3',	'VHc0',	'VHc1',	'VHc2'
 ],
 'Dimensions':[
-'SLDp4p5e0d[slotLength]v[2.721045,-3.993624]',	'SLDp5p6e0d[wallThickness]v[3.708759,-4.056609]'
+'SODc3c1d[wallThickness]v[0.473736,1.246182]'
 ],
-'Guideline':['p1','p2','c0','noFlip'],
+'Guideline':['p1','p2','c3','noFlip'],
+'ProfileCentroids':[
+
+],
+'NamedProfiles':{
+
+}
+}
+
+
+    @classmethod
+    def edgeFilletHole(cls):
+        return \
+{#Turtle Generated Data
+'CoordinateSystem':[
+1.0,	0.0,	0.0,	0.0, # 0 - 3
+0.0,	1.0,	0.0,	0.0, # 4 - 7
+0.0,	0.0,	1.0,	0.0, # 8 - 11
+0.0,	0.0,	0.0,	1.0
+],
+'Params':{
+'wallThickness':'d[24 mm]',
+},
+'PointBounds':[[2.04115,0.300593],	[3.112026,2.700593]],
+'Points':[
+[0.0,0.0,'f'],	[2.150425,2.700593],	[3.012026,2.700593],	[3.012026,0.300593],	[3.012026,0.300593], # 0 - 4
+[2.150425,0.300593],	[2.150425,0.300593],	[3.012026,2.600593],	[3.112026,2.700593],	[3.112026,2.600593], # 5 - 9
+[2.150425,2.600593],	[2.04115,2.700162],	[2.050425,2.600593]
+],
+'Chains':[
+'XFLp6p1 xFLp1p2 XFLp2p3', # 0-2
+'XFLp4p5', # 3
+'XFAp8v[3.041315,2.671304]p7p9', # 4
+'XFAp10v[2.117777,2.67451]p11p12', # 5
+],
+'Constraints':[
+'VHc3',	'VHc0',	'VHc2',	'TAc4c2',	'COp7c2', # 0 - 4
+'TAc4c1',	'COp4p3',	'COp5p6',	'TAc5c0',	'COp10c0', # 5 - 9
+'TAc5c1'
+],
+'Dimensions':[
+'SODc1c3d[wallThickness]v[2.280897,1.333019]',	'SRDc4d[1 mm]v[3.077277,2.624332]',	'SRDc5d[1.00 mm]v[2.069705,2.615648]'
+],
+'Guideline':['p1','p2','c1','noFlip'],
 'ProfileCentroids':[
 
 ],
@@ -287,9 +325,45 @@ class SketchData:
 
 
 
+    @classmethod
+    def edgeFinger(cls):
+        return \
+{#Turtle Generated Data
+'CoordinateSystem':[
+1.0,	0.0,	0.0,	0.0, # 0 - 3
+0.0,	1.0,	0.0,	0.0, # 4 - 7
+0.0,	0.0,	1.0,	0.0, # 8 - 11
+0.0,	0.0,	0.0,	1.0
+],
+'Params':{
+'wallThickness':'d[24 mm]',
+},
+'PointBounds':[[3.463447,0.284003],	[4.288074,2.684003]],
+'Points':[
+[0.0,0.0,'f'],	[3.463447,2.684003],	[4.288074,2.684003],	[4.288074,0.284003],	[3.463447,0.284003]
+],
+'Chains':[
+'XFLp2p3 xFLp3p4 XFLp4p1 XFLp1p2', # 0-3
+],
+'Constraints':[
+'VHc3',	'VHc0',	'VHc1',	'VHc2'
+],
+'Dimensions':[
+'SODc1c3d[wallThickness]v[4.186312,2.038338]'
+],
+'Guideline':['p4','p3','c1','flip'],
+'ProfileCentroids':[
+
+],
+'NamedProfiles':{
+
+}
+}
+
+
 
     @classmethod
-    def finger(cls):
+    def edgeFilletFinger(cls):
         return \
 {#Turtle Generated Data
 'CoordinateSystem':[
@@ -302,24 +376,22 @@ class SketchData:
 'slotLength':'d[10 mm]',
 'wallThickness':'d[24 mm]',
 },
-'PointBounds':[[1.88671,-0.821077],	[3.708539,1.81794]],
+'PointBounds':[[2.232345,3.198654],	[3.232345,5.598654]],
 'Points':[
-[0.0,0.0,'f'],	[1.88671,1.570111],	[2.855514,1.81794],	[3.450303,-0.507189],	[2.371112,1.694026], # 0 - 4
-[2.965901,-0.631103],	[2.481499,-0.755018],	[2.223263,-0.821077],	[3.708539,-0.44113]
+[0.0,0.0,'f'],	[2.232345,3.198654],	[2.232345,5.498654],	[2.332345,5.598654],	[2.332345,5.498654], # 0 - 4
+[3.132345,5.598654],	[3.232345,5.498654],	[3.132345,5.498654],	[3.232345,3.198654]
 ],
 'Chains':[
-'XFLp6p1 XFLp1p2 XFLp2p3', # 0-2
-'xFLp4p5', # 3
-'xFLp7p8', # 4
+'XFAp3v[2.261634,5.569364]p2p4 XFLp3p5 XFAp6v[3.203056,5.569364]p5p7 XFLp6p8 xFLp8p1 XFLp1p2', # 0-5
 ],
 'Constraints':[
-'PEc1c0',	'MIp4c1',	'PEc1c2',	'COp6c4',	'PEc0c4', # 0 - 4
-'MIp5c4',	'COp3c4',	'PEc3c4'
+'VHc5',	'TAc0c5',	'TAc2c1',	'EQc0c2',	'TAc0c1', # 0 - 4
+'TAc2c3',	'VHc1'
 ],
 'Dimensions':[
-'SLDp1p2e0d[slotLength]v[2.371112,1.694026]',	'SLDp4p5e0d[wallThickness]v[2.668506,0.531461]'
+'SODc4c1d[wallThickness]v[4.194711,4.130123]',	'SRDc0d[1 mm]v[2.188161,5.696191]'
 ],
-'Guideline':['p7','p8','c4','noFlip'],
+'Guideline':['p1','p8','c4','flip'],
 'ProfileCentroids':[
 
 ],
@@ -334,11 +406,6 @@ class SketchData:
 
 
 
-
-
-
-
-
     @classmethod
     def getDefaultRawData(cls):
-        return cls.finger()
+        return cls.edgeFilletFinger()
