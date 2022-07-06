@@ -147,6 +147,20 @@ class TurtleComponent:
                 body.appearance = appr
             index += 1
 
+    def mirrorFeaturesWithPlane(self, plane:f.ConstructionPlane, *args)->f.MirrorFeature:
+        entities = []
+        for arg in args:
+            if isinstance(arg, core.ObjectCollection) or isinstance(arg, list):
+                for ent in arg:
+                    entities.append(ent)
+            else:
+                entities.append(arg)
+        inputEntities = TurtleUtils.ensureObjectCollection(entities)
+
+        mirrorFeatures = self.component.features.mirrorFeatures
+        mirrorInput = mirrorFeatures.createInput(inputEntities, plane)
+        mirrorFeature = mirrorFeatures.add(mirrorInput)
+
     def getBodyByIndex(self, index:int)->f.BRepBody:
         return self.component.bRepBodies.item(index) if index < self.component.bRepBodies.count else None
 

@@ -73,6 +73,7 @@ class MoldBuilder(TurtleCustomCommand):
         # self.curComponent.colorBodiesByOrder([0])
         # orgBody = self.curComponent.getBodyByIndex(0)
         # orgBody.isVisible = False
+        self.curComponent.component.isConstructionFolderLightBulbOn = False
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         self.onPreview(eventArgs)
@@ -130,7 +131,7 @@ class MoldBuilder(TurtleCustomCommand):
         sorted = TurtleSketch.sortLinesMinToMax(result, sortAxis)
         return (sorted[0], sorted[1])
 
-    def createMirroredFeatures(self, lines:tuple[f.SketchLine,f.SketchLine], slotKind:BuiltInDrawing, count:int, \
+    def createMirroredFeatures(self, lines:tuple[f.SketchLine,f.SketchLine], midPlane:f.ConstructionPlane, slotKind:BuiltInDrawing, count:int, \
                      targetFeature:f.Feature = None, op:f.FeatureOperations = f.FeatureOperations.JoinFeatureOperation)->f.SketchLine:
         projLines = self.sketchFromFaceAndLines(self.backInnerFace, lines)
         startLine = projLines[0]
@@ -152,7 +153,7 @@ class MoldBuilder(TurtleCustomCommand):
         rectangularPatterns = self.component.features.rectangularPatternFeatures
         features = core.ObjectCollection.create()
         features.add(slotFeature)
-        
+
         axis, lineDir, negation = self.getAxisOfLine(startLine)
         quantity = self.parameters.createValue(str(count))
         dist = self.parameters.createValue(str(self.slotLengthVal + self.slotSpaceVal) + "*" + str(negation) + "cm")
@@ -165,6 +166,9 @@ class MoldBuilder(TurtleCustomCommand):
         
         rectangularPatternInput.patternComputeOption = f.PatternComputeOptions.IdenticalPatternCompute
         rectangularFeature = rectangularPatterns.add(rectangularPatternInput)
+
+        if midPlane:
+            self.tComponent.mirrorFeaturesWithPlane(midPlane, slotFeature, rectangularFeature)
         return (slotFeature, rectangularFeature)
         
 
@@ -183,8 +187,10 @@ class MoldBuilder(TurtleCustomCommand):
 
         bottomTop = self.getLinesByAxis(self.xAxis, self.zAxis, boundryLines)
         leftRight = self.getLinesByAxis(self.zAxis, self.xAxis, boundryLines)
-        self.createMirroredFeatures(bottomTop, BuiltInDrawing.edgeFilletFinger, 8, rectFeature, f.FeatureOperations.JoinFeatureOperation)# self.slotCountHeight)
-        self.createMirroredFeatures(leftRight, BuiltInDrawing.edgeFilletHole, 4, rectFeature, f.FeatureOperations.CutFeatureOperation)# self.slotCountHeight)
+        btMidPlane = self.midPlaneOnLine(leftRight[0])
+        lrMidPlane = self.midPlaneOnLine(bottomTop[0])
+        self.createMirroredFeatures(bottomTop, btMidPlane, BuiltInDrawing.edgeFilletFinger, 8, rectFeature, f.FeatureOperations.JoinFeatureOperation)# self.slotCountHeight)
+        self.createMirroredFeatures(leftRight, lrMidPlane, BuiltInDrawing.edgeFilletHole, 4, rectFeature, f.FeatureOperations.CutFeatureOperation)# self.slotCountHeight)
 
         # Set the data for second direction
         #rectangularPatternInput.setDirectionTwo(yAxis, quantityTwo, distanceTwo)
@@ -372,6 +378,15 @@ class MoldBuilder(TurtleCustomCommand):
         self.curComponent = TurtleComponent.createFromSketch(self.currentTSketch.sketch)
         result = self.currentTSketch.projectList(lines, False)
         return result
+        
+    def midPlaneOnLine(self, line:f.SketchLine)-> f.ConstructionPlane: 
+        planes = self.component.constructionPlanes
+        planeInput = planes.createInput()
+        distance = core.ValueInput.createByReal(0.5)
+        planeInput.setByDistanceOnPath(line, distance)
+        midPlane = planes.add(planeInput)
+        return midPlane
+ 
 
     # generate sorted point pairs of rect, direction is always left to right and top to bottom
     def getSortedRectSegments(self, tl:f.SketchPoint, tr:f.SketchPoint, br:f.SketchPoint, bl:f.SketchPoint)->list[list[f.SketchPoint]]:
