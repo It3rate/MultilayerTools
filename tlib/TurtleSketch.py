@@ -483,6 +483,36 @@ class TurtleSketch:
         return result
 
     @classmethod
+    def sortLines(cls, lst:list[f.SketchLine], axis:f.ConstructionAxis, reverse=False)->list[f.SketchLine]:
+        cls._comparison_vector = axis.geometry.direction
+        result=sorted(lst, key=cmp_to_key(TurtleSketch.compareLinesByAxis), reverse=reverse)
+        cls._comparison_vector = None
+        return result
+    @classmethod
+    def sortLinesMinToMax(cls, lst:list[f.SketchLine], axis:f.ConstructionAxis)->list[f.SketchLine]:
+        return cls.sortLines(lst, axis, False)
+    @classmethod
+    def sortLinesMaxToMin(cls, lst:list[f.SketchLine], axis:f.ConstructionAxis)->list[f.SketchLine]:
+        return cls.sortLines(lst, axis, True)
+
+    _comparison_vector:core.Vector3D = None
+    @classmethod
+    def compareLinesByAxis(cls, line0:f.SketchLine, line1:f.SketchLine):
+        lg0 = line0.geometry if isinstance(line0, f.SketchLine) else line0
+        lg1 = line1.geometry if isinstance(line1, f.SketchLine) else line1
+        l0 = lg0.startPoint
+        l1 = lg1.startPoint
+        lv0 = l0.x * cls._comparison_vector.x + l0.y * cls._comparison_vector.y + l0.z * cls._comparison_vector.z
+        lv1 = l1.x * cls._comparison_vector.x + l1.y * cls._comparison_vector.y + l1.z * cls._comparison_vector.z
+        result = 0
+        tolerance = 0.000001
+        if lv0 - lv1 < -tolerance:
+            result = -1
+        elif lv0 - lv1 > tolerance:
+            result = 1
+        return result
+
+    @classmethod
     def compareSketchPoints(cls, sp0:f.SketchPoint, sp1:f.SketchPoint):
         return cls.comparePoints(sp0.geometry, sp1.geometry)
 
@@ -539,6 +569,21 @@ class TurtleSketch:
             curLen += tabSpacing
             result.append((pt0, pt1))
         return result
+    
+    @classmethod
+    def createFirstTabPoints(cls, startPoint:core.Point3D, endPoint:core.Point3D, tabWidth:float, tabSpacing:float, count:int = -1):
+        startPoint = startPoint if isinstance(startPoint, core.Point3D) else startPoint.geometry
+        endPoint = endPoint if isinstance(endPoint, core.Point3D) else endPoint.geometry
+        lineLen = startPoint.distanceTo(endPoint)
+        tabTotalLen = tabSpacing + tabWidth
+        lineWorking = (lineLen - tabSpacing)
+        slotCount = math.floor(lineWorking / tabTotalLen) if count < 0 else count
+        offset = (lineLen - (slotCount * tabTotalLen + tabSpacing)) / 2.0
+        start = offset + tabSpacing
+        end = start + tabWidth
+        pt0 = cls.pointAlongLine(startPoint, endPoint, start)
+        pt1 = cls.pointAlongLine(startPoint, endPoint, end)
+        return (pt0, pt1)
     
     # @classmethod
     # def createCenteredTabsAuto(cls, startPoint:core.Point3D, endPoint:core.Point3D, tabWidth:float, tabSpacing:float):

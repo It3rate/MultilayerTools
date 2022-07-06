@@ -63,15 +63,18 @@ class TurtleDecoder:
                 callback(decoder)
         return decoder
     @classmethod
-    def createWithPointChain(cls, data:SketchData, sketch:f.Sketch, points:list[tuple[core.Point3D, core.Point3D]], reverse = False, mirror = False, callback = None):
+    def createWithPointChain(cls, data:SketchData, sketch:f.Sketch, pointsList:list[tuple[core.Point3D, core.Point3D]], reverse = False, mirror = False, callback = None):
         decoder = TurtleDecoder(data, sketch, reverse, mirror)
-        for ptPair in points:
+        for ptPair in pointsList:
             decoder.userStartGuidePoint = ptPair[0]
             decoder.userEndGuidePoint = ptPair[1]
             decoder.run()
             if callback:
                 callback(decoder)
         return decoder
+    @classmethod
+    def createWithPoints(cls, data:SketchData, sketch:f.Sketch, points:tuple[core.Point3D, core.Point3D], reverse = False, mirror = False, callback = None):
+        return cls.createWithPointChain(data, sketch, [points], reverse, mirror, callback)
 
     def run(self):
         self.sketch.isComputeDeferred = True

@@ -22,6 +22,9 @@ f,core,app,ui = TurtleUtils.initGlobals()
 class MoldBuilder(TurtleCustomCommand):
     def __init__(self):
         self.rootComponent = TurtleComponent(TurtleUtils.activeRoot())
+        self.xAxis = self.rootComponent.component.xConstructionAxis
+        self.yAxis = self.rootComponent.component.yConstructionAxis
+        self.zAxis = self.rootComponent.component.zConstructionAxis
         self.parameters = TurtleParams.instance()
         cmdId = 'ddwMoldBuilderId'
         cmdName = 'Mold Builder'
@@ -46,6 +49,9 @@ class MoldBuilder(TurtleCustomCommand):
         # investigations of a shelled box
         self.component:f.Component = TurtleUtils.activeDesign().activeComponent
         self.tComponent:TurtleComponent = TurtleComponent.createFromExisting(self.component)
+        self.xAxis = self.component.xConstructionAxis
+        self.yAxis = self.component.yConstructionAxis
+        self.zAxis = self.component.zConstructionAxis
         if not self.component.bRepBodies.count == 1 or not self.component.bRepBodies.item(0).faces.count == 11:
             return
         self._parseFaces()
@@ -59,7 +65,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.setParameters()
         #self.createFloor(True)
         # self.createTopAndBottom(True)
-        # self.createInnerLeftAndRight(True)
+        self.createInnerLeftAndRight(True)
         self.createInnerFrontAndBack(True)
         # self.createOuterFrontAndBack(True)
         # self.createOuterLeftAndRight(True)
@@ -69,6 +75,8 @@ class MoldBuilder(TurtleCustomCommand):
         # orgBody.isVisible = False
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
+        self.onPreview(eventArgs)
+        return
         self.setParameters()
         self.createFloor(False)
         self.createTopAndBottom(False)
@@ -76,7 +84,6 @@ class MoldBuilder(TurtleCustomCommand):
         self.createInnerFrontAndBack(False)
         self.createOuterFrontAndBack(False)
         self.createOuterLeftAndRight(False)
-        #self.curComponent.colorBodiesByOrder([0])
 
 
     # def getExpandedRectPoints(self, edges)->list[tuple[core.Point3D,core.Point3D]]:
@@ -86,17 +93,37 @@ class MoldBuilder(TurtleCustomCommand):
     #         pass
     #     return self.getSortedRectSegments(points)
 
-    def createFloor(self, isPreview:bool):
-        projectedList = self.sketchFromFace(self.bottomInnerFace, 0, False)
-        #innerRect, _ = self.currentTSketch.offset(projectedList, self.floorFace.centroid, 'wallThickness', False)
-        ptPairs = self.currentTSketch.getRectPointChain(projectedList, True)
-        slotCounts = [self.slotCountDepth,self.slotCountWidth,self.slotCountDepth,self.slotCountWidth]
-        for pp in zip(ptPairs,slotCounts):
-            self.drawHoleLine(*pp[0], False, False, pp[1])
-        #floor extrude
+    def extrudeLargest(self, colorIndex:int)->f.Feature:
         profile = self.currentTSketch.findLargestProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
-        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],0)
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
+        return newFeatures[0]
+        
+    def getAxisOfLine(self, line:f.SketchLine)->f.ConstructionAxis:
+        lineDir = line.geometry.asInfiniteLine().direction
+        negation = 1
+        if self.xAxis.geometry.direction.isParallelTo(lineDir):
+            result = self.xAxis
+            negation = lineDir.x
+        elif self.yAxis.geometry.direction.isParallelTo(lineDir):
+            result = self.yAxis
+            negation = lineDir.y
+        elif self.zAxis.geometry.direction.isParallelTo(lineDir):
+            result = self.zAxis
+            negation = lineDir.z
+        return (result, lineDir, negation)
+
+    def getLinesByAxis(self, axis:f.ConstructionAxis, sortAxis:f.ConstructionAxis, lines:list[f.SketchLine])->f.SketchLine:
+        axisDir = axis.geometry.direction
+        result = []
+        for line in lines:
+            lineDir = line.geometry.asInfiniteLine().direction
+            if axisDir.isParallelTo(lineDir):
+                result.append(line)
+        return TurtleSketch.sortLinesMinToMax(result, sortAxis)
+
+    def createFirstGuide(self, line:f.SketchLine)->f.SketchLine:
+        pass
 
     def createInnerFrontAndBack(self, isPreview:bool):
         projectedList = self.sketchFromFace(self.backInnerFace, 0, True)
@@ -107,6 +134,36 @@ class MoldBuilder(TurtleCustomCommand):
         # ptPairs = \
         #   self.getSortedRectSegments(topLine.startSketchPoint, bottomLine.startSketchPoint, bottomLine.endSketchPoint, topLine.endSketchPoint)
         ptPairs = self.currentTSketch.getRectPointChain([topLine, bottomLine], True)
+        boundryLines = self.currentTSketch.drawLines(ptPairs)
+        # main rect extrude
+        rectFeature = self.extrudeLargest(1)
+
+        bottomTop = self.getLinesByAxis(self.xAxis, self.yAxis, boundryLines)
+        leftRight = self.getLinesByAxis(self.yAxis, self.xAxis, boundryLines)
+
+        topLine = self.sketchFromFaceAndLines(self.backInnerFace, bottomTop[1])[0]
+        #linePts, line = self.sketchFromFaceAndPoints(self.backInnerFace, ptPairs[0], True)
+        tabPts = self.currentTSketch.createFirstTabPoints(topLine.startSketchPoint, topLine.endSketchPoint,\
+             self.slotLengthVal, self.slotSpaceVal, 4)# self.slotCountHeight)
+        drawData = SketchData.createFromBuiltIn(BuiltInDrawing.finger)
+        decoder = TurtleDecoder.createWithPoints(drawData, self.currentTSketch.sketch, tabPts)
+        fingerFeature = self.extrudeLargest(1)
+        
+        rectangularPatterns = self.component.features.rectangularPatternFeatures
+        features = core.ObjectCollection.create()
+        features.add(fingerFeature)
+        axis, lineDir, negation = self.getAxisOfLine(topLine)# self.component.zConstructionAxis# self.currentTSketch.sketch.xDirection
+        quantity = self.parameters.createValue("4")
+        dist = self.parameters.createValue(str(self.slotLengthVal + self.slotSpaceVal) + "*" + str(negation) + "cm")
+        rectangularPatternInput = rectangularPatterns.createInput(features, axis, quantity, dist, adsk.fusion.PatternDistanceType.SpacingPatternDistanceType)
+        
+        # Set the data for second direction
+        #rectangularPatternInput.setDirectionTwo(yAxis, quantityTwo, distanceTwo)
+        
+        # Create the rectangular pattern
+        rectangularFeature = rectangularPatterns.add(rectangularPatternInput)
+        return
+
         self.drawHoleOutline(*ptPairs[0], False, False, self.slotCountHeight) # right
         self.drawFingerLine(*ptPairs[1], False, False, self.slotCountWidth) # top
         self.drawHoleOutline(*ptPairs[2], False, False, self.slotCountHeight) # left  
@@ -137,6 +194,10 @@ class MoldBuilder(TurtleCustomCommand):
         leftLine = offsetChain[0]
         rightLine = offsetChain[2]
         ptPairs = self.currentTSketch.getRectPointChain([leftLine, rightLine], True)
+        self.currentTSketch.drawLines(ptPairs)
+        # main rect extrude
+        self.extrudeLargest(2)
+        return
         # print('point pairs')
         # self.currentTSketch.printPointPairs(ptPairs)
 
@@ -153,6 +214,18 @@ class MoldBuilder(TurtleCustomCommand):
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['-wallThickness'])
         self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],2)
         TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.leftInnerFace.face, self.parameters.createValue(0))
+
+    def createFloor(self, isPreview:bool):
+        projectedList = self.sketchFromFace(self.bottomInnerFace, 0, False)
+        #innerRect, _ = self.currentTSketch.offset(projectedList, self.floorFace.centroid, 'wallThickness', False)
+        ptPairs = self.currentTSketch.getRectPointChain(projectedList, True)
+        slotCounts = [self.slotCountDepth,self.slotCountWidth,self.slotCountDepth,self.slotCountWidth]
+        for pp in zip(ptPairs,slotCounts):
+            self.drawHoleLine(*pp[0], False, False, pp[1])
+        #floor extrude
+        profile = self.currentTSketch.findLargestProfile()
+        _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],0)
 
     def createOuterLeftAndRight(self, isPreview:bool):
         projectedList = self.sketchFromFace(self.leftOuterFace, 0, True)
@@ -255,6 +328,21 @@ class MoldBuilder(TurtleCustomCommand):
         self.curComponent = TurtleComponent.createFromSketch(self.currentTSketch.sketch)
         loop = face.loops[projectLoopIndex]
         return self.currentTSketch.projectList(loop.edges, asConstruction)
+
+    def sketchFromFaceAndPoints(self, face:f.BRepFace, points:list[f.SketchPoint], drawLine:bool = True)-> tuple[list[f.SketchPoint], f.SketchLine]:
+        self.currentTSketch = face.createSketchAtPoint(face.centroid)
+        self.curComponent = TurtleComponent.createFromSketch(self.currentTSketch.sketch)
+        result = self.currentTSketch.projectList(points, False)
+        line = None
+        if drawLine:
+            line = self.currentTSketch.drawLine(*result)
+        return (result, line)
+
+    def sketchFromFaceAndLines(self, face:f.BRepFace, lines:list[f.SketchLine])-> list[f.SketchLine]:       
+        self.currentTSketch = face.createSketchAtPoint(face.centroid)
+        self.curComponent = TurtleComponent.createFromSketch(self.currentTSketch.sketch)
+        result = self.currentTSketch.projectList([lines], False)
+        return result
 
     # generate sorted point pairs of rect, direction is always left to right and top to bottom
     def getSortedRectSegments(self, tl:f.SketchPoint, tr:f.SketchPoint, br:f.SketchPoint, bl:f.SketchPoint)->list[list[f.SketchPoint]]:
