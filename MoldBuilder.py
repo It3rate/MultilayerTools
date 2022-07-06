@@ -98,9 +98,16 @@ class MoldBuilder(TurtleCustomCommand):
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
         self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
         return newFeatures[0]
+
+    def extrudeAllProfiles(self, colorIndex:int)->f.Feature:
+        profile = self.currentTSketch.profileList
+        _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, [profile], ['wallThickness'])
+        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
+        return newFeatures[0]
         
     def getAxisOfLine(self, line:f.SketchLine)->f.ConstructionAxis:
-        lineDir = line.geometry.asInfiniteLine().direction
+        line = line.worldGeometry if isinstance(line, f.SketchLine) else line
+        lineDir = line.asInfiniteLine().direction
         negation = 1
         if self.xAxis.geometry.direction.isParallelTo(lineDir):
             result = self.xAxis
@@ -113,17 +120,53 @@ class MoldBuilder(TurtleCustomCommand):
             negation = lineDir.z
         return (result, lineDir, negation)
 
-    def getLinesByAxis(self, axis:f.ConstructionAxis, sortAxis:f.ConstructionAxis, lines:list[f.SketchLine])->f.SketchLine:
+    def getLinesByAxis(self, axis:f.ConstructionAxis, sortAxis:f.ConstructionAxis, lines:list[f.SketchLine])->tuple[f.SketchLine,f.SketchLine]:
         axisDir = axis.geometry.direction
         result = []
         for line in lines:
-            lineDir = line.geometry.asInfiniteLine().direction
+            lineDir = line.worldGeometry.asInfiniteLine().direction
             if axisDir.isParallelTo(lineDir):
                 result.append(line)
-        return TurtleSketch.sortLinesMinToMax(result, sortAxis)
+        sorted = TurtleSketch.sortLinesMinToMax(result, sortAxis)
+        return (sorted[0], sorted[1])
 
-    def createFirstGuide(self, line:f.SketchLine)->f.SketchLine:
-        pass
+    def createMirroredFeatures(self, lines:tuple[f.SketchLine,f.SketchLine], slotKind:BuiltInDrawing, count:int, \
+                     targetFeature:f.Feature = None, op:f.FeatureOperations = f.FeatureOperations.JoinFeatureOperation)->f.SketchLine:
+        projLines = self.sketchFromFaceAndLines(self.backInnerFace, lines)
+        startLine = projLines[0]
+        endLine = projLines[1]
+        tabPts = self.currentTSketch.createFirstTabPoints(startLine.startSketchPoint, startLine.endSketchPoint,\
+             self.slotLengthVal, self.slotSpaceVal, count)
+        drawData = SketchData.createFromBuiltIn(slotKind)
+        decoder = TurtleDecoder.createWithPoints(drawData, self.currentTSketch.sketch, tabPts)
+        slotFeature = self.extrudeAllProfiles(1)
+
+        if targetFeature:
+            if op == f.FeatureOperations.CutFeatureOperation:
+                TurtleLayers.changeExtrudeOperation(slotFeature, targetFeature.bodies, op)
+            elif op == f.FeatureOperations.JoinFeatureOperation:
+                TurtleLayers.changeExtrudeOperation(slotFeature, targetFeature.bodies, op)
+            elif op == f.FeatureOperations.IntersectFeatureOperation:
+                TurtleLayers.changeExtrudeOperation(slotFeature, targetFeature.bodies, op)
+        
+        rectangularPatterns = self.component.features.rectangularPatternFeatures
+        features = core.ObjectCollection.create()
+        features.add(slotFeature)
+        
+        axis, lineDir, negation = self.getAxisOfLine(startLine)
+        quantity = self.parameters.createValue(str(count))
+        dist = self.parameters.createValue(str(self.slotLengthVal + self.slotSpaceVal) + "*" + str(negation) + "cm")
+        rectangularPatternInput = rectangularPatterns.createInput(features, axis, quantity, dist, adsk.fusion.PatternDistanceType.SpacingPatternDistanceType)
+
+        axis2 = self.yAxis if axis != self.yAxis else self.zAxis
+        quantity2 = self.parameters.createValue('1')
+        dist2 = self.parameters.createValue('0cm')
+        rectangularPatternInput.setDirectionTwo(axis2, quantity2, dist2)
+        
+        rectangularPatternInput.patternComputeOption = f.PatternComputeOptions.IdenticalPatternCompute
+        rectangularFeature = rectangularPatterns.add(rectangularPatternInput)
+        return (slotFeature, rectangularFeature)
+        
 
     def createInnerFrontAndBack(self, isPreview:bool):
         projectedList = self.sketchFromFace(self.backInnerFace, 0, True)
@@ -138,30 +181,16 @@ class MoldBuilder(TurtleCustomCommand):
         # main rect extrude
         rectFeature = self.extrudeLargest(1)
 
-        bottomTop = self.getLinesByAxis(self.xAxis, self.yAxis, boundryLines)
-        leftRight = self.getLinesByAxis(self.yAxis, self.xAxis, boundryLines)
+        bottomTop = self.getLinesByAxis(self.xAxis, self.zAxis, boundryLines)
+        leftRight = self.getLinesByAxis(self.zAxis, self.xAxis, boundryLines)
+        self.createMirroredFeatures(bottomTop, BuiltInDrawing.edgeFilletFinger, 8, rectFeature, f.FeatureOperations.JoinFeatureOperation)# self.slotCountHeight)
+        self.createMirroredFeatures(leftRight, BuiltInDrawing.edgeFilletHole, 4, rectFeature, f.FeatureOperations.CutFeatureOperation)# self.slotCountHeight)
 
-        topLine = self.sketchFromFaceAndLines(self.backInnerFace, bottomTop[1])[0]
-        #linePts, line = self.sketchFromFaceAndPoints(self.backInnerFace, ptPairs[0], True)
-        tabPts = self.currentTSketch.createFirstTabPoints(topLine.startSketchPoint, topLine.endSketchPoint,\
-             self.slotLengthVal, self.slotSpaceVal, 4)# self.slotCountHeight)
-        drawData = SketchData.createFromBuiltIn(BuiltInDrawing.finger)
-        decoder = TurtleDecoder.createWithPoints(drawData, self.currentTSketch.sketch, tabPts)
-        fingerFeature = self.extrudeLargest(1)
-        
-        rectangularPatterns = self.component.features.rectangularPatternFeatures
-        features = core.ObjectCollection.create()
-        features.add(fingerFeature)
-        axis, lineDir, negation = self.getAxisOfLine(topLine)# self.component.zConstructionAxis# self.currentTSketch.sketch.xDirection
-        quantity = self.parameters.createValue("4")
-        dist = self.parameters.createValue(str(self.slotLengthVal + self.slotSpaceVal) + "*" + str(negation) + "cm")
-        rectangularPatternInput = rectangularPatterns.createInput(features, axis, quantity, dist, adsk.fusion.PatternDistanceType.SpacingPatternDistanceType)
-        
         # Set the data for second direction
         #rectangularPatternInput.setDirectionTwo(yAxis, quantityTwo, distanceTwo)
         
         # Create the rectangular pattern
-        rectangularFeature = rectangularPatterns.add(rectangularPatternInput)
+        # rectangularFeature = rectangularPatterns.add(rectangularPatternInput)
         return
 
         self.drawHoleOutline(*ptPairs[0], False, False, self.slotCountHeight) # right
@@ -275,7 +304,7 @@ class MoldBuilder(TurtleCustomCommand):
 
         profile = self.currentTSketch.allButOuterProfile()
         _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, ['wallThickness'])
-        TurtleLayers.changeExtrudeToCut(newFeatures[0], [topBody])
+        TurtleLayers.changeExtrudeOperation(newFeatures[0], [topBody], f.FeatureOperations.CutFeatureOperation)
         return
 
     def createOuterFrontAndBack(self, isPreview:bool):
@@ -341,7 +370,7 @@ class MoldBuilder(TurtleCustomCommand):
     def sketchFromFaceAndLines(self, face:f.BRepFace, lines:list[f.SketchLine])-> list[f.SketchLine]:       
         self.currentTSketch = face.createSketchAtPoint(face.centroid)
         self.curComponent = TurtleComponent.createFromSketch(self.currentTSketch.sketch)
-        result = self.currentTSketch.projectList([lines], False)
+        result = self.currentTSketch.projectList(lines, False)
         return result
 
     # generate sorted point pairs of rect, direction is always left to right and top to bottom
@@ -359,7 +388,7 @@ class MoldBuilder(TurtleCustomCommand):
 
 
     def drawHoleLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint, reverse:bool, mirror:bool, count:int = -1) -> TurtleDecoder:
-        drawData = SketchData.createFromBuiltIn(BuiltInDrawing.hole)
+        drawData = SketchData.createFromBuiltIn(BuiltInDrawing.edgeHole)
         segs = TurtleSketch.createCenteredTabs(startPoint.geometry, endPoint.geometry, self.slotLengthVal, self.slotSpaceVal, count)
         return TurtleDecoder.createWithPointChain(drawData, self.currentTSketch.sketch, segs, reverse, mirror)
 

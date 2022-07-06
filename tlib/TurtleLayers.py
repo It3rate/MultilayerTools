@@ -81,10 +81,11 @@ class TurtleLayers:
         extrude.timelineObject.rollTo(False)
 
     @classmethod
-    def changeExtrudeToCut(cls, extrude:f.ExtrudeFeature, praticipantBodies:list[f.BRepBody]):
+    def changeExtrudeOperation(cls, extrude:f.ExtrudeFeature, participantBodies:list[f.BRepBody], op:f.FeatureOperations):
         extrude.timelineObject.rollTo(True)
-        extrude.operation = f.FeatureOperations.CutFeatureOperation
-        extrude.participantBodies = praticipantBodies
+        extrude.operation = op
+        bodies = participantBodies if isinstance(participantBodies, list) else TurtleUtils.ensureList(participantBodies)
+        extrude.participantBodies = bodies
         extrude.timelineObject.rollTo(False)
 
 

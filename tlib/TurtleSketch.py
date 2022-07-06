@@ -49,6 +49,9 @@ class TurtleSketch:
     def lastAddedParameter(self):
         return self.component.modelParameters[self.component.modelParameters.count - 1] if self.component.modelParameters.count > 0 else None
 
+    @property
+    def profileList(self)->list[f.Profile]:
+        return TurtleUtils.ensureList(self.profiles)    
 
     def draw(self, line:f.SketchLine, *data:str):
         data = " ".join(data)

@@ -9,11 +9,12 @@ f,core,app,ui = TurtleUtils.initGlobals()
 
 class BuiltInDrawing(Enum):
     default = 0
-    notches = 1
-    hole = 2
-    offsetHole = 3
-    holeOutline = 4
-    finger = 5
+    offsetHole = 1
+    edgeHole = 2
+    edgeFilletHole = 3
+    edgeFinger = 4
+    edgeFilletFinger = 5
+    notches = 6
 
 class SketchData:
     
@@ -67,16 +68,18 @@ class SketchData:
 
     @classmethod
     def createFromBuiltIn(cls, kind:BuiltInDrawing):
-        if kind == BuiltInDrawing.notches:
-            data = cls.notches()
-        elif kind == BuiltInDrawing.hole:
-            data = cls.hole()
-        elif kind == BuiltInDrawing.offsetHole:
+        if kind == BuiltInDrawing.offsetHole:
             data = cls.offsetHole()
-        elif kind == BuiltInDrawing.holeOutline:
+        elif kind == BuiltInDrawing.edgeHole:
+            data = cls.edgeHole()
+        elif kind == BuiltInDrawing.edgeFilletHole:
             data = cls.edgeFilletHole()
-        elif kind == BuiltInDrawing.finger:
+        elif kind == BuiltInDrawing.edgeFinger:
+            data = cls.edgeFinger()
+        elif kind == BuiltInDrawing.edgeFilletFinger:
             data = cls.edgeFilletFinger()
+        elif kind == BuiltInDrawing.notches:
+            data = cls.notches()
         else:
             data = cls.getDefaultRawData()
         
