@@ -7,7 +7,6 @@ from .TurtleParams import TurtleParams
 from .TurtlePath import TurtlePath
 from .TurtleAppearance import TurtleAppearance
 
-
 f:adsk.fusion
 core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
@@ -100,6 +99,21 @@ class TurtleComponent:
             extrudeInput.startExtent = startFrom
         extruded = extrudes.add(extrudeInput) 
         return extruded
+
+    def extrudeLargestProfile(self, tsketch:TurtleSketch, expression:str, colorIndex:int)->f.Feature:
+        from .TurtleLayers import TurtleLayers
+        profile = tsketch.findLargestProfile()
+        _, newFeatures = TurtleLayers.createFromProfiles(self, profile, [expression])
+        self.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
+        return newFeatures[0]
+
+    def extrudeAllProfiles(self, tsketch:TurtleSketch, expression:str, colorIndex:int)->f.Feature:
+        from .TurtleLayers import TurtleLayers
+        profile = tsketch.profileList
+        _, newFeatures = TurtleLayers.createFromProfiles(self, [profile], [expression])
+        self.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
+        return newFeatures[0]
+        
 
     def cutComponent(self, profile):
         bodies = self.getBodies()

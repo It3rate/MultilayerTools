@@ -358,7 +358,6 @@ class TurtleSketch:
 
 
 
-
     @classmethod
     def getCWPointPairs(cls, loop:f.BRepLoop) -> list[core.Point3D]:
         result = []
