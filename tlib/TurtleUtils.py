@@ -166,27 +166,6 @@ def baseMethod(method):
 def hasOverride(method):
     return not hasattr(method, 'isBaseMethod')
     
-
-class SurfaceKind(Enum):
-    none = 0
-    topInner= 1
-    topOuter = 2
-    topCenter = 3
-    bottomInner= 4
-    bottomOuter = 5
-    bottomCenter = 6
-    frontInner= 7
-    frontOuter = 8
-    frontCenter = 9
-    backInner= 10
-    backOuter = 11
-    backCenter = 12
-    leftInner= 13
-    leftOuter = 14
-    leftCenter = 15
-    rightInner= 16
-    rightOuter = 17
-    rightCenter = 18
     
 class Orientation(Enum):
     none = 0
@@ -196,3 +175,43 @@ class Orientation(Enum):
     bottom= 4
     front = 5
     back = 6
+
+class SurfaceKind(Enum):
+    none = 0
+    topInner= 10
+    topCenter = 11
+    topOuter = 12
+    bottomInner= 20
+    bottomCenter = 21
+    bottomOuter = 22
+    frontInner= 30
+    frontCenter = 31
+    frontOuter = 32
+    backInner= 40
+    backCenter = 41
+    backOuter = 42
+    leftInner= 50
+    leftCenter = 51
+    leftOuter = 52
+    rightInner= 60
+    rightCenter = 61
+    rightOuter = 62
+
+    @classmethod
+    def isTopBottom(cls, surfaceKind):
+        return int(surfaceKind) > 0 and int(surfaceKind) < 30
+    @classmethod
+    def isFrontBack(cls, surfaceKind):
+        return int(surfaceKind) >= 30 and int(surfaceKind) < 50
+    @classmethod
+    def isLeftRight(cls, surfaceKind):
+        return int(surfaceKind) >= 50 and int(surfaceKind) < 70
+    @classmethod
+    def isInner(cls, surfaceKind):
+        return int(surfaceKind) % 10 == 0
+    @classmethod
+    def isCenter(cls, surfaceKind):
+        return int(surfaceKind) % 10 == 1
+    @classmethod
+    def isOuter(cls, surfaceKind):
+        return int(surfaceKind) % 10 == 2

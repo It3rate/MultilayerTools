@@ -22,9 +22,6 @@ f,core,app,ui = TurtleUtils.initGlobals()
 class MoldBuilder(TurtleCustomCommand):
     def __init__(self):
         self.rootComponent = TurtleComponent(TurtleUtils.activeRoot())
-        self.xAxis = self.rootComponent.component.xConstructionAxis
-        self.yAxis = self.rootComponent.component.yConstructionAxis
-        self.zAxis = self.rootComponent.component.zConstructionAxis
         self.parameters = TurtleParams.instance()
         cmdId = 'ddwMoldBuilderId'
         cmdName = 'Mold Builder'
@@ -43,6 +40,16 @@ class MoldBuilder(TurtleCustomCommand):
         self.wallThicknessExpr = "wallThickness"
         super().__init__(cmdId, cmdName, cmdDescription)
         
+    @property
+    def xAxis(self):
+        return self.tComponent.xAxis if self.tComponent else self.rootComponent.component.xConstructionAxis
+    @property
+    def yAxis(self):
+        return self.tComponent.yAxis if self.tComponent else self.rootComponent.component.yConstructionAxis   
+    @property
+    def zAxis(self):
+        return self.tComponent.zAxis if self.tComponent else self.rootComponent.component.zConstructionAxis    
+
     def getTargetPanels(self):
         return [ui.allToolbarPanels.itemById('SolidCreatePanel')]
 
@@ -50,13 +57,9 @@ class MoldBuilder(TurtleCustomCommand):
         # investigations of a shelled box
         self.component:f.Component = TurtleUtils.activeDesign().activeComponent
         self.tComponent:TurtleComponent = TurtleComponent.createFromExisting(self.component)
-        self.xAxis = self.component.xConstructionAxis
-        self.yAxis = self.component.yConstructionAxis
-        self.zAxis = self.component.zConstructionAxis
         if not self.component.bRepBodies.count == 1 or not self.component.bRepBodies.item(0).faces.count == 11:
             return
         self._parseFaces()
-        
         self._createDialog(eventArgs.command.commandInputs)
 
     def onInputsChanged(self, eventArgs:core.InputChangedEventArgs):
@@ -87,51 +90,6 @@ class MoldBuilder(TurtleCustomCommand):
         self.createOuterFrontAndBack(False)
         self.createOuterLeftAndRight(False)
 
-
-    # def getExpandedRectPoints(self, edges)->list[tuple[core.Point3D,core.Point3D]]:
-    #     if(len(edges) == 2):
-    #         pass
-    #     else:
-    #         pass
-    #     return self.getSortedRectSegments(points)
-
-    # def extrudeLargest(self, colorIndex:int)->f.Feature:
-    #     profile = self.currentTSketch.findLargestProfile()
-    #     _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, [self.wallThicknessExpr])
-    #     self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
-    #     return newFeatures[0]
-
-    # def extrudeAllProfiles(self, colorIndex:int)->f.Feature:
-    #     profile = self.currentTSketch.profileList
-    #     _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, [profile], [self.wallThicknessExpr])
-    #     self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
-    #     return newFeatures[0]
-        
-    def getAxisOfLine(self, line:f.SketchLine)->f.ConstructionAxis:
-        line = line.worldGeometry if isinstance(line, f.SketchLine) else line
-        lineDir = line.asInfiniteLine().direction
-        negation = 1
-        if self.xAxis.geometry.direction.isParallelTo(lineDir):
-            result = self.xAxis
-            negation = lineDir.x
-        elif self.yAxis.geometry.direction.isParallelTo(lineDir):
-            result = self.yAxis
-            negation = lineDir.y
-        elif self.zAxis.geometry.direction.isParallelTo(lineDir):
-            result = self.zAxis
-            negation = lineDir.z
-        return (result, lineDir, negation)
-
-    def getLinesByAxis(self, axis:f.ConstructionAxis, sortAxis:f.ConstructionAxis, lines:list[f.SketchLine])->tuple[f.SketchLine,f.SketchLine]:
-        axisDir = axis.geometry.direction
-        result = []
-        for line in lines:
-            lineDir = line.worldGeometry.asInfiniteLine().direction
-            if axisDir.isParallelTo(lineDir):
-                result.append(line)
-        sorted = TurtleSketch.sortLinesMinToMax(result, sortAxis)
-        return (sorted[0], sorted[1])
-
     def createMirroredFeatures(self, lines:tuple[f.SketchLine,f.SketchLine], midPlane:f.ConstructionPlane, slotKind:BuiltInDrawing, count:int, \
                      targetFeature:f.Feature = None, op:f.FeatureOperations = f.FeatureOperations.JoinFeatureOperation)->f.SketchLine:
         projLines = self.sketchFromFaceAndLines(self.backInnerFace, lines)
@@ -155,7 +113,7 @@ class MoldBuilder(TurtleCustomCommand):
         features = core.ObjectCollection.create()
         features.add(slotFeature)
 
-        axis, lineDir, negation = self.getAxisOfLine(startLine)
+        axis, lineDir, negation = self.tComponent.getAxisOfLine(startLine)
         quantity = self.parameters.createValue(str(count))
         dist = self.parameters.createValue(str(self.slotLengthVal + self.slotSpaceVal) + "*" + str(negation) + "cm")
         rectangularPatternInput = rectangularPatterns.createInput(features, axis, quantity, dist, adsk.fusion.PatternDistanceType.SpacingPatternDistanceType)
@@ -186,8 +144,8 @@ class MoldBuilder(TurtleCustomCommand):
         # main rect extrude
         rectFeature = self.tComponent.extrudeLargestProfile(self.currentTSketch, self.wallThicknessExpr, 1)
 
-        bottomTop = self.getLinesByAxis(self.xAxis, self.zAxis, boundryLines)
-        leftRight = self.getLinesByAxis(self.zAxis, self.xAxis, boundryLines)
+        bottomTop = self.tComponent.getLinesByAxis(self.xAxis, self.zAxis, boundryLines)
+        leftRight = self.tComponent.getLinesByAxis(self.zAxis, self.xAxis, boundryLines)
         btMidPlane = self.midPlaneOnLine(leftRight[0])
         lrMidPlane = self.midPlaneOnLine(bottomTop[0])
         self.createMirroredFeatures(bottomTop, btMidPlane, BuiltInDrawing.edgeFilletFinger, 8, rectFeature, f.FeatureOperations.JoinFeatureOperation)# self.slotCountHeight)

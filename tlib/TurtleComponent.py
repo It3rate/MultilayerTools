@@ -19,6 +19,9 @@ class TurtleComponent:
         self.appearances = TurtleAppearance.instance()
         self._sketches = []
         self.activeSketch = None
+        self.xAxis = self.component.xConstructionAxis
+        self.yAxis = self.component.yConstructionAxis
+        self.zAxis = self.component.zConstructionAxis
         self.__wrapExistingSketches()
 
     @classmethod
@@ -42,6 +45,7 @@ class TurtleComponent:
         result = TurtleComponent(component)
         return result
 
+
     def __wrapExistingSketches(self):
         self._sketches = []
         for sketch in self.component.sketches:
@@ -56,7 +60,7 @@ class TurtleComponent:
         self._sketches.append(tsketch)
         self.activeSketch = tsketch
         return tsketch
-    
+
     def getTSketchByName(self, name) -> TurtleSketch:
         result = None
         for sketch in self._sketches:
@@ -84,6 +88,47 @@ class TurtleComponent:
         planeInput.setByAngle(line, adsk.core.ValueInput.createByReal(-math.pi/2.0), line.parentSketch.referencePlane)
         result = self.component.constructionPlanes.add(planeInput)
         return result
+
+    def mirrorFeaturesWithPlane(self, plane:f.ConstructionPlane, *args)->f.MirrorFeature:
+        entities = []
+        for arg in args:
+            if isinstance(arg, core.ObjectCollection) or isinstance(arg, list):
+                for ent in arg:
+                    entities.append(ent)
+            else:
+                entities.append(arg)
+        inputEntities = TurtleUtils.ensureObjectCollection(entities)
+
+        mirrorFeatures = self.component.features.mirrorFeatures
+        mirrorInput = mirrorFeatures.createInput(inputEntities, plane)
+        mirrorFeature = mirrorFeatures.add(mirrorInput)
+        return mirrorFeature
+
+    def getAxisOfLine(self, line:f.SketchLine)->f.ConstructionAxis:
+        line = line.worldGeometry if isinstance(line, f.SketchLine) else line
+        lineDir = line.asInfiniteLine().direction
+        negation = 1
+        if self.xAxis.geometry.direction.isParallelTo(lineDir):
+            result = self.xAxis
+            negation = lineDir.x
+        elif self.yAxis.geometry.direction.isParallelTo(lineDir):
+            result = self.yAxis
+            negation = lineDir.y
+        elif self.zAxis.geometry.direction.isParallelTo(lineDir):
+            result = self.zAxis
+            negation = lineDir.z
+        return (result, lineDir, negation)
+
+    def getLinesByAxis(self, axis:f.ConstructionAxis, sortAxis:f.ConstructionAxis, lines:list[f.SketchLine])->tuple[f.SketchLine,f.SketchLine]:
+        axisDir = axis.geometry.direction
+        result = []
+        for line in lines:
+            lineDir = line.worldGeometry.asInfiniteLine().direction
+            if axisDir.isParallelTo(lineDir):
+                result.append(line)
+        sorted = TurtleSketch.sortLinesMinToMax(result, sortAxis)
+        return (sorted[0], sorted[1])
+
 
     def extrude(self, profile, start, expression, isFlipped = False) -> f.ExtrudeFeature:
         if profile is None:
@@ -160,20 +205,6 @@ class TurtleComponent:
                 appr = self.appearances.getAppearanceByIndex(index)
                 body.appearance = appr
             index += 1
-
-    def mirrorFeaturesWithPlane(self, plane:f.ConstructionPlane, *args)->f.MirrorFeature:
-        entities = []
-        for arg in args:
-            if isinstance(arg, core.ObjectCollection) or isinstance(arg, list):
-                for ent in arg:
-                    entities.append(ent)
-            else:
-                entities.append(arg)
-        inputEntities = TurtleUtils.ensureObjectCollection(entities)
-
-        mirrorFeatures = self.component.features.mirrorFeatures
-        mirrorInput = mirrorFeatures.createInput(inputEntities, plane)
-        mirrorFeature = mirrorFeatures.add(mirrorInput)
 
     def getBodyByIndex(self, index:int)->f.BRepBody:
         return self.component.bRepBodies.item(index) if index < self.component.bRepBodies.count else None
