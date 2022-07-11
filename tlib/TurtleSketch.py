@@ -500,8 +500,8 @@ class TurtleSketch:
     _comparison_vector:core.Vector3D = None
     @classmethod
     def compareLinesByAxis(cls, line0:f.SketchLine, line1:f.SketchLine):
-        lg0 = line0.geometry if isinstance(line0, f.SketchLine) else line0
-        lg1 = line1.geometry if isinstance(line1, f.SketchLine) else line1
+        lg0 = line0.worldGeometry if isinstance(line0, f.SketchLine) else line0
+        lg1 = line1.worldGeometry if isinstance(line1, f.SketchLine) else line1
         l0 = lg0.startPoint
         l1 = lg1.startPoint
         lv0 = l0.x * cls._comparison_vector.x + l0.y * cls._comparison_vector.y + l0.z * cls._comparison_vector.z
@@ -684,7 +684,7 @@ class TurtleSketch:
                 self.printPoint3D(pt.geometry)
 
     def printSketchLines(self, *args):
-        if isinstance(args[0], core.ObjectCollection) or isinstance(args[0], list):
+        if isinstance(args[0], core.ObjectCollection) or isinstance(args[0], list) or isinstance(args[0], tuple):
             for ln in args[0]:
                 self.printLine3D(ln.geometry)
                 print(' ')

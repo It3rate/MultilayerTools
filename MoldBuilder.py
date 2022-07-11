@@ -90,9 +90,10 @@ class MoldBuilder(TurtleCustomCommand):
         self.createOuterFrontAndBack(False)
         self.createOuterLeftAndRight(False)
 
-    def createMirroredFeatures(self, lines:tuple[f.SketchLine,f.SketchLine], midPlane:f.ConstructionPlane, slotKind:BuiltInDrawing, count:int, \
-                     targetFeature:f.Feature = None, op:f.FeatureOperations = f.FeatureOperations.JoinFeatureOperation)->f.SketchLine:
-        projLines = self.sketchFromFaceAndLines(self.backInnerFace, lines)
+    def createMirroredFeatures(self, face:f.BRepFace, lines:tuple[f.SketchLine,f.SketchLine], midPlane:f.ConstructionPlane,\
+                     slotKind:BuiltInDrawing, count:int, mirror=False, targetFeature:f.ExtrudeFeature = None)->f.SketchLine:
+        op = BuiltInDrawing.normalOperationForDrawing(slotKind)
+        projLines = self.sketchFromFaceAndLines(face, lines)
         startLine = projLines[0]
         endLine = projLines[1]
         tabPts = self.currentTSketch.createFirstTabPoints(startLine.startSketchPoint, startLine.endSketchPoint,\
@@ -148,8 +149,8 @@ class MoldBuilder(TurtleCustomCommand):
         leftRight = self.tComponent.getLinesByAxis(self.zAxis, self.xAxis, boundryLines)
         btMidPlane = self.midPlaneOnLine(leftRight[0])
         lrMidPlane = self.midPlaneOnLine(bottomTop[0])
-        self.createMirroredFeatures(bottomTop, btMidPlane, BuiltInDrawing.edgeFilletFinger, 8, rectFeature, f.FeatureOperations.JoinFeatureOperation)# self.slotCountHeight)
-        self.createMirroredFeatures(leftRight, lrMidPlane, BuiltInDrawing.edgeFilletHole, 4, rectFeature, f.FeatureOperations.CutFeatureOperation)# self.slotCountHeight)
+        self.createMirroredFeatures(self.backInnerFace, bottomTop, btMidPlane, BuiltInDrawing.edgeFilletFinger, 8, False, rectFeature)# self.slotCountHeight)
+        self.createMirroredFeatures(self.backInnerFace, leftRight, lrMidPlane, BuiltInDrawing.edgeFilletHole, 4, False, rectFeature)# self.slotCountHeight)
 
         # Set the data for second direction
         #rectangularPatternInput.setDirectionTwo(yAxis, quantityTwo, distanceTwo)
@@ -187,10 +188,23 @@ class MoldBuilder(TurtleCustomCommand):
 
         leftLine = offsetChain[0]
         rightLine = offsetChain[2]
-        ptPairs = self.currentTSketch.getRectPointChain([leftLine, rightLine], True)
-        self.currentTSketch.drawLines(ptPairs)
+        ptPairs = self.currentTSketch.getRectPointChain([leftLine, rightLine], False)
+        boundryLines = self.currentTSketch.drawLines(ptPairs)
         # main rect extrude
         rectFeature = self.tComponent.extrudeLargestProfile(self.currentTSketch, self.wallThicknessExpr, 2)
+        
+
+
+        
+        horzLinesBT = self.tComponent.getLinesByAxis(self.yAxis, self.zAxis, boundryLines)
+        vertLinesFB = self.tComponent.getLinesByAxis(self.zAxis, self.yAxis, boundryLines)
+        horzMidLine = self.midPlaneOnLine(vertLinesFB[0])
+        vertMidLine = self.midPlaneOnLine(horzLinesBT[0])
+
+
+        self.createMirroredFeatures(self.rightInnerFace, horzLinesBT, horzMidLine, BuiltInDrawing.edgeFilletFinger, 3, False, rectFeature)
+        self.createMirroredFeatures(self.rightInnerFace, vertLinesFB, vertMidLine, BuiltInDrawing.edgeFilletFinger, 4, True, rectFeature)
+
         return
         # print('point pairs')
         # self.currentTSketch.printPointPairs(ptPairs)
@@ -316,7 +330,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.slotLengthVal = self.parameters.getParamValueOrDefault('slotLength', 1.0)
         self.slotSpaceVal = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
 
-    def sketchFromFace(self, face:f.BRepFace, projectLoopIndex:int = 0, asConstruction:bool = True)-> list[f.BRepEdges]:
+    def sketchFromFace(self, face:TurtleFace, projectLoopIndex:int = 0, asConstruction:bool = True)-> list[f.BRepEdges]:
         self.currentTSketch = face.createSketchAtPoint(face.centroid)
         self.currentTSketch.areProfilesShown = False
         self.curComponent = TurtleComponent.createFromSketch(self.currentTSketch.sketch)

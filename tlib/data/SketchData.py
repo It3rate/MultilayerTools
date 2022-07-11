@@ -8,13 +8,39 @@ core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class BuiltInDrawing(Enum):
+    # new body op
     default = 0
-    offsetHole = 1
-    edgeHole = 2
-    edgeFilletHole = 3
-    edgeFinger = 4
-    edgeFilletFinger = 5
-    notches = 6
+    # cut ops 10-19
+    offsetHole = 10
+    edgeHole = 11
+    edgeFilletHole = 12
+    # join ops 20-29
+    edgeFinger = 20
+    edgeFilletFinger = 21
+    notches = 22
+    # intersect ops 30-39
+    # new component ops 40-49
+    # new body op 50+
+
+
+    @classmethod
+    def normalOperationForDrawing(cls, drawingKind) -> f.FeatureOperations:
+        result = f.FeatureOperations.NewBodyFeatureOperation
+        kind = drawingKind.value
+        if kind < 10:
+            result = f.FeatureOperations.NewBodyFeatureOperation
+        elif kind < 20:
+            result = f.FeatureOperations.CutFeatureOperation
+        elif kind < 30:
+            result = f.FeatureOperations.JoinFeatureOperation
+        elif kind < 40:
+            result = f.FeatureOperations.IntersectFeatureOperation
+        elif kind < 50:
+            result = f.FeatureOperations.NewComponentFeatureOperation
+        else:
+            result = f.FeatureOperations.NewBodyFeatureOperation
+    
+        return result
 
 class SketchData:
     
@@ -346,7 +372,7 @@ class SketchData:
 [0.0,0.0,'f'],	[3.463447,2.684003],	[4.288074,2.684003],	[4.288074,0.284003],	[3.463447,0.284003]
 ],
 'Chains':[
-'XFLp2p3 xFLp3p4 XFLp4p1 XFLp1p2', # 0-3
+'XFLp2p3 XFLp3p4 XFLp4p1 XFLp1p2', # 0-3
 ],
 'Constraints':[
 'VHc3',	'VHc0',	'VHc1',	'VHc2'
@@ -385,7 +411,7 @@ class SketchData:
 [3.132345,5.598654],	[3.232345,5.498654],	[3.132345,5.498654],	[3.232345,3.198654]
 ],
 'Chains':[
-'XFAp3v[2.261634,5.569364]p2p4 XFLp3p5 XFAp6v[3.203056,5.569364]p5p7 XFLp6p8 xFLp8p1 XFLp1p2', # 0-5
+'XFAp3v[2.261634,5.569364]p2p4 XFLp3p5 XFAp6v[3.203056,5.569364]p5p7 XFLp6p8 XFLp8p1 XFLp1p2', # 0-5
 ],
 'Constraints':[
 'VHc5',	'TAc0c5',	'TAc2c1',	'EQc0c2',	'TAc0c1', # 0 - 4
