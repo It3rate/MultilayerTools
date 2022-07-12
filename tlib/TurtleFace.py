@@ -2,9 +2,9 @@ from __future__ import annotations
 import adsk.core, adsk.fusion, traceback
 import os, math, re, sys
 from .TurtleUtils import TurtleUtils
+from .TurtleUtils import SurfaceKind
 from .TurtleParams import TurtleParams
 from .TurtleSketch import TurtleSketch
-from .TurtleWall import *
 
 f,core,app,ui = TurtleUtils.initGlobals()
 

@@ -4,8 +4,12 @@
 from xmlrpc.client import Boolean
 from enum import Enum
 import adsk.core, adsk.fusion, traceback
+
+from .tlib.TurtleWall import TurtleWall
+from .tlib.WallData import *
 from .tlib.TurtleUtils import TurtleUtils
-from .tlib.TurtleFace import *
+from .tlib.TurtleUtils import SurfaceKind
+from .tlib.TurtleFace import TurtleFace
 from .tlib.TurtleUICommand import TurtleUICommand
 from .tlib.TurtleSketch import TurtleSketch
 from .tlib.TurtleParams import TurtleParams
@@ -67,7 +71,7 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        #self.createFloor(True)
+        self.createFloor(True)
         # self.createTopAndBottom(True)
         self.createInnerLeftAndRight(True)
         self.createInnerFrontAndBack(True)
@@ -224,16 +228,19 @@ class MoldBuilder(TurtleCustomCommand):
         TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.leftInnerFace.face, self.parameters.createValue(0))
 
     def createFloor(self, isPreview:bool):
-        projectedList = self.sketchFromFace(self.bottomInnerFace, 0, False)
-        #innerRect, _ = self.currentTSketch.offset(projectedList, self.floorFace.centroid, self.wallThicknessExpr, False)
-        ptPairs = self.currentTSketch.getRectPointChain(projectedList, True)
-        slotCounts = [self.slotCountDepth,self.slotCountWidth,self.slotCountDepth,self.slotCountWidth]
-        for pp in zip(ptPairs,slotCounts):
-            self.drawHoleLine(*pp[0], False, False, pp[1])
-        #floor extrude
-        profile = self.currentTSketch.findLargestProfile()
-        _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, [self.wallThicknessExpr])
-        self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],0)
+        wall = TurtleWall.create(self.bottomInnerFace, WallKind.bottomInner)
+
+    # def createFloor(self, isPreview:bool):
+    #     projectedList = self.sketchFromFace(self.bottomInnerFace, 0, False)
+    #     #innerRect, _ = self.currentTSketch.offset(projectedList, self.floorFace.centroid, self.wallThicknessExpr, False)
+    #     ptPairs = self.currentTSketch.getRectPointChain(projectedList, True)
+    #     slotCounts = [self.slotCountDepth,self.slotCountWidth,self.slotCountDepth,self.slotCountWidth]
+    #     for pp in zip(ptPairs,slotCounts):
+    #         self.drawHoleLine(*pp[0], False, False, pp[1])
+    #     #floor extrude
+    #     profile = self.currentTSketch.findLargestProfile()
+    #     _, newFeatures = TurtleLayers.createFromProfiles(self.curComponent, profile, [self.wallThicknessExpr])
+    #     self.tComponent.colorExtrudedBodiesByIndex(newFeatures[0],0)
 
     def createOuterLeftAndRight(self, isPreview:bool):
         projectedList = self.sketchFromFace(self.leftOuterFace, 0, True)
