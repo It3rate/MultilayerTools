@@ -151,8 +151,8 @@ class MoldBuilder(TurtleCustomCommand):
 
         bottomTop = self.tComponent.getLinesByAxis(self.xAxis, self.zAxis, boundryLines)
         leftRight = self.tComponent.getLinesByAxis(self.zAxis, self.xAxis, boundryLines)
-        btMidPlane = self.midPlaneOnLine(leftRight[0])
-        lrMidPlane = self.midPlaneOnLine(bottomTop[0])
+        btMidPlane = self.currentTSketch.midPlaneOnLine(leftRight[0])
+        lrMidPlane = self.currentTSketch.midPlaneOnLine(bottomTop[0])
         self.createMirroredFeatures(self.backInnerFace, bottomTop, btMidPlane, BuiltInDrawing.edgeFilletFinger, 8, False, rectFeature)# self.slotCountHeight)
         self.createMirroredFeatures(self.backInnerFace, leftRight, lrMidPlane, BuiltInDrawing.edgeFilletHole, 4, False, rectFeature)# self.slotCountHeight)
 
@@ -202,8 +202,8 @@ class MoldBuilder(TurtleCustomCommand):
         
         horzLinesBT = self.tComponent.getLinesByAxis(self.yAxis, self.zAxis, boundryLines)
         vertLinesFB = self.tComponent.getLinesByAxis(self.zAxis, self.yAxis, boundryLines)
-        horzMidLine = self.midPlaneOnLine(vertLinesFB[0])
-        vertMidLine = self.midPlaneOnLine(horzLinesBT[0])
+        horzMidLine = self.currentTSketch.midPlaneOnLine(vertLinesFB[0])
+        vertMidLine = self.currentTSketch.midPlaneOnLine(horzLinesBT[0])
 
 
         self.createMirroredFeatures(self.rightInnerFace, horzLinesBT, horzMidLine, BuiltInDrawing.edgeFilletFinger, 3, False, rectFeature)
@@ -359,14 +359,6 @@ class MoldBuilder(TurtleCustomCommand):
         result = self.currentTSketch.projectList(lines, False)
         return result
         
-    def midPlaneOnLine(self, line:f.SketchLine)-> f.ConstructionPlane: 
-        planes = self.component.constructionPlanes
-        planeInput = planes.createInput()
-        distance = core.ValueInput.createByReal(0.5)
-        planeInput.setByDistanceOnPath(line, distance)
-        midPlane = planes.add(planeInput)
-        return midPlane
- 
 
     # generate sorted point pairs of rect, direction is always left to right and top to bottom
     def getSortedRectSegments(self, tl:f.SketchPoint, tr:f.SketchPoint, br:f.SketchPoint, bl:f.SketchPoint)->list[list[f.SketchPoint]]:

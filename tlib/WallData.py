@@ -94,6 +94,6 @@ class WallSlotData:
         self.count:int = 1
         self.slotKind:BuiltInDrawing
         self.edgeLines:tuple(f.SketchLine, f.SketchLine) = None
-        self.midLine:f.SketchLine = None
+        self.midPlane:core.Plane = None
         self.reflectSlots:bool = True
 

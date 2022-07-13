@@ -318,6 +318,14 @@ class TurtleSketch:
         result = comp.constructionPlanes.add(planeInput)
         return result
     
+    def midPlaneOnLine(self, line:f.SketchLine)-> f.ConstructionPlane: 
+        planes = self.component.constructionPlanes
+        planeInput = planes.createInput()
+        distance = core.ValueInput.createByReal(0.5)
+        planeInput.setByDistanceOnPath(line, distance)
+        midPlane = planes.add(planeInput)
+        return midPlane
+ 
     def drawLine(self, startPoint:f.SketchPoint, endPoint:f.SketchPoint) -> f.SketchLine:
         return self.sketchLines.addByTwoPoints(startPoint, endPoint)
 
