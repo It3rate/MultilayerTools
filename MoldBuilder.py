@@ -228,7 +228,7 @@ class MoldBuilder(TurtleCustomCommand):
         TurtleLayers.changeExturdeToPlaneOrigin(newFeatures[0], self.leftInnerFace.face, self.parameters.createValue(0))
 
     def createFloor(self, isPreview:bool):
-        crossData = WallSlotData.create(BuiltInDrawing.edgeHole, 4)
+        crossData = WallSlotData.create(BuiltInDrawing.edgeHole, 8)
         outwardData = WallSlotData.create(BuiltInDrawing.edgeHole, 3)
         wall = TurtleWall.create(self.bottomInnerFace, WallKind.bottomInner, crossData, outwardData)
 

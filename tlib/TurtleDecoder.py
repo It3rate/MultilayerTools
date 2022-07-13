@@ -18,9 +18,7 @@ f,core,app,ui = TurtleUtils.initGlobals()
 class TurtleDecoder:
 
     def __init__(self, data:SketchData, sketch:f.Sketch, reverse:bool = False, mirror:bool = False):
-        if sketch:
-            self.sketch = sketch
-            self.tsketch = TurtleSketch.createWithSketch(self.sketch)
+        self.tSketch = TurtleSketch.createWithSketch(sketch) if isinstance(sketch, f.Sketch) else sketch # may be turtle sketch already
         self.isReversed:bool = reverse
         self.isMirrored:bool = mirror
 
@@ -54,7 +52,7 @@ class TurtleDecoder:
         decoder = TurtleDecoder(data, None, reverse, mirror)
         for guideline in guidelines:
             decoder.sketch = guideline.parentSketch
-            decoder.tsketch = TurtleSketch.createWithSketch(guideline.parentSketch)
+            decoder.tSketch = TurtleSketch.createWithSketch(guideline.parentSketch)
             decoder.userGuideline = guideline
             decoder.userStartGuidePoint = guideline.startSketchPoint.geometry
             decoder.userEndGuidePoint = guideline.endSketchPoint.geometry
@@ -75,6 +73,10 @@ class TurtleDecoder:
     @classmethod
     def createWithPoints(cls, data:SketchData, sketch:f.Sketch, points:tuple[core.Point3D, core.Point3D], reverse = False, mirror = False, callback = None):
         return cls.createWithPointChain(data, sketch, [points], reverse, mirror, callback)
+
+    @property
+    def sketch(self):
+        return self.tSketch.sketch
 
     def run(self):
         self.sketch.isComputeDeferred = True
@@ -156,7 +158,7 @@ class TurtleDecoder:
                 vc(0,0,1)
             )
             scale = guideVec.length / encVec.length
-            origin = self.tsketch.findPointAt(gOrigin)
+            origin = self.tSketch.findPointAt(gOrigin)
             return (scale, origin)
 
         
@@ -309,7 +311,7 @@ class TurtleDecoder:
             try:
                 if(kind == "VH"):
                     if not self.hasRotation and not p0 == self.userGuideline: # don't set vert/horz if transforming with rotation
-                        constraint = self.tsketch.makeLineHV(p0)
+                        constraint = self.tSketch.makeLineHV(p0)
                         # sp = p0.startSketchPoint.geometry
                         # ep = p0.endSketchPoint.geometry
                         # if(abs(sp.x - ep.x) < abs(sp.y - ep.y)):

@@ -2,7 +2,7 @@ import adsk.core, adsk.fusion, traceback
 import os, math, re, sys
 from enum import Enum
 
-from tlib.TurtleSketch import TurtleSketch
+from .TurtleSketch import TurtleSketch
 from .TurtleUtils import TurtleUtils
 from .data.SketchData import BuiltInDrawing
 

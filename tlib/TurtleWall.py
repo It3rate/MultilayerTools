@@ -25,6 +25,10 @@ class TurtleWall:
         self.outwardData:WallSlotData = outwardData
         self.colorIndex:int = wallKind.colorIndex
 
+        self.parameters = TurtleParams.instance()
+        self.slotLengthVal = self.parameters.getParamValueOrDefault('slotLength', 1.0)
+        self.slotSpaceVal = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
+
         self.face:f.BRepFace = self.tFace.face
 
         self.rootComponent = TurtleComponent(TurtleUtils.activeRoot())
@@ -55,6 +59,14 @@ class TurtleWall:
         result = cls(face, wallKind, crossData, outwardData) 
         result.run()
         return result
+
+    @property
+    def sketch(self):
+        return self.tSketch.sketch
+        
+    @property
+    def component(self):
+        return self.tComponent.component
 
     def run(self):
         self.tSketch = self.projectFaceEdges()
@@ -168,7 +180,7 @@ class TurtleWall:
         projLines, wallSlotData.tSketch = self.sketchFromFaceAndLines( wallSlotData.edgeLines)
         startLine = projLines[0]
         tabPts = self.tSketch.createFirstTabPoints(startLine.startSketchPoint, startLine.endSketchPoint,\
-             self.slotLengthVal, self.slotSpaceVal, wallSlotData.count)
+             self.slotLengthVal, self.slotSpaceVal, wallSlotData.slotCount)
         drawData = SketchData.createFromBuiltIn(wallSlotData.slotKind)
         decoder = TurtleDecoder.createWithPoints(drawData, wallSlotData.tSketch, tabPts)
         slotFeature = self.tComponent.extrudeAllProfiles(wallSlotData.tSketch, self.wallThicknessExpr, 1)
@@ -186,8 +198,9 @@ class TurtleWall:
         features.add(slotFeature)
 
         axis, lineDir, negation = self.tComponent.getAxisOfLine(startLine)
-        quantity = self.parameters.createValue(str(wallSlotData.count))
+        quantity = self.parameters.createValue(str(wallSlotData.slotCount))
         dist = self.parameters.createValue(str(self.slotLengthVal + self.slotSpaceVal) + "*" + str(negation) + "cm")
+        #dist = self.parameters.createValue(str("slotLength + slotSpacing") + "*" + str(negation) + "cm")
         rectangularPatternInput = rectangularPatterns.createInput(features, axis, quantity, dist, adsk.fusion.PatternDistanceType.SpacingPatternDistanceType)
 
         axis2 = self.yAxis if axis != self.yAxis else self.zAxis
