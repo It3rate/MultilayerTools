@@ -18,12 +18,12 @@ core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleWall:
-    def __init__(self, tFace:TurtleFace, wallKind:WallKind, crossData:WallSlotData, outwardData:WallSlotData, colorIndex:int = 0):
+    def __init__(self, tFace:TurtleFace, wallKind:WallKind, crossData:WallSlotData, outwardData:WallSlotData):
         self.tFace:TurtleFace = tFace
         self.wallKind:WallKind = wallKind
         self.crossData:WallSlotData = crossData
         self.outwardData:WallSlotData = outwardData
-        self.colorIndex:int = colorIndex
+        self.colorIndex:int = wallKind.colorIndex
 
         self.face:f.BRepFace = self.tFace.face
 
@@ -51,8 +51,8 @@ class TurtleWall:
         
 
     @classmethod
-    def create(cls, face:f.BRepFace, wallKind:WallKind):
-        result = cls(face, wallKind, None, None) 
+    def create(cls, face:f.BRepFace, wallKind:WallKind, crossData:WallSlotData, outwardData:WallSlotData):
+        result = cls(face, wallKind, crossData, outwardData) 
         result.run()
         return result
 
@@ -64,8 +64,8 @@ class TurtleWall:
         self.baseFeature = self.tComponent.extrudeLargestProfile(self.tSketch, self.wallThicknessExpr, self.colorIndex)
         crossLines = self.tComponent.getLinesByAxis(self.primaryAxis, self.secondaryAxis, self.boundryLines)
         outwardLines = self.tComponent.getLinesByAxis(self.secondaryAxis, self.primaryAxis, self.boundryLines)
-        crossMidPlane = self.midPlaneOnLine(outwardLines[0])
-        outwardMidPlane = self.midPlaneOnLine(crossLines[0])
+        crossMidPlane = self.tSketch.midPlaneOnLine(outwardLines[0])
+        outwardMidPlane = self.tSketch.midPlaneOnLine(crossLines[0])
         if self.crossData:
             self.crossData.edgeLines = crossLines
             self.crossData.midPlane = crossMidPlane
@@ -82,7 +82,7 @@ class TurtleWall:
         return self.yAxis if self.wallKind.isLeftRight() else self.xAxis
     @property
     def secondaryAxis(self):
-        return self.yAxis if self.wallKind.isFrontBack() else self.zAxis
+        return self.yAxis if self.wallKind.isTopBottom() else self.zAxis
         
     @property
     def xAxis(self):
@@ -94,13 +94,19 @@ class TurtleWall:
     def zAxis(self):
         return self.tComponent.zAxis if self.tComponent else self.rootComponent.component.zConstructionAxis    
 
+
     def projectFaceEdges(self, projectLoopIndex:int = 0, asConstruction:bool = True)->f.Sketch:
         tSketch = self.tFace.createSketchAtPoint(self.face.centroid)
-        self.tComponent = TurtleComponent.createFromSketch(self.tSketch.sketch)
+        self.tComponent = TurtleComponent.createFromSketch(tSketch.sketch)
         if projectLoopIndex < self.face.loops.count:
             loop = self.face.loops[projectLoopIndex]
             self.projectedLines = tSketch.projectList(loop.edges, asConstruction)
         return tSketch
+
+    def sketchFromFaceAndLines(self, lines:list[f.SketchLine])-> tuple[list[f.SketchLine], f.Sketch]:       
+        sketch = self.tFace.createSketchAtPoint(self.tFace.centroid)
+        projectedLines = sketch.projectList(lines, False)
+        return (projectedLines, sketch)
 
     def makeOffsetBoundry(self, edgeIndexes:list[int], expression:str):
         if len(edgeIndexes) > 0:
@@ -159,13 +165,13 @@ class TurtleWall:
 
     def createMirroredFeatures(self, wallSlotData:WallSlotData)->tuple[f.ExtrudeFeature, f.RectangularPatternFeature]:
         op = BuiltInDrawing.normalOperationForDrawing(wallSlotData.slotKind)
-        projLines = self.sketchFromFaceAndLines(self.tFace, wallSlotData.edgeLines)
+        projLines, wallSlotData.tSketch = self.sketchFromFaceAndLines( wallSlotData.edgeLines)
         startLine = projLines[0]
         tabPts = self.tSketch.createFirstTabPoints(startLine.startSketchPoint, startLine.endSketchPoint,\
              self.slotLengthVal, self.slotSpaceVal, wallSlotData.count)
         drawData = SketchData.createFromBuiltIn(wallSlotData.slotKind)
-        decoder = TurtleDecoder.createWithPoints(drawData, self.tSketch.sketch, tabPts)
-        slotFeature = self.tComponent.extrudeAllProfiles(self.tSketch, self.wallThicknessExpr, 1)
+        decoder = TurtleDecoder.createWithPoints(drawData, wallSlotData.tSketch, tabPts)
+        slotFeature = self.tComponent.extrudeAllProfiles(wallSlotData.tSketch, self.wallThicknessExpr, 1)
 
         if self.baseFeature:
             if op == f.FeatureOperations.CutFeatureOperation:
