@@ -125,6 +125,7 @@ class WallSlotData:
 
         self.tSketch:TurtleSketch = None
         self.edgeLines:tuple(f.SketchLine, f.SketchLine) = None
+        self.isMirror = False
         self.midPlane:core.Plane = None
         self.reflectSlots:bool = True
     @classmethod

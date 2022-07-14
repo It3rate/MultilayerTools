@@ -119,15 +119,17 @@ class TurtleComponent:
             negation = lineDir.z
         return (result, lineDir, negation)
 
-    def getLinesByAxis(self, axis:f.ConstructionAxis, sortAxis:f.ConstructionAxis, lines:list[f.SketchLine])->tuple[f.SketchLine,f.SketchLine]:
+    def getLinesByAxis(self, axis:f.ConstructionAxis, sortAxis:f.ConstructionAxis, lines:list[f.SketchLine])->tuple[tuple[f.SketchLine,f.SketchLine],bool]:
         axisDir = axis.geometry.direction
         result = []
+        isNeg = False
         for line in lines:
             lineDir = line.worldGeometry.asInfiniteLine().direction
             if axisDir.isParallelTo(lineDir):
                 result.append(line)
+                isNeg = TurtleSketch.vectorAxisAlignment(lineDir, axisDir) >= 0
         sorted = TurtleSketch.sortLinesMinToMax(result, sortAxis)
-        return (sorted[0], sorted[1])
+        return ((sorted[0], sorted[1]), isNeg)
 
 
     def extrude(self, profile, start, expression, isFlipped = False) -> f.ExtrudeFeature:

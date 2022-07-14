@@ -523,6 +523,10 @@ class TurtleSketch:
         return result
 
     @classmethod
+    def vectorAxisAlignment(cls, vec:core.Vector3D, axis:f.ConstructionAxis)->int:
+        return  vec.x * axis.x + vec.y * axis.y + vec.z * axis.z
+
+    @classmethod
     def compareSketchPoints(cls, sp0:f.SketchPoint, sp1:f.SketchPoint):
         return cls.comparePoints(sp0.geometry, sp1.geometry)
 

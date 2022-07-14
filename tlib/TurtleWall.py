@@ -74,16 +74,18 @@ class TurtleWall:
         distExpr = self.negWallThicknessExpr if isNeg else self.wallThicknessExpr
         self.makeOffsetBoundry(linesToOffest, distExpr)
         self.baseFeature = self.tComponent.extrudeLargestProfile(self.tSketch, self.wallThicknessExpr, self.colorIndex)
-        crossLines = self.tComponent.getLinesByAxis(self.primaryAxis, self.secondaryAxis, self.boundryLines)
-        outwardLines = self.tComponent.getLinesByAxis(self.secondaryAxis, self.primaryAxis, self.boundryLines)
+        crossLines, crossMirror = self.tComponent.getLinesByAxis(self.primaryAxis, self.secondaryAxis, self.boundryLines)
+        outwardLines, outwardMirror = self.tComponent.getLinesByAxis(self.secondaryAxis, self.primaryAxis, self.boundryLines)
         crossMidPlane = self.tSketch.midPlaneOnLine(outwardLines[0])
         outwardMidPlane = self.tSketch.midPlaneOnLine(crossLines[0])
         if self.crossData:
             self.crossData.edgeLines = crossLines
+            self.crossData.isMirror = crossMirror
             self.crossData.midPlane = crossMidPlane
             self.createMirroredFeatures(self.crossData)
         if self.outwardData:
             self.outwardData.edgeLines = outwardLines
+            self.outwardData.isMirror = outwardMirror
             self.outwardData.midPlane = outwardMidPlane
             self.createMirroredFeatures(self.outwardData)
 
@@ -177,12 +179,13 @@ class TurtleWall:
 
     def createMirroredFeatures(self, wallSlotData:WallSlotData)->tuple[f.ExtrudeFeature, f.RectangularPatternFeature]:
         op = BuiltInDrawing.normalOperationForDrawing(wallSlotData.slotKind)
-        projLines, wallSlotData.tSketch = self.sketchFromFaceAndLines( wallSlotData.edgeLines)
+        projLines, wallSlotData.tSketch = self.sketchFromFaceAndLines(wallSlotData.edgeLines)
         startLine = projLines[0]
+        #self.tSketch.printSketchLines([wallSlotData.edgeLines[0], startLine])
         tabPts = self.tSketch.createFirstTabPoints(startLine.startSketchPoint, startLine.endSketchPoint,\
              self.slotLengthVal, self.slotSpaceVal, wallSlotData.slotCount)
         drawData = SketchData.createFromBuiltIn(wallSlotData.slotKind)
-        decoder = TurtleDecoder.createWithPoints(drawData, wallSlotData.tSketch, tabPts)
+        decoder = TurtleDecoder.createWithPoints(drawData, wallSlotData.tSketch, tabPts, False, wallSlotData.isMirror)
         slotFeature = self.tComponent.extrudeAllProfiles(wallSlotData.tSketch, self.wallThicknessExpr, 1)
 
         if self.baseFeature:
@@ -215,6 +218,9 @@ class TurtleWall:
             self.tComponent.mirrorFeaturesWithPlane(wallSlotData.midPlane, slotFeature, rectangularFeature)
         return (slotFeature, rectangularFeature)
         
+    def oppositeLineIndex(self, sourceIndex:int)->int:
+        result = (sourceIndex + 2) % 4
+        return result
         
 
 
@@ -258,8 +264,6 @@ class TurtleWall:
     #         self.tComponent.mirrorFeaturesWithPlane(midPlane, slotFeature, rectangularFeature)
     #     return (slotFeature, rectangularFeature)
         
-#     def oppositeLineIndex(sourceIndex:int)->int:
-#         result = (sourceIndex + 2) % 4
 
 #     def getLineByGlobalOrientation(self, orientation:Orientation)->f.SketchLine:
 #         pass
