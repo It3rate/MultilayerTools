@@ -488,6 +488,12 @@ class TurtleSketch:
     def isSketchCWFlipped(self)->bool:
         return self.isCWFlipped(self.sketch)
 
+    def areSketchLinesClockwise(self, lines:list[f.SketchLine], isFlipped:bool = False)->bool:
+        p0 = lines[0].startSketchPoint
+        p1 = lines[0].endSketchPoint
+        p2 = lines[1].endSketchPoint
+        return self.arePointsClockwise(p0.geometry, p1.geometry, p2.geometry, isFlipped)
+
     @classmethod
     def sortPointsMinToMax(cls, lst:list[core.Point3D])->None:
         return list.sort(key=cls.comparePoints)

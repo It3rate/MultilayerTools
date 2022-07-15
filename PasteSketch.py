@@ -189,7 +189,7 @@ class PasteSketchCommand(TurtleUICommand):
             self.data = SketchData.createFromClipboard()
             # clip = TurtleUtils.getClipboardText()
             # if clip == None or not (clip.startswith("{#Turtle Generated Data")):
-            #     self.data = SketchData.createFromBuiltIn(BuiltInDrawing.default)
+            #     self.data = SketchData.createFromBuiltIn(Sketches.default)
             # else:
             #     self.data = eval(clip)
     

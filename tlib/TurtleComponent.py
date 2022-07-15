@@ -135,6 +135,7 @@ class TurtleComponent:
     def extrude(self, profile, start, expression, isFlipped = False) -> f.ExtrudeFeature:
         if profile is None:
             return
+        profile = profile if isinstance(profile, f.Profile) else TurtleUtils.ensureObjectCollection(profile)
         extrudes = self.component.features.extrudeFeatures
         dist = self.parameters.createValue(expression)
         extrudeInput = extrudes.createInput(profile, f.FeatureOperations.NewBodyFeatureOperation) 
@@ -150,24 +151,30 @@ class TurtleComponent:
     def extrudeLargestProfile(self, tsketch:TurtleSketch, expression:str, colorIndex:int)->f.Feature:
         from .TurtleLayers import TurtleLayers
         profile = tsketch.findLargestProfile()
-        _, newFeatures = TurtleLayers.createFromProfiles(self, profile, [expression])
-        self.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
-        return newFeatures[0]
+        newFeatures = self.extrude(profile, None, expression)
+        self.colorExtrudedBodiesByIndex(newFeatures,colorIndex)
+        return newFeatures
 
     def extrudeOuterProfile(self, tsketch:TurtleSketch, expression:str, colorIndex:int)->f.Feature:
         from .TurtleLayers import TurtleLayers
         profile = tsketch.findOuterProfile()
-        _, newFeatures = TurtleLayers.createFromProfiles(self, profile, [expression])
-        self.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
-        return newFeatures[0]
+        newFeatures = self.extrude(profile, None, expression)
+        self.colorExtrudedBodiesByIndex(newFeatures,colorIndex)
+        return newFeatures
+
+    def extrudeAllButOuterProfile(self, tsketch:TurtleSketch, expression:str, colorIndex:int)->f.Feature:
+        from .TurtleLayers import TurtleLayers
+        profile = tsketch.allButOuterProfile()
+        newFeatures = self.extrude(profile, None, expression)
+        self.colorExtrudedBodiesByIndex(newFeatures,colorIndex)
+        return newFeatures
 
     def extrudeAllProfiles(self, tsketch:TurtleSketch, expression:str, colorIndex:int)->f.Feature:
         from .TurtleLayers import TurtleLayers
         profile = tsketch.profileList
-        _, newFeatures = TurtleLayers.createFromProfiles(self, [profile], [expression])
-        self.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
-        return newFeatures[0]
-        
+        newFeatures = self.extrude(profile, None, expression)
+        self.colorExtrudedBodiesByIndex(newFeatures,colorIndex)
+        return newFeatures
 
     def cutComponent(self, profile):
         bodies = self.getBodies()

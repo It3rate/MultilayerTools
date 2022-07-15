@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from .TurtleUtils import TurtleUtils
 from .TurtleSketch import TurtleSketch
 from .data.SketchData import *
-#from .data.SketchData import BuiltInDrawing
+#from .data.SketchData import Sketches
 from .TurtleParams import TurtleParams
 from .TurtlePath import TurtlePath
 from modulefinder import Module

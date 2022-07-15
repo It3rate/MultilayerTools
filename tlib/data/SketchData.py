@@ -7,7 +7,15 @@ f:adsk.fusion
 core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
-class BuiltInDrawing(Enum):
+class SlotKind(Enum):
+    default = 0
+    hole = 10
+    holeLock = 11
+    finger = 20
+    fingerLock = 21
+    fingerPunch = 22
+    brace = 30
+class Sketches(Enum):
     # new body op
     default = 0
     # cut ops 10-19
@@ -93,18 +101,18 @@ class SketchData:
         return cls(data)
 
     @classmethod
-    def createFromBuiltIn(cls, kind:BuiltInDrawing):
-        if kind == BuiltInDrawing.offsetHole:
+    def createFromBuiltIn(cls, kind:Sketches):
+        if kind == Sketches.offsetHole:
             data = cls.offsetHole()
-        elif kind == BuiltInDrawing.edgeHole:
+        elif kind == Sketches.edgeHole:
             data = cls.edgeHole()
-        elif kind == BuiltInDrawing.edgeFilletHole:
+        elif kind == Sketches.edgeFilletHole:
             data = cls.edgeFilletHole()
-        elif kind == BuiltInDrawing.edgeFinger:
+        elif kind == Sketches.edgeFinger:
             data = cls.edgeFinger()
-        elif kind == BuiltInDrawing.edgeFilletFinger:
+        elif kind == Sketches.edgeFilletFinger:
             data = cls.edgeFilletFinger()
-        elif kind == BuiltInDrawing.notches:
+        elif kind == Sketches.notches:
             data = cls.notches()
         else:
             data = cls.getDefaultRawData()

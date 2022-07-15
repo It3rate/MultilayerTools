@@ -4,7 +4,7 @@ from enum import Enum
 
 from .TurtleSketch import TurtleSketch
 from .TurtleUtils import TurtleUtils
-from .data.SketchData import BuiltInDrawing
+from .data.SketchData import Sketches
 
 f:adsk.fusion
 core:adsk.core
@@ -13,15 +13,18 @@ f,core,app,ui = TurtleUtils.initGlobals()
 class SlotKind(Enum):
     none = 0
     hole = 10
-    holeLock = 11
+    holeEdge = 11
+    holeLock = 12
     finger = 20
-    fingerLock = 21
+    fingerEdge = 21
+    fingerLock = 22
 
 class WallKind(Enum):
     none = 0
     topInner= 10
     topCenter = 11
     topOuter = 12
+    topHole = 13
     bottomInner= 20
     bottomCenter = 21
     bottomOuter = 22
@@ -118,8 +121,8 @@ class WallKind(Enum):
             result = [SlotKind.hole, SlotKind.hole, SlotKind.hole, SlotKind.hole] 
 
 class WallSlotData:
-    def __init__(self, slotKind:BuiltInDrawing, slotCount:int, mirrorInvert:bool = False) -> None:
-        self.slotKind:BuiltInDrawing = slotKind
+    def __init__(self, slotKind:Sketches, slotCount:int, mirrorInvert:bool = False) -> None:
+        self.slotKind:Sketches = slotKind
         self.slotCount:int = slotCount
         self.mirrorInvert = mirrorInvert
 
@@ -129,6 +132,6 @@ class WallSlotData:
         self.midPlane:core.Plane = None
         self.reflectSlots:bool = True
     @classmethod
-    def create(cls, slotKind:BuiltInDrawing, slotCount:int, mirrored:bool = False):
+    def create(cls, slotKind:Sketches, slotCount:int, mirrored:bool = False):
         return cls( slotKind, slotCount, mirrored)
 
