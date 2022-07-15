@@ -154,6 +154,13 @@ class TurtleComponent:
         self.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
         return newFeatures[0]
 
+    def extrudeOuterProfile(self, tsketch:TurtleSketch, expression:str, colorIndex:int)->f.Feature:
+        from .TurtleLayers import TurtleLayers
+        profile = tsketch.findOuterProfile()
+        _, newFeatures = TurtleLayers.createFromProfiles(self, profile, [expression])
+        self.colorExtrudedBodiesByIndex(newFeatures[0],colorIndex)
+        return newFeatures[0]
+
     def extrudeAllProfiles(self, tsketch:TurtleSketch, expression:str, colorIndex:int)->f.Feature:
         from .TurtleLayers import TurtleLayers
         profile = tsketch.profileList

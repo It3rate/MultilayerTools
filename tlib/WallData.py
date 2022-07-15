@@ -97,10 +97,10 @@ class WallKind(Enum):
             result = [] if cls.isInner(wallKind) else [0,1,2,3] # expand all lid, none for floor
         elif cls.isLeftRight(wallKind):
             isNeg = True
-            result = [0,2,3] if cls.isInner(wallKind) else [0,2] # contract sides, and floor line if inner
+            result = [0,2,3] if cls.isInner(wallKind) else [] # contract sides, and floor line if inner
         elif cls.isFrontBack(wallKind):
             isNeg = True
-            result = [3] if cls.isInner(wallKind) else [] # contract floor line if inner
+            result = [3] if cls.isInner(wallKind) else [0,2] # contract floor line if inner
         elif cls.isHole(wallKind):
             isNeg = True
             result = [0,1,2,3] # expand all the top hole edges inward to make room for slot holes on wall line
@@ -118,10 +118,10 @@ class WallKind(Enum):
             result = [SlotKind.hole, SlotKind.hole, SlotKind.hole, SlotKind.hole] 
 
 class WallSlotData:
-    def __init__(self, slotKind:BuiltInDrawing, slotCount:int, mirrored:bool = True) -> None:
+    def __init__(self, slotKind:BuiltInDrawing, slotCount:int, mirrorInvert:bool = False) -> None:
         self.slotKind:BuiltInDrawing = slotKind
         self.slotCount:int = slotCount
-        self.mirrored = mirrored
+        self.mirrorInvert = mirrorInvert
 
         self.tSketch:TurtleSketch = None
         self.edgeLines:tuple(f.SketchLine, f.SketchLine) = None
@@ -129,6 +129,6 @@ class WallSlotData:
         self.midPlane:core.Plane = None
         self.reflectSlots:bool = True
     @classmethod
-    def create(cls, slotKind:BuiltInDrawing, slotCount:int, mirrored:bool = True):
+    def create(cls, slotKind:BuiltInDrawing, slotCount:int, mirrored:bool = False):
         return cls( slotKind, slotCount, mirrored)
 

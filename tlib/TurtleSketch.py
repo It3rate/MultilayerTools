@@ -1,6 +1,6 @@
 
 import adsk.core, adsk.fusion, traceback
-import os, math, re, sys
+import os, math, re, sys, random
 from collections.abc import Iterable
 from functools import cmp_to_key
 from .TurtleUtils import TurtleUtils
@@ -45,9 +45,6 @@ class TurtleSketch:
     @property
     def lastAddedConstraint(self):
         return self.constraints.item(self.constraints.count - 1) if self.constraints.count > 0 else None
-    @property
-    def lastAddedParameter(self):
-        return self.component.modelParameters[self.component.modelParameters.count - 1] if self.component.modelParameters.count > 0 else None
 
     @property
     def profileList(self)->list[f.Profile]:
@@ -138,18 +135,44 @@ class TurtleSketch:
             line.isConstruction = True
         return line
 
+    @property
+    def lastAddedParameter(self):
+        return self.component.modelParameters[self.component.modelParameters.count - 1] if self.component.modelParameters.count > 0 else None
+
+    def newestParameter(self, orgParams:list):
+        curParams = TurtleUtils.ensureList(self.component.modelParameters)
+        result = None
+        for param in curParams:
+            if param not in orgParams:
+                result = param
+                break
+        return result
+               
+    def setExprOnNewestParam(self, orgParams:list, expr:str):
+        newest = self.newestParameter(orgParams)
+        if newest:
+            try:
+                newest.expression = expr
+            except:
+                pass
+               
+
     def offset(self, elements, direction:core.Point3D, distanceExpr:str, makeConstruction = False):
-        if not isinstance(elements, core.ObjectCollection):
-            lst = core.ObjectCollection.create()
-            for e in elements:
-                lst.add(e)
+        lst = TurtleUtils.ensureObjectCollection(elements)
+        if len(lst) == 2:
+            params = TurtleUtils.ensureList(self.component.modelParameters)
+            offset0 = self.sketch.offset(TurtleUtils.ensureObjectCollection([lst[0]]), direction, 1)[0]
+            self.setExprOnNewestParam(params, "-"+distanceExpr)
+            params = TurtleUtils.ensureList(self.component.modelParameters)
+            offset1 = self.sketch.offset(TurtleUtils.ensureObjectCollection([lst[1]]), direction, 1)[0]
+            self.setExprOnNewestParam(params, distanceExpr)
+            offsetConstraint = self.lastAddedConstraint
+            offsetElements = [offset0, offset1]
         else:
-            lst = elements
-            
-        offsetElements = self.sketch.offset(lst, direction, .01)
-        offsetConstraint = self.lastAddedConstraint
-        lastParameter = self.lastAddedParameter
-        lastParameter.expression = distanceExpr
+            params = TurtleUtils.ensureList(self.component.modelParameters)
+            offsetElements = self.sketch.offset(lst, direction, 1)
+            offsetConstraint = self.lastAddedConstraint
+            self.setExprOnNewestParam(params, distanceExpr)
         if makeConstruction:
             for oe in offsetElements:
                 oe.isConstruction = True

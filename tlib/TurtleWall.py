@@ -74,6 +74,8 @@ class TurtleWall:
         distExpr = self.negWallThicknessExpr if isNeg else self.wallThicknessExpr
         self.makeOffsetBoundry(linesToOffest, distExpr)
         self.baseFeature = self.tComponent.extrudeLargestProfile(self.tSketch, self.wallThicknessExpr, self.colorIndex)
+        if self.wallKind.isTopBottom() and self.wallKind.isOuter():
+            self.addLip(self.boundryLines)
         crossLines, crossMirror = self.tComponent.getLinesByAxis(self.primaryAxis, self.secondaryAxis, self.boundryLines)
         outwardLines, outwardMirror = self.tComponent.getLinesByAxis(self.secondaryAxis, self.primaryAxis, self.boundryLines)
         crossMidPlane = self.tSketch.midPlaneOnLine(outwardLines[0])
@@ -122,6 +124,11 @@ class TurtleWall:
         projectedLines = sketch.projectList(lines, False)
         return (projectedLines, sketch)
 
+    def addLip(self, boundryLines:list[f.SketchLine]):
+        self.tSketch.offset(boundryLines, self.face.centroid, "lipWidth", False)
+        lipFeature = self.tComponent.extrudeOuterProfile(self.tSketch, self.wallThicknessExpr, self.colorIndex)
+        return lipFeature
+
     def makeOffsetBoundry(self, edgeIndexes:list[int], expression:str):
         if len(edgeIndexes) > 0:
             linesToOffset = []
@@ -145,37 +152,8 @@ class TurtleWall:
         elif len(edgeIndexes) == 4:
             linesForCorners.append(offsetLines[0])
             linesForCorners.append(offsetLines[2])
-            pass
         ptPairs = self.tSketch.getRectPointChain(linesForCorners, True)
         self.boundryLines = self.tSketch.drawLines(ptPairs)
-
-
-    def createInnerFrontAndBack(self, isPreview:bool):
-        projectedList = self.sketchFromFace(self.backInnerFace, 0, True)
-        # shrink bottom only, make holes in the sides, fingers in the bottom and top
-        offsetLines = self.tSketch.offset([projectedList[3]], self.backInnerFace.centroid, '-' + self.wallThicknessExpr, True)[0]
-        topLine = projectedList[1]
-        bottomLine = offsetLines[0]
-        # ptPairs = \
-        #   self.getSortedRectSegments(topLine.startSketchPoint, bottomLine.startSketchPoint, bottomLine.endSketchPoint, topLine.endSketchPoint)
-        ptPairs = self.tSketch.getRectPointChain([topLine, bottomLine], True)
-        boundryLines = self.tSketch.drawLines(ptPairs)
-        # main rect extrude
-        rectFeature = self.tComponent.extrudeLargestProfile(self.tSketch, self.wallThicknessExpr, 1)
-
-        bottomTop = self.tComponent.getLinesByAxis(self.xAxis, self.zAxis, boundryLines)
-        leftRight = self.tComponent.getLinesByAxis(self.zAxis, self.xAxis, boundryLines)
-        btMidPlane = self.tSketch.midPlaneOnLine(leftRight[0])
-        lrMidPlane = self.tSketch.midPlaneOnLine(bottomTop[0])
-        self.createMirroredFeatures(bottomTop, btMidPlane, BuiltInDrawing.edgeFilletFinger, 8, rectFeature, f.FeatureOperations.JoinFeatureOperation)# self.slotCountHeight)
-        self.createMirroredFeatures(leftRight, lrMidPlane, BuiltInDrawing.edgeFilletHole, 4, rectFeature, f.FeatureOperations.CutFeatureOperation)# self.slotCountHeight)
-
-        # Set the data for second direction
-        #rectangularPatternInput.setDirectionTwo(yAxis, quantityTwo, distanceTwo)
-        
-        # Create the rectangular pattern
-        # rectangularFeature = rectangularPatterns.add(rectangularPatternInput)
-        return
 
     def createMirroredFeatures(self, wallSlotData:WallSlotData)->tuple[f.ExtrudeFeature, f.RectangularPatternFeature]:
         op = BuiltInDrawing.normalOperationForDrawing(wallSlotData.slotKind)
@@ -185,7 +163,8 @@ class TurtleWall:
         tabPts = self.tSketch.createFirstTabPoints(startLine.startSketchPoint, startLine.endSketchPoint,\
              self.slotLengthVal, self.slotSpaceVal, wallSlotData.slotCount)
         drawData = SketchData.createFromBuiltIn(wallSlotData.slotKind)
-        decoder = TurtleDecoder.createWithPoints(drawData, wallSlotData.tSketch, tabPts, False, wallSlotData.isMirror)
+        mirror = not wallSlotData.isMirror if wallSlotData.mirrorInvert else wallSlotData.isMirror
+        decoder = TurtleDecoder.createWithPoints(drawData, wallSlotData.tSketch, tabPts, False, mirror)
         slotFeature = self.tComponent.extrudeAllProfiles(wallSlotData.tSketch, self.wallThicknessExpr, 1)
 
         if self.baseFeature:
