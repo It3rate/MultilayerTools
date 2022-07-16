@@ -64,7 +64,9 @@ class WallKind(Enum):
     @property
     def colorIndex(self):
         result = 0
-        if self.isLeftRight():
+        if self == WallKind.bottomInner:
+            result = 3
+        elif self.isLeftRight():
             result = 1
         elif self.isFrontBack():
             result = 2

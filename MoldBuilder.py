@@ -69,24 +69,13 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        self.setWallData()
-        for key in self.wallData:
-            self.createWall(key, self.wallData[key])
-
-        # self.createTop(True)
-        # self.createBottom(True)
-        # self.createOuterLeftAndRight(True)
-        # self.createOuterFrontAndBack(True)
-
-        # self.createInnerLeftAndRight(True)
-        # self.createInnerFrontAndBack(True)
-        # self.createFloor(True)
-
-        self.tComponent.component.isConstructionFolderLightBulbOn = False
-        self.body.isVisible = False
+        self.createSpecificWalls([WallKind.frontOuter, WallKind.leftOuter, WallKind.bottomInner])
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
-        self.onPreview(eventArgs)
+        self.setParameters()
+        self.createAllWalls()
+        self.body.isVisible = False
+
     def setWallData(self):
         self.wallData = {
             WallKind.topOuter:[[SlotKind.hole, self.slotCountWidth + 1], [SlotKind.hole, self.slotCountDepth + 1],[SlotKind.hole, self.slotCountWidth, True], [SlotKind.hole, self.slotCountDepth, True]],
@@ -95,10 +84,22 @@ class MoldBuilder(TurtleCustomCommand):
 
             WallKind.frontOuter:[[SlotKind.fingerLock, self.slotCountWidth + 1], [SlotKind.holeLock, self.slotCountHeight + 1]],
             WallKind.backInner:[[SlotKind.fingerLock, self.slotCountWidth], [SlotKind.holeLock, self.slotCountHeight]],
-
+            # left right need to be last as they can potentially punch through to lock multiple walls
             WallKind.leftOuter:[[SlotKind.fingerLock, self.slotCountDepth + 1], [SlotKind.fingerLock, self.slotCountHeight + 1]],
             WallKind.rightInner:[[SlotKind.fingerLock, self.slotCountDepth], [SlotKind.fingerLock, self.slotCountHeight]],
         }
+    def createSpecificWalls(self, wallKinds:list[SlotKind]):
+        self.setWallData()
+        for key in wallKinds:
+            self.createWall(key, self.wallData[key])
+        self.tComponent.component.isConstructionFolderLightBulbOn = False
+
+    def createAllWalls(self):
+        self.setWallData()
+        for key in self.wallData:
+            self.createWall(key, self.wallData[key])
+        self.tComponent.component.isConstructionFolderLightBulbOn = False
+
     def createWall(self, wallKind, wallData):
         wallDesc = zip(wallData[::2], wallData[1::2])
         isFeature = False
@@ -204,11 +205,11 @@ class MoldBuilder(TurtleCustomCommand):
             self.diagLipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
             
             # better to specify max slots per wall
-            slotLengthParam = self.parameters.addOrGetParam('slotLength', '6 mm')
+            slotLengthParam = self.parameters.addOrGetParam('slotLength', '8 mm')
             self.diagSlotLength = inputs.addDistanceValueCommandInput('txSlotLen', 'Slot Length', self.parameters.createValue(slotLengthParam.expression))
             #self.diagSlotLength.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
 
-            slotSpacingParam = self.parameters.addOrGetParam('slotSpacing', '6 mm')
+            slotSpacingParam = self.parameters.addOrGetParam('slotSpacing', '5 mm')
             self.diagSlotSpacing = inputs.addDistanceValueCommandInput('txSlotSpacing', 'Slot Spacing', self.parameters.createValue(slotSpacingParam.expression))
             
             
