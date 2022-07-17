@@ -36,9 +36,20 @@ class MoldBuilder(TurtleCustomCommand):
         self.slotSpaceVal = 1
 
         self.faceMap = {}
-        self.slotCountWidth = 6
-        self.slotCountDepth = 4
-        self.slotCountHeight = 2
+        self.outerWidth  = 1
+        self.outerHeight = 1
+        self.outerDepth  = 1
+        self.innerWidth  = 1
+        self.innerHeight = 1
+        self.innerDepth  = 1
+        self.slotTotalLen = 1
+        self.slotCountInnerWidth = 1
+        self.slotCountInnerDepth = 1
+        self.slotCountInnerHeight = 1
+        self.slotCountOuterWidth = 1
+        self.slotCountOuterDepth = 1
+        self.slotCountOuterHeight = 1
+
         self.wallThicknessExpr = "wallThickness"
         super().__init__(cmdId, cmdName, cmdDescription)
         
@@ -69,24 +80,38 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        self.createSpecificWalls([WallKind.frontOuter, WallKind.leftOuter, WallKind.bottomInner])
+        self.createSpecificWalls([WallKind.backInner, WallKind.leftOuter, WallKind.bottomInner])
+        self.body.opacity = 0.2
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
+        #return self.onPreview(eventArgs)
         self.setParameters()
         self.createAllWalls()
         self.body.isVisible = False
 
-    def setWallData(self):
-        self.wallData = {
-            WallKind.topOuter:[[SlotKind.hole, self.slotCountWidth + 1], [SlotKind.hole, self.slotCountDepth + 1],[SlotKind.hole, self.slotCountWidth, True], [SlotKind.hole, self.slotCountDepth, True]],
-            WallKind.bottomInner:[[SlotKind.holeLock, self.slotCountWidth], [SlotKind.holeLock, self.slotCountDepth]],
-            WallKind.bottomOuter:[[SlotKind.hole, self.slotCountWidth + 1, True], [SlotKind.hole, self.slotCountDepth + 1]],
+    def calcSlotCount(self, len, isInner = True)->int:
+        thickness = self.wallThicknessVal * 2
+        reservedLen = thickness + self.shellThicknessVal * 2 if isInner else thickness
+        return max(1, int((len - reservedLen) / self.slotTotalLen))
 
-            WallKind.frontOuter:[[SlotKind.fingerLock, self.slotCountWidth + 1], [SlotKind.holeLock, self.slotCountHeight + 1]],
-            WallKind.backInner:[[SlotKind.fingerLock, self.slotCountWidth], [SlotKind.holeLock, self.slotCountHeight]],
+    def setWallData(self):
+        self.slotCountInnerWidth = self.calcSlotCount(self.innerWidth)
+        self.slotCountInnerDepth = self.calcSlotCount(self.innerDepth)
+        self.slotCountInnerHeight = self.calcSlotCount(self.innerHeight)
+        self.slotCountOuterWidth = self.calcSlotCount(self.outerWidth, False)
+        self.slotCountOuterDepth = self.calcSlotCount(self.outerDepth, False)
+        self.slotCountOuterHeight = self.calcSlotCount(self.outerHeight, False)
+        
+        self.wallData = {
+            WallKind.topOuter:[[SlotKind.hole, self.slotCountOuterWidth], [SlotKind.hole, self.slotCountOuterDepth],[SlotKind.hole, self.slotCountInnerWidth, True], [SlotKind.hole, self.slotCountInnerDepth, True]],
+            WallKind.bottomInner:[[SlotKind.holeLock, self.slotCountInnerWidth], [SlotKind.holeLock, self.slotCountInnerDepth]],
+            WallKind.bottomOuter:[[SlotKind.hole, self.slotCountOuterWidth, True], [SlotKind.hole, self.slotCountOuterDepth]],
+
+            WallKind.frontOuter:[[SlotKind.fingerLock, self.slotCountOuterWidth], [SlotKind.holeLock, self.slotCountOuterHeight]],
+            WallKind.backInner:[[SlotKind.fingerLock, self.slotCountInnerWidth], [SlotKind.holeLock, self.slotCountInnerHeight]],
             # left right need to be last as they can potentially punch through to lock multiple walls
-            WallKind.leftOuter:[[SlotKind.fingerLock, self.slotCountDepth + 1], [SlotKind.fingerLock, self.slotCountHeight + 1]],
-            WallKind.rightInner:[[SlotKind.fingerLock, self.slotCountDepth], [SlotKind.fingerLock, self.slotCountHeight]],
+            WallKind.leftOuter:[[SlotKind.fingerLock, self.slotCountOuterDepth], [SlotKind.fingerLock, self.slotCountOuterHeight]],
+            WallKind.rightInner:[[SlotKind.fingerLock, self.slotCountInnerDepth], [SlotKind.fingerLock, self.slotCountInnerHeight]],
         }
     def createSpecificWalls(self, wallKinds:list[SlotKind]):
         self.setWallData()
@@ -179,6 +204,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.lipWidthVal = self.parameters.getParamValueOrDefault('lipWidth', 1.0)
         self.slotLengthVal = self.parameters.getParamValueOrDefault('slotLength', 1.0)
         self.slotSpaceVal = self.parameters.getParamValueOrDefault('slotSpacing', 1.5)
+        self.slotTotalLen = self.slotLengthVal + self.slotSpaceVal
 
 
 
@@ -268,12 +294,6 @@ class MoldBuilder(TurtleCustomCommand):
             WallKind.leftInner:self.leftInnerFace,
             WallKind.rightInner:self.rightInnerFace
         }
-        topLengths = self.topOuterFace.xyzLengths
-        frontLengths = self.frontOuterFace.xyzLengths
-        sideLengths = self.rightOuterFace.xyzLengths
-        self.frontWidth = frontLengths[0]
-        self.frontHeight = frontLengths[2]
-        self.sideWidth = sideLengths[1]
 
         if self.component.features.shellFeatures.count == 1:
             shellFeature = self.component.features.shellFeatures.item(0)
@@ -286,6 +306,20 @@ class MoldBuilder(TurtleCustomCommand):
             dist = app.measureManager.measureMinimumDistance(body1, body2)
             self.shellThicknessVal = dist.value
             self.shellThicknessExpr = f'{dist.value} cm'
+            
+        #topLengths = self.topOuterFace.xyzLengths
+        frontLengths = self.frontOuterFace.xyzLengths
+        sideLengths = self.rightOuterFace.xyzLengths
+        self.outerWidth = frontLengths[0]
+        self.outerHeight = frontLengths[2]
+        self.outerDepth = sideLengths[1]
+
+        #topLengths = self.topOuterFace.xyzLengths
+        frontLengths = self.frontInnerFace.xyzLengths
+        sideLengths = self.rightInnerFace.xyzLengths
+        self.innerWidth = frontLengths[0]
+        self.innerHeight = frontLengths[2]
+        self.innerDepth = sideLengths[1]
             
     def faceWithNormalMatch(self, norm:core.Vector3D, tfaces:list[TurtleFace], findLargest:bool, surfaceKind:SurfaceKind) -> TurtleFace:
         result:TurtleFace = None

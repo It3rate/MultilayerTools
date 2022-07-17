@@ -620,7 +620,7 @@ class TurtleSketch:
         lineLen = startPoint.distanceTo(endPoint)
         tabTotalLen = tabSpacing + tabWidth
         lineWorking = (lineLen - tabSpacing)
-        slotCount = math.floor(lineWorking / tabTotalLen) if count < 0 else count
+        slotCount = math.floor(lineWorking / tabTotalLen) if count == -1 else count
         offset = (lineLen - (slotCount * tabTotalLen + tabSpacing)) / 2.0
         start = offset + tabSpacing
         end = start + tabWidth

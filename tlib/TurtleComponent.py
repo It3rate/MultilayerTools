@@ -94,8 +94,9 @@ class TurtleComponent:
         for arg in args:
             if isinstance(arg, core.ObjectCollection) or isinstance(arg, list):
                 for ent in arg:
-                    entities.append(ent)
-            else:
+                    if ent:
+                        entities.append(ent)
+            elif arg:
                 entities.append(arg)
         inputEntities = TurtleUtils.ensureObjectCollection(entities)
 

@@ -181,7 +181,7 @@ class TurtleWall:
         startLine = projLines[0]
         #self.tSketch.printSketchLines([wallData.edgeLines[0], startLine])
         tabPts = self.tSketch.createFirstTabPoints(startLine.startSketchPoint, startLine.endSketchPoint,\
-             self.slotLengthVal, self.slotSpaceVal, wallData.slotCount)
+            self.slotLengthVal, self.slotSpaceVal, wallData.slotCount)
         drawData = SketchData.createFromBuiltIn(wallData.slotKind)
         mirror = not wallData.isMirror if wallData.mirrorInvert else wallData.isMirror
         decoder = TurtleDecoder.createWithPoints(drawData, wallData.tSketch, tabPts, False, mirror)
@@ -194,24 +194,25 @@ class TurtleWall:
                 TurtleLayers.changeExtrudeOperation(slotFeature, self.baseFeature.bodies, op)
             elif op == f.FeatureOperations.IntersectFeatureOperation:
                 TurtleLayers.changeExtrudeOperation(slotFeature, self.baseFeature.bodies, op)
-        
-        rectangularPatterns = self.component.features.rectangularPatternFeatures
-        features = core.ObjectCollection.create()
-        features.add(slotFeature)
+        rectangularFeature = None
+        if wallData.slotCount > 1:
+            rectangularPatterns = self.component.features.rectangularPatternFeatures
+            features = core.ObjectCollection.create()
+            features.add(slotFeature)
 
-        axis, lineDir, negation = self.tComponent.getAxisOfLine(startLine)
-        quantity = self.parameters.createValue(str(wallData.slotCount))
-        dist = self.parameters.createValue(str(self.slotLengthVal + self.slotSpaceVal) + "*" + str(negation) + "cm")
-        #dist = self.parameters.createValue(str("slotLength + slotSpacing") + "*" + str(negation) + "cm")
-        rectangularPatternInput = rectangularPatterns.createInput(features, axis, quantity, dist, adsk.fusion.PatternDistanceType.SpacingPatternDistanceType)
+            axis, lineDir, negation = self.tComponent.getAxisOfLine(startLine)
+            quantity = self.parameters.createValue(str(wallData.slotCount))
+            dist = self.parameters.createValue(str(self.slotLengthVal + self.slotSpaceVal) + "*" + str(negation) + "cm")
+            #dist = self.parameters.createValue(str("slotLength + slotSpacing") + "*" + str(negation) + "cm")
+            rectangularPatternInput = rectangularPatterns.createInput(features, axis, quantity, dist, adsk.fusion.PatternDistanceType.SpacingPatternDistanceType)
 
-        axis2 = self.yAxis if axis != self.yAxis else self.zAxis
-        quantity2 = self.parameters.createValue('1')
-        dist2 = self.parameters.createValue('0cm')
-        rectangularPatternInput.setDirectionTwo(axis2, quantity2, dist2)
-        
-        rectangularPatternInput.patternComputeOption = f.PatternComputeOptions.IdenticalPatternCompute
-        rectangularFeature = rectangularPatterns.add(rectangularPatternInput)
+            axis2 = self.yAxis if axis != self.yAxis else self.zAxis
+            quantity2 = self.parameters.createValue('1')
+            dist2 = self.parameters.createValue('0cm')
+            rectangularPatternInput.setDirectionTwo(axis2, quantity2, dist2)
+            
+            rectangularPatternInput.patternComputeOption = f.PatternComputeOptions.IdenticalPatternCompute
+            rectangularFeature = rectangularPatterns.add(rectangularPatternInput)
 
         if wallData.midPlane:
             self.tComponent.mirrorFeaturesWithPlane(wallData.midPlane, slotFeature, rectangularFeature)
