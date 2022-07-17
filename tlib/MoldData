@@ -1,0 +1,27 @@
+import adsk.core, adsk.fusion, traceback
+import os, math, re, sys
+from enum import Enum
+
+from .TurtleSketch import TurtleSketch
+from .TurtleUtils import TurtleUtils
+from .data.SketchData import Sketches
+
+f:adsk.fusion
+core:adsk.core
+f,core,app,ui = TurtleUtils.initGlobals()
+
+class MoldData:
+    def __init__(self) -> None:
+        self.body:f.BRepBody
+        self.walls = []
+        
+
+        self.tSketch:TurtleSketch = None
+        self.edgeLines:tuple(f.SketchLine, f.SketchLine) = None
+        self.isMirror = False
+        self.midPlane:core.Plane = None
+        self.reflectSlots:bool = True
+    @classmethod
+    def create(cls, slotKind:Sketches, slotCount:int, mirrored:bool = False):
+        return cls( slotKind, slotCount, mirrored)
+

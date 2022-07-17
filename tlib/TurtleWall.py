@@ -18,11 +18,11 @@ core:adsk.core
 f,core,app,ui = TurtleUtils.initGlobals()
 
 class TurtleWall:
-    def __init__(self, tFace:TurtleFace, wallKind:WallKind, crossData:WallSlotData, outwardData:WallSlotData, useOuterLoop:bool):
+    def __init__(self, tFace:TurtleFace, wallKind:WallKind, crossData:WallData, outwardData:WallData, useOuterLoop:bool):
         self.tFace:TurtleFace = tFace
         self.wallKind:WallKind = wallKind
-        self.crossData:WallSlotData = crossData
-        self.outwardData:WallSlotData = outwardData
+        self.crossData:WallData = crossData
+        self.outwardData:WallData = outwardData
         self.useOuterLoop = useOuterLoop
         self.colorIndex:int = wallKind.colorIndex
 
@@ -56,7 +56,7 @@ class TurtleWall:
         
 
     @classmethod
-    def create(cls, face:f.BRepFace, wallKind:WallKind, crossData:WallSlotData, outwardData:WallSlotData, useOuterLoop:bool = True):
+    def create(cls, face:f.BRepFace, wallKind:WallKind, crossData:WallData, outwardData:WallData, useOuterLoop:bool = True):
         result = cls(face, wallKind, crossData, outwardData, useOuterLoop) 
         result.run()
         return result
@@ -72,7 +72,7 @@ class TurtleWall:
     def run(self):
         self.addFeatures(self.crossData, self.outwardData, self.useOuterLoop)
 
-    def addFeatures(self, crossData:WallSlotData, outwardData:WallSlotData, useOuterLoop:bool = True):
+    def addFeatures(self, crossData:WallData, outwardData:WallData, useOuterLoop:bool = True):
         self.crossData = crossData
         self.outwardData = outwardData
         self.useOuterLoop = useOuterLoop
@@ -175,17 +175,17 @@ class TurtleWall:
         ptPairs = self.tSketch.getRectPointChain(linesForCorners, True)
         self.boundryLines = self.tSketch.drawLines(ptPairs)
 
-    def createMirroredFeatures(self, wallSlotData:WallSlotData)->tuple[f.ExtrudeFeature, f.RectangularPatternFeature]:
-        op = Sketches.normalOperationForDrawing(wallSlotData.slotKind)
-        projLines, wallSlotData.tSketch = self.sketchFromFaceAndLines(wallSlotData.edgeLines)
+    def createMirroredFeatures(self, wallData:WallData)->tuple[f.ExtrudeFeature, f.RectangularPatternFeature]:
+        op = Sketches.normalOperationForDrawing(wallData.slotKind)
+        projLines, wallData.tSketch = self.sketchFromFaceAndLines(wallData.edgeLines)
         startLine = projLines[0]
-        #self.tSketch.printSketchLines([wallSlotData.edgeLines[0], startLine])
+        #self.tSketch.printSketchLines([wallData.edgeLines[0], startLine])
         tabPts = self.tSketch.createFirstTabPoints(startLine.startSketchPoint, startLine.endSketchPoint,\
-             self.slotLengthVal, self.slotSpaceVal, wallSlotData.slotCount)
-        drawData = SketchData.createFromBuiltIn(wallSlotData.slotKind)
-        mirror = not wallSlotData.isMirror if wallSlotData.mirrorInvert else wallSlotData.isMirror
-        decoder = TurtleDecoder.createWithPoints(drawData, wallSlotData.tSketch, tabPts, False, mirror)
-        slotFeature = self.tComponent.extrudeAllProfiles(wallSlotData.tSketch, self.wallThicknessExpr, 1)
+             self.slotLengthVal, self.slotSpaceVal, wallData.slotCount)
+        drawData = SketchData.createFromBuiltIn(wallData.slotKind)
+        mirror = not wallData.isMirror if wallData.mirrorInvert else wallData.isMirror
+        decoder = TurtleDecoder.createWithPoints(drawData, wallData.tSketch, tabPts, False, mirror)
+        slotFeature = self.tComponent.extrudeAllProfiles(wallData.tSketch, self.wallThicknessExpr, 1)
 
         if self.baseFeature:
             if op == f.FeatureOperations.CutFeatureOperation:
@@ -200,7 +200,7 @@ class TurtleWall:
         features.add(slotFeature)
 
         axis, lineDir, negation = self.tComponent.getAxisOfLine(startLine)
-        quantity = self.parameters.createValue(str(wallSlotData.slotCount))
+        quantity = self.parameters.createValue(str(wallData.slotCount))
         dist = self.parameters.createValue(str(self.slotLengthVal + self.slotSpaceVal) + "*" + str(negation) + "cm")
         #dist = self.parameters.createValue(str("slotLength + slotSpacing") + "*" + str(negation) + "cm")
         rectangularPatternInput = rectangularPatterns.createInput(features, axis, quantity, dist, adsk.fusion.PatternDistanceType.SpacingPatternDistanceType)
@@ -213,8 +213,8 @@ class TurtleWall:
         rectangularPatternInput.patternComputeOption = f.PatternComputeOptions.IdenticalPatternCompute
         rectangularFeature = rectangularPatterns.add(rectangularPatternInput)
 
-        if wallSlotData.midPlane:
-            self.tComponent.mirrorFeaturesWithPlane(wallSlotData.midPlane, slotFeature, rectangularFeature)
+        if wallData.midPlane:
+            self.tComponent.mirrorFeaturesWithPlane(wallData.midPlane, slotFeature, rectangularFeature)
         return (slotFeature, rectangularFeature)
         
     def oppositeLineIndex(self, sourceIndex:int)->int:

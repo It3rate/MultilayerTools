@@ -122,7 +122,7 @@ class WallKind(Enum):
         elif cls.isHole(wallKind):
             result = [SlotKind.hole, SlotKind.hole, SlotKind.hole, SlotKind.hole] 
 
-class WallSlotData:
+class WallData:
     def __init__(self, slotKind:Sketches, slotCount:int, mirrorInvert:bool = False) -> None:
         self.slotKind:Sketches = slotKind
         self.slotCount:int = slotCount
