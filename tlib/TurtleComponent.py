@@ -102,7 +102,7 @@ class TurtleComponent:
     def mirrorFeaturesWithPlane(self, plane:f.ConstructionPlane, *args)->f.MirrorFeature:
         entities = []
         for arg in args:
-            if isinstance(arg, core.ObjectCollection) or isinstance(arg, list):
+            if isinstance(arg, core.ObjectCollection) or isinstance(arg, list) or isinstance(arg, f.BRepBodies):
                 for ent in arg:
                     if ent:
                         entities.append(ent)

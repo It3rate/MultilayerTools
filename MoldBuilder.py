@@ -91,7 +91,7 @@ class MoldBuilder(TurtleCustomCommand):
 
     def calcSlotCount(self, len, isInner = True)->int:
         thickness = self.wallThicknessVal * 2
-        reservedLen = thickness + self.shellThicknessVal * 2 if isInner else thickness
+        reservedLen = thickness * 2 if isInner else thickness
         return max(1, int((len - reservedLen) / self.slotTotalLen))
 
     def setWallData(self):
@@ -144,6 +144,17 @@ class MoldBuilder(TurtleCustomCommand):
                 face = self.faceMap[wallKind]
                 wall = TurtleWall.create(face, wallKind, crossData, outwardData)
                 isFeature = True
+
+        wall.mainBody.name = self.nameForWallKind(wallKind) + "Body"
+        if not wallKind.isTopBottom():
+            midplane = self.getParallelMidplane(wallKind)
+            mirrored = self.tComponent.mirrorFeaturesWithPlane(midplane, wall.baseFeature.bodies)
+            mirrored.bodies[0].name = self.nameForWallKind(wallKind.oppositeWall()) + "Body"
+
+    def nameForWallKind(self, wallKind:WallKind)->str:
+        result = str(wallKind)
+        return result.split("WallKind.")[1]
+
     def parseWallData(self, wallKind, wallEdgeData, isCross:bool):
         slotSketch = self.getSlotSketchForSlotKind(wallEdgeData[0])
         slotCount = wallEdgeData[1]
@@ -167,6 +178,16 @@ class MoldBuilder(TurtleCustomCommand):
             result = self.yMidplane
         elif wallKind.isTopBottom() and not isCross:
             result = self.xMidplane
+        return result
+
+    def getParallelMidplane(self, wallKind:WallKind) -> f.ConstructionPlane:
+        result = None
+        if wallKind.isLeftRight():
+            result = self.xMidplane
+        elif wallKind.isFrontBack():
+            result = self.yMidplane
+        elif wallKind.isTopBottom():
+            result = self.zMidplane
         return result
 
 
@@ -256,13 +277,15 @@ class MoldBuilder(TurtleCustomCommand):
             self.diagLipThickness.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
             
             # better to specify max slots per wall
-            slotLengthParam = self.parameters.addOrGetParam('slotLength', '8 mm')
+            estFullSlot = (self.longestSideLen / 8) * 10
+            estSlotLen = int(estFullSlot * 0.4 * 10) / 10
+            estSpaceLen = int(estFullSlot * 0.6 * 10) / 10
+            slotLengthParam = self.parameters.addOrGetParam('slotLength', str(estSlotLen) + 'mm')
             self.diagSlotLength = inputs.addDistanceValueCommandInput('txSlotLen', 'Slot Length', self.parameters.createValue(slotLengthParam.expression))
             #self.diagSlotLength.setManipulator(self.rightOuterFace.maxPoint, self.rightNorm)
 
-            slotSpacingParam = self.parameters.addOrGetParam('slotSpacing', '5 mm')
+            slotSpacingParam = self.parameters.addOrGetParam('slotSpacing', str(estSpaceLen) + ' mm')
             self.diagSlotSpacing = inputs.addDistanceValueCommandInput('txSlotSpacing', 'Slot Spacing', self.parameters.createValue(slotSpacingParam.expression))
-            
             
             # self.reverseSelection = inputs.addBoolValueInput('bReverse', 'Reverse', True)
             # self.mirrorSelection = inputs.addBoolValueInput('bMirror', 'Mirror', True)
@@ -338,6 +361,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.outerWidth = frontLengths[0]
         self.outerHeight = frontLengths[2]
         self.outerDepth = sideLengths[1]
+        self.longestSideLen = max(self.outerWidth, self.outerDepth, self.outerHeight)
 
         #topLengths = self.topOuterFace.xyzLengths
         frontLengths = self.frontInnerFace.xyzLengths

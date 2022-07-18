@@ -61,6 +61,9 @@ class WallKind(Enum):
         return self.isKindCenter(self)
     def isOuter(self):
         return self.isKindOuter(self)
+    def oppositeWall(self):
+        return self.kindOppositeWall(self)
+
     @property
     def colorIndex(self):
         result = 0
@@ -121,6 +124,47 @@ class WallKind(Enum):
             result =[SlotKind.finger, SlotKind.fingerLock, SlotKind.finger, SlotKind.fingerLock] 
         elif cls.isHole(wallKind):
             result = [SlotKind.hole, SlotKind.hole, SlotKind.hole, SlotKind.hole] 
+
+    @classmethod
+    def kindOppositeWall(cls, wallKind):
+        result = WallKind.none
+        if wallKind == WallKind.topInner:
+            result = WallKind.bottomInner
+        elif wallKind == WallKind.topCenter :
+            result = WallKind.bottomCenter
+        elif wallKind == WallKind.topOuter :
+            result = WallKind.bottomOuter
+        elif wallKind == WallKind.bottomInner:
+            result = WallKind.topInner
+        elif wallKind == WallKind.bottomCenter :
+            result = WallKind.topCenter
+        elif wallKind == WallKind.bottomOuter :
+            result = WallKind.topOuter
+        elif wallKind == WallKind.frontInner:
+            result = WallKind.backInner
+        elif wallKind == WallKind.frontCenter :
+            result = WallKind.backCenter
+        elif wallKind == WallKind.frontOuter :
+            result = WallKind.backOuter
+        elif wallKind == WallKind.backInner:
+            result = WallKind.frontInner
+        elif wallKind == WallKind.backCenter :
+            result = WallKind.frontCenter
+        elif wallKind == WallKind.backOuter :
+            result = WallKind.frontOuter
+        elif wallKind == WallKind.leftInner:
+            result = WallKind.rightInner
+        elif wallKind == WallKind.leftCenter :
+            result = WallKind.rightCenter
+        elif wallKind == WallKind.leftOuter :
+            result = WallKind.rightOuter
+        elif wallKind == WallKind.rightInner:
+            result = WallKind.leftInner
+        elif wallKind == WallKind.rightCenter :
+            result = WallKind.leftCenter
+        elif wallKind == WallKind.rightOuter :
+            result = WallKind.leftOuter
+        return result
 
 class WallData:
     def __init__(self, slotKind:Sketches, slotCount:int, mirrorInvert:bool, midPlane:core.Plane) -> None:

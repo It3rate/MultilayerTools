@@ -36,8 +36,8 @@ class TurtleWall:
         self.tComponent = None
         self.tSketch:TurtleSketch = None
 
-
         self.baseFeature:f.ExtrudeFeature = None
+        self.mainBody:f.BRepBody = None
         self.projectedLines:list[f.SketchLine] = []
         self.boundryLines:list[f.SketchLine] = []
 
@@ -82,6 +82,7 @@ class TurtleWall:
         self.makeOffsetBoundry(linesToOffest, distExpr)
         if not self.baseFeature:
             self.baseFeature = self.tComponent.extrudeLargestProfile(self.tSketch, self.wallThicknessExpr, self.colorIndex)
+            self.mainBody = self.baseFeature.bodies[0]
 
         if self.wallKind.isTopBottom() and self.wallKind.isOuter():
             self.addLip(self.boundryLines)
@@ -100,9 +101,7 @@ class TurtleWall:
             self.outwardData.isMirror = outwardMirror
             #self.outwardData.midPlane = outwardMidPlane
             self.createMirroredFeatures(self.outwardData)
-
-
-
+            
     @property
     def primaryAxis(self):
         return self.yAxis if self.wallKind.isLeftRight() else self.xAxis
