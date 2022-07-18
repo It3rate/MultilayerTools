@@ -102,10 +102,11 @@ class TurtleFace:
         self.thicknessExpr = f'{dist.value} cm'
         
     def createSketchAtPoint(self, origin:core.Point3D, name:str = None):
-        self.component.isConstructionFolderLightBulbOn = True
         planeInput:f.ConstructionPlaneInput = self.component.constructionPlanes.createInput()
         planeInput.setByTangentAtPoint(self.face, origin)
         plane = self.component.constructionPlanes.add(planeInput)
+        if name:
+            plane.name = name
         result = TurtleSketch.createWithPlane(self.component, plane)
         if name:
             result.name = name

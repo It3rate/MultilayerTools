@@ -88,17 +88,17 @@ class TurtleWall:
 
         crossLines, crossMirror = self.tComponent.getLinesByAxis(self.primaryAxis, self.secondaryAxis, self.boundryLines)
         outwardLines, outwardMirror = self.tComponent.getLinesByAxis(self.secondaryAxis, self.primaryAxis, self.boundryLines)
-        crossMidPlane = self.tSketch.midPlaneOnLine(outwardLines[0])
-        outwardMidPlane = self.tSketch.midPlaneOnLine(crossLines[0])
+        # crossMidPlane = self.tSketch.midPlaneOnLine(outwardLines[0])
+        # outwardMidPlane = self.tSketch.midPlaneOnLine(crossLines[0])
         if self.crossData:
             self.crossData.edgeLines = crossLines
             self.crossData.isMirror = crossMirror
-            self.crossData.midPlane = crossMidPlane
+            #self.crossData.midPlane = crossMidPlane
             self.createMirroredFeatures(self.crossData)
         if self.outwardData:
             self.outwardData.edgeLines = outwardLines
             self.outwardData.isMirror = outwardMirror
-            self.outwardData.midPlane = outwardMidPlane
+            #self.outwardData.midPlane = outwardMidPlane
             self.createMirroredFeatures(self.outwardData)
 
 

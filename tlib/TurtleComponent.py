@@ -83,10 +83,20 @@ class TurtleComponent:
             result.name = name
         return result
 
-    def createOrthoganalPlane(self, line:f.SketchLine):
+    def createOrthoganalPlane(self, line:f.SketchLine, name:str = None):
         planeInput = self.component.constructionPlanes.createInput()
         planeInput.setByAngle(line, adsk.core.ValueInput.createByReal(-math.pi/2.0), line.parentSketch.referencePlane)
         result = self.component.constructionPlanes.add(planeInput)
+        if name:
+            result.name = name
+        return result
+    
+    def createMidplane(self, planarEntityOne, planarEntityTwo, name:str = None)->f.ConstructionPlane:
+        planeInput = self.component.constructionPlanes.createInput()
+        planeInput.setByTwoPlanes(planarEntityOne, planarEntityTwo)
+        result = self.component.constructionPlanes.add(planeInput)
+        if name:
+            result.name = name
         return result
 
     def mirrorFeaturesWithPlane(self, plane:f.ConstructionPlane, *args)->f.MirrorFeature:

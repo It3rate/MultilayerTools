@@ -123,17 +123,17 @@ class WallKind(Enum):
             result = [SlotKind.hole, SlotKind.hole, SlotKind.hole, SlotKind.hole] 
 
 class WallData:
-    def __init__(self, slotKind:Sketches, slotCount:int, mirrorInvert:bool = False) -> None:
+    def __init__(self, slotKind:Sketches, slotCount:int, mirrorInvert:bool, midPlane:core.Plane) -> None:
         self.slotKind:Sketches = slotKind
         self.slotCount:int = slotCount
         self.mirrorInvert = mirrorInvert
+        self.midPlane = midPlane
 
         self.tSketch:TurtleSketch = None
         self.edgeLines:tuple(f.SketchLine, f.SketchLine) = None
         self.isMirror = False
-        self.midPlane:core.Plane = None
         self.reflectSlots:bool = True
     @classmethod
-    def create(cls, slotKind:Sketches, slotCount:int, mirrored:bool = False):
-        return cls( slotKind, slotCount, mirrored)
+    def create(cls, slotKind:Sketches, slotCount:int, mirrored:bool, midPlane:core.Plane):
+        return cls( slotKind, slotCount, mirrored, midPlane)
 

@@ -101,6 +101,11 @@ class MoldBuilder(TurtleCustomCommand):
         self.slotCountOuterWidth = self.calcSlotCount(self.outerWidth, False)
         self.slotCountOuterDepth = self.calcSlotCount(self.outerDepth, False)
         self.slotCountOuterHeight = self.calcSlotCount(self.outerHeight, False)
+
+        self.xMidplane = self.tComponent.createMidplane(self.leftOuterFace.face, self.rightOuterFace.face, "xMidplane")
+        self.yMidplane = self.tComponent.createMidplane(self.frontOuterFace.face, self.backOuterFace.face, "yMidplane")
+        self.zMidplane = self.tComponent.createMidplane(self.topOuterFace.face, self.bottomOuterFace.face, "zMidplane")
+        self.zInnerMidplane = self.tComponent.createOffsetPlane(self.bottomInnerFace.face, "("+str(self.innerHeight) + "cm + wallThickness)/2", "zInnerMidplane")
         
         self.wallData = {
             WallKind.topOuter:[[SlotKind.hole, self.slotCountOuterWidth], [SlotKind.hole, self.slotCountOuterDepth],[SlotKind.hole, self.slotCountInnerWidth, True], [SlotKind.hole, self.slotCountInnerDepth, True]],
@@ -129,9 +134,9 @@ class MoldBuilder(TurtleCustomCommand):
         wallDesc = zip(wallData[::2], wallData[1::2])
         isFeature = False
         for wallEdgeData in wallDesc:
-            data0 = self.parseWallData(wallEdgeData[0])
+            data0 = self.parseWallData(wallKind, wallEdgeData[0], True)
             crossData = WallData.create(*data0)
-            data1 = self.parseWallData(wallEdgeData[1])
+            data1 = self.parseWallData(wallKind, wallEdgeData[1], False)
             outwardData = WallData.create(*data1)
             if isFeature:
                 wall.addFeatures(crossData, outwardData, False)
@@ -139,11 +144,31 @@ class MoldBuilder(TurtleCustomCommand):
                 face = self.faceMap[wallKind]
                 wall = TurtleWall.create(face, wallKind, crossData, outwardData)
                 isFeature = True
-    def parseWallData(self, wallEdgeData):
-            slotSketch = self.getSlotSketchForSlotKind(wallEdgeData[0])
-            slotCount = wallEdgeData[1]
-            isMirrored = wallEdgeData[2] if len(wallEdgeData) > 2 else False
-            return (slotSketch, slotCount, isMirrored)
+    def parseWallData(self, wallKind, wallEdgeData, isCross:bool):
+        slotSketch = self.getSlotSketchForSlotKind(wallEdgeData[0])
+        slotCount = wallEdgeData[1]
+        isMirrored = wallEdgeData[2] if len(wallEdgeData) > 2 else False
+        midPlane = self.getMidplane(wallKind, isCross)
+        return (slotSketch, slotCount, isMirrored, midPlane)
+
+    def getMidplane(self, wallKind:WallKind, isCross:bool) -> f.ConstructionPlane:
+        result = None
+        if wallKind.isInner() and not wallKind.isTopBottom() and isCross:
+            result = self.zInnerMidplane
+        elif wallKind.isLeftRight() and isCross:
+            result = self.zMidplane
+        elif wallKind.isLeftRight() and not isCross:
+            result = self.yMidplane
+        elif wallKind.isFrontBack() and isCross:
+            result = self.zMidplane
+        elif wallKind.isFrontBack() and not isCross:
+            result = self.xMidplane
+        elif wallKind.isTopBottom() and isCross:
+            result = self.yMidplane
+        elif wallKind.isTopBottom() and not isCross:
+            result = self.xMidplane
+        return result
+
 
     def getSlotSketchForSlotKind(self, slotKind:SlotKind):
         result = Sketches.default
@@ -157,39 +182,39 @@ class MoldBuilder(TurtleCustomCommand):
             result = Sketches.edgeFilletFinger
         return result
 
-    def createTop(self, isPreview:bool):
-        crossData = WallData.create(Sketches.edgeHole, 9)
-        outwardData = WallData.create(Sketches.edgeHole, 5)
-        wall = TurtleWall.create(self.topOuterFace, WallKind.topOuter, crossData, outwardData)
-        crossData = WallData.create(Sketches.edgeHole, 8, True)
-        outwardData = WallData.create(Sketches.edgeHole, 3, True)
-        wall.addFeatures(crossData, outwardData, False)
-    def createFloor(self, isPreview:bool):
-        crossData = WallData.create(Sketches.edgeHole, 8)
-        outwardData = WallData.create(Sketches.edgeHole, 3)
-        wall = TurtleWall.create(self.bottomInnerFace, WallKind.bottomInner, crossData, outwardData)
-    def createBottom(self, isPreview:bool):
-        crossData = WallData.create(Sketches.edgeHole, 9, True)
-        outwardData = WallData.create(Sketches.edgeHole, 5)
-        wall = TurtleWall.create(self.bottomOuterFace, WallKind.bottomOuter, crossData, outwardData)
+    # def createTop(self, isPreview:bool):
+    #     crossData = WallData.create(Sketches.edgeHole, 9)
+    #     outwardData = WallData.create(Sketches.edgeHole, 5)
+    #     wall = TurtleWall.create(self.topOuterFace, WallKind.topOuter, crossData, outwardData)
+    #     crossData = WallData.create(Sketches.edgeHole, 8, True)
+    #     outwardData = WallData.create(Sketches.edgeHole, 3, True)
+    #     wall.addFeatures(crossData, outwardData, False)
+    # def createFloor(self, isPreview:bool):
+    #     crossData = WallData.create(Sketches.edgeHole, 8)
+    #     outwardData = WallData.create(Sketches.edgeHole, 3)
+    #     wall = TurtleWall.create(self.bottomInnerFace, WallKind.bottomInner, crossData, outwardData)
+    # def createBottom(self, isPreview:bool):
+    #     crossData = WallData.create(Sketches.edgeHole, 9, True)
+    #     outwardData = WallData.create(Sketches.edgeHole, 5)
+    #     wall = TurtleWall.create(self.bottomOuterFace, WallKind.bottomOuter, crossData, outwardData)
 
-    def createOuterFrontAndBack(self, isPreview:bool):
-        crossData = WallData.create(Sketches.edgeFilletFinger, 9)
-        outwardData = WallData.create(Sketches.edgeFilletHole, 4)
-        wall = TurtleWall.create(self.frontOuterFace, WallKind.frontOuter, crossData, outwardData)
-    def createInnerFrontAndBack(self, isPreview:bool):
-        crossData = WallData.create(Sketches.edgeFilletFinger, 8)
-        outwardData = WallData.create(Sketches.edgeFilletHole, 4)
-        wall = TurtleWall.create(self.backInnerFace, WallKind.backInner, crossData, outwardData)
+    # def createOuterFrontAndBack(self, isPreview:bool):
+    #     crossData = WallData.create(Sketches.edgeFilletFinger, 9)
+    #     outwardData = WallData.create(Sketches.edgeFilletHole, 4)
+    #     wall = TurtleWall.create(self.frontOuterFace, WallKind.frontOuter, crossData, outwardData)
+    # def createInnerFrontAndBack(self, isPreview:bool):
+    #     crossData = WallData.create(Sketches.edgeFilletFinger, 8)
+    #     outwardData = WallData.create(Sketches.edgeFilletHole, 4)
+    #     wall = TurtleWall.create(self.backInnerFace, WallKind.backInner, crossData, outwardData)
 
-    def createOuterLeftAndRight(self, isPreview:bool):
-        crossData = WallData.create(Sketches.edgeFinger, 5)
-        outwardData = WallData.create(Sketches.edgeFinger, 4)
-        wall = TurtleWall.create(self.leftOuterFace, WallKind.leftOuter, crossData, outwardData)
-    def createInnerLeftAndRight(self, isPreview:bool):
-        crossData = WallData.create(Sketches.edgeFilletFinger, 3)
-        outwardData = WallData.create(Sketches.edgeFilletFinger, 4)
-        wall = TurtleWall.create(self.rightInnerFace, WallKind.rightInner, crossData, outwardData)
+    # def createOuterLeftAndRight(self, isPreview:bool):
+    #     crossData = WallData.create(Sketches.edgeFinger, 5)
+    #     outwardData = WallData.create(Sketches.edgeFinger, 4)
+    #     wall = TurtleWall.create(self.leftOuterFace, WallKind.leftOuter, crossData, outwardData)
+    # def createInnerLeftAndRight(self, isPreview:bool):
+    #     crossData = WallData.create(Sketches.edgeFilletFinger, 3)
+    #     outwardData = WallData.create(Sketches.edgeFilletFinger, 4)
+    #     wall = TurtleWall.create(self.rightInnerFace, WallKind.rightInner, crossData, outwardData)
 
         
 
@@ -320,6 +345,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.innerWidth = frontLengths[0]
         self.innerHeight = frontLengths[2]
         self.innerDepth = sideLengths[1]
+
             
     def faceWithNormalMatch(self, norm:core.Vector3D, tfaces:list[TurtleFace], findLargest:bool, surfaceKind:SurfaceKind) -> TurtleFace:
         result:TurtleFace = None
