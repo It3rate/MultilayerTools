@@ -187,6 +187,17 @@ class TurtleComponent:
         self.colorExtrudedBodiesByIndex(newFeatures,colorIndex)
         return newFeatures
 
+    def cutBodiesWithBodies(self, targets:list[f.BRepBody], tools:list[f.BRepBody], keepTools = True)-> list[f.CombineFeature]:
+        result = []
+        toolCollection = TurtleUtils.ensureObjectCollection(tools)
+        features = self.component.features.combineFeatures
+        for target in targets:
+            input = features.createInput(target, toolCollection)
+            input.isKeepToolBodies = keepTools
+            input.operation = f.FeatureOperations.CutFeatureOperation
+            result.append(features.add(input))
+        return result
+
     def cutComponent(self, profile):
         bodies = self.getBodies()
         for body in bodies:

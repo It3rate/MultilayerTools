@@ -36,6 +36,7 @@ class MoldBuilder(TurtleCustomCommand):
         self.slotSpaceVal = 1
 
         self.faceMap = {}
+        self.wallBodiesMap = {}
         self.outerWidth  = 1
         self.outerHeight = 1
         self.outerDepth  = 1
@@ -118,6 +119,8 @@ class MoldBuilder(TurtleCustomCommand):
             WallKind.leftOuter:[[SlotKind.fingerLock, self.slotCountOuterDepth], [SlotKind.fingerLock, self.slotCountOuterHeight]],
             WallKind.rightInner:[[SlotKind.fingerLock, self.slotCountInnerDepth], [SlotKind.fingerPokeLock, self.slotCountInnerHeight]],
         }
+        self.wallBodiesMap.clear()
+
     def createSpecificWalls(self, wallKinds:list[SlotKind]):
         self.setWallData()
         for key in wallKinds:
@@ -128,6 +131,10 @@ class MoldBuilder(TurtleCustomCommand):
         self.setWallData()
         for key in self.wallData:
             self.createWall(key, self.wallData[key])
+        
+        self.tComponent.cutBodiesWithBodies(\
+            [self.wallBodiesMap[WallKind.frontOuter], self.wallBodiesMap[WallKind.backOuter]],\
+            [self.wallBodiesMap[WallKind.leftInner], self.wallBodiesMap[WallKind.rightInner]])
         self.tComponent.component.isConstructionFolderLightBulbOn = False
 
     def createWall(self, wallKind, wallData):
@@ -144,12 +151,14 @@ class MoldBuilder(TurtleCustomCommand):
                 face = self.faceMap[wallKind]
                 wall = TurtleWall.create(face, wallKind, crossData, outwardData)
                 isFeature = True
-
+        self.wallBodiesMap[wallKind] = wall.mainBody
         wall.mainBody.name = self.nameForWallKind(wallKind) + "Body"
+
         if not wallKind.isTopBottom():
             midplane = self.getParallelMidplane(wallKind)
             mirrored = self.tComponent.mirrorFeaturesWithPlane(midplane, wall.baseFeature.bodies)
             mirrored.bodies[0].name = self.nameForWallKind(wallKind.oppositeWall()) + "Body"
+            self.wallBodiesMap[wallKind.oppositeWall()] = mirrored.bodies[0]
 
     def nameForWallKind(self, wallKind:WallKind)->str:
         result = str(wallKind)
