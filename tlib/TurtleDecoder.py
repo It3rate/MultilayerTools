@@ -101,6 +101,8 @@ class TurtleDecoder:
             scale, originPoint = self.createTransformFromGuidePoints(\
                 self.encStartGuidePoint, self.encEndGuidePoint, self.userStartGuidePoint, self.userEndGuidePoint)
             self.guideScale = scale
+        else:
+            self.guideScale = 1
 
     def decodeFromSketch(self):
         self.offsetRefs = {}
@@ -254,9 +256,15 @@ class TurtleDecoder:
                         curve.isFixed = isFixed
                         result.append(curve)
 
-                        if len(curPointChain) == 0:
+                        if isinstance(curve, f.SketchCircle):
+                            curPointChain.append(curve.centerSketchPoint)
+                        elif isinstance(curve, f.SketchPoint) or isinstance(curve, f.SketchText):
+                            pass # not involved in chains
+                        elif len(curPointChain) == 0:
                             curPointChain.append(curve.startSketchPoint)
-                        curPointChain.append(curve.endSketchPoint)
+                            curPointChain.append(curve.endSketchPoint)
+                        else:
+                            curPointChain.append(curve.endSketchPoint)
 
                         if curve != self.userGuideline:
                              curve.attributes.add("Turtle", "generated", str(len(result) - 1))
@@ -448,7 +456,7 @@ class TurtleDecoder:
                 dimension = dimensions.addAngularDimension(p0,p1, midText)
                 dimension.parameter.expression = p2
             elif kind == "SDD": # SketchDiameterDimension
-                dimension = dimensions.addDiameterDimension(p0, dimPt)#self.asTransformedPoint3D(p2)) 
+                dimension = dimensions.addDiameterDimension(p0, self.asTransformedPoint3D(p2)) 
                 dimension.parameter.expression = p1
             elif kind == "SRD": # SketchRadialDimension
                 dimension = dimensions.addRadialDimension(p0,dimPt)# self.asTransformedPoint3D(p2))

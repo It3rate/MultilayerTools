@@ -115,6 +115,7 @@ class TurtleEncoder:
             name = dim.parameter.name
             regex = re.compile("(?<![a-zA-Z0-9_])" + name + "(?![a-zA-Z0-9_])")
             self.dimensionNameMap[name] = [regex, "__" + str(idx)]
+            idx += 1
 
     def parseAllPoints(self):
         for point in self.sketch.sketchPoints:

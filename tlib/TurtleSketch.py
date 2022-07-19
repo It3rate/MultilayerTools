@@ -663,6 +663,8 @@ class TurtleSketch:
 
     @classmethod
     def getMidpointOfPoints(cls, p0:core.Point3D, p1:core.Point3D)->core.Point3D:
+        p0 = p0 if isinstance(p0, core.Point3D) else cls.getMidpointOfGeometry(p0)
+        p1 = p1 if isinstance(p1, core.Point3D) else cls.getMidpointOfGeometry(p1)
         return core.Point3D.create((p1.x - p0.x)/2.0 + p0.x, (p1.y - p0.y)/2.0 + p0.y, (p1.z - p0.z)/2.0 + p0.z)
     @classmethod
     def getMidpointOfGeometry(cls, p0)->core.Point3D:
@@ -672,13 +674,13 @@ class TurtleSketch:
         elif isinstance(p0, core.Line3D) or isinstance(p0, core.Arc3D):
             result = cls.getMidpointOfPoints(p0.startPoint, p0.endPoint)
         elif isinstance(p0, core.Circle3D) or isinstance(p0, core.Ellipse3D) or isinstance(p0, core.EllipticalArc3D):
-            result = cls.getMidpointOfPoints(p0.center)
+            result = p0.center
         elif isinstance(p0, core.BoundingBox3D):
             result = cls.getMidpointOfPoints(p0.minPoint, p0.maxPoint)
         elif isinstance(p0, core.OrientedBoundingBox3D):
-            result = cls.getMidpointOfPoints(p0.centerPoint)
+            result = p0.centerPoint
         elif isinstance(p0, core.InfiniteLine3D):
-            result = cls.getMidpointOfPoints(p0.origin)
+            result = p0.origin
         return result
         
     @classmethod
