@@ -13,10 +13,10 @@ f,core,app,ui = TurtleUtils.initGlobals()
 
 
 class TurtleEncoder:
-    def __init__(self, sketch:f.Sketch = None, guideline:f.SketchLine = None, namedProfiles = {}):
+    def __init__(self, sketch:f.Sketch = None, guideElement:f.SketchLine = None, namedProfiles = {}):
         
-        self.guideline:f.SketchLine = guideline
-        self.autoGuideline = (sketch == None) # only autodetect guidelines if this isn't a UI command
+        self.guideElement:f.SketchLine = guideElement
+        self.autoGuideElement = (sketch == None) # only autodetect guidelines if this isn't a UI command
         self.sketch:f.Sketch = sketch
         if not self.sketch:
             self.sketch = TurtleUtils.getTargetSketch(f.Sketch)
@@ -85,13 +85,17 @@ class TurtleEncoder:
             result += "\'Constraints\':" + self.encodeList(self.data["Constraints"]) + ",\n" #               [\n\'" + "\',\'".join(self.data["Constraints"]) + "\'\n],\n")
         if len(self.data["Dimensions"]) > 0:
             result += "\'Dimensions\':" + self.encodeList(self.data["Dimensions"]) + ",\n" #             [\n\'" + "\',\'".join(self.data["Dimensions"]) + "\'\n],\n")
-        if self.guideline:
-            guidePoints = self.getSortedPoints(self.guideline)
-            gp0 = self.encodeEntity(guidePoints[0])
-            gp1 = self.encodeEntity(guidePoints[1])
-            guideEntity = self.encodeEntity(self.guideline)
-            flippedText = "flip" if TurtleSketch.isLineFlipped(self.guideline) else "noFlip"
-            result += "\'Guideline\':['" + gp0 +"','"+ gp1 + "',\'" + guideEntity + "\',\'" + flippedText + "\'],\n"
+        if self.guideElement:
+            guideEntity = self.encodeEntity(self.guideElement)
+            if isinstance(self.guideElement, f.SketchPoint):
+                gp0 = self.encodeEntity(self.guideElement)
+                result += "\'Guidepoint\':['" + gp0 + "',\'" + guideEntity + "\'],\n"
+            else:
+                guidePoints = self.getSortedPoints(self.guideElement)
+                gp0 = self.encodeEntity(guidePoints[0])
+                gp1 = self.encodeEntity(guidePoints[1])
+                flippedText = "flip" if TurtleSketch.isLineFlipped(self.guideElement) else "noFlip"
+                result += "\'Guideline\':['" + gp0 +"','"+ gp1 + "',\'" + guideEntity + "\',\'" + flippedText + "\'],\n"
         else: 
             result += "\'Guideline\':[],\n" 
 
@@ -187,8 +191,8 @@ class TurtleEncoder:
 
         if tp is f.SketchLine:
             result += "L"  + self.encodeEntities(curve.startSketchPoint, curve.endSketchPoint)
-            if self.autoGuideline and curve.isConstruction and not self.guideline:
-                self.guideline = curve
+            if self.autoGuideElement and curve.isConstruction and not self.guideElement:
+                self.guideElement = curve
         elif tp is f.SketchArc:
             pointOnLine = TurtleSketch.getMidpoint(curve)
             #return "A" + ctrn + self.encodeEntities(curve.centerSketchPoint, curve.startSketchPoint, curve.endSketchPoint) + self.encodeExpression(curve.geometry.endAngle)

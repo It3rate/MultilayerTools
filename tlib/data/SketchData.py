@@ -61,9 +61,11 @@ class SketchData:
         self.constraintValues :list[str] = None
         self.dimensionValues :list[str] = None
         self.guideline :tuple[str,str, str, str] = None
+        self.guidepoint :tuple[str] = None
         self.profileCentroids :tuple[float, float] = None
         self.namedProfiles :list[int] = None
         self.hasEncodedGuideline:bool = False
+        self.hasEncodedGuidepoint:bool = False
         self.encStartGuideIndex:int = None
         self.encEndGuideIndex:int = None
         self.encStartGuidePoint:core.Point3D = None
@@ -131,10 +133,13 @@ class SketchData:
         self.constraintValues = data["Constraints"] if "Constraints" in data else []
         self.dimensionValues = data["Dimensions"] if "Dimensions" in data else []
         self.guidelineValues = data["Guideline"] if "Guideline" in data else None
+        self.guidepointValues = data["Guidepoint"] if "Guidepoint" in data else None
         self.profileCentroids = data["ProfileCentroids"] if "ProfileCentroids" in data else []
         self.namedProfiles = data["NamedProfiles"] if "NamedProfiles" in data else {}
         if self.guidelineValues:
             self.hasEncodedGuideline = True
+        if self.guidepointValues:
+            self.hasEncodedGuidepoint = True
 
 
     def parseIndexOnly(self, param):

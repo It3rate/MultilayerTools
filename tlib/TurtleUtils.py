@@ -55,10 +55,12 @@ class TurtleUtils:
         return result
 
     @classmethod
-    def getSelectedTypeOrNone(cls, selType):
+    def getSelectedTypeOrNone(cls, selTypes:list):
         result = None
-        if app.activeEditObject.classType == selType:
-            result = app.activeEditObject
+        for selType in selTypes:
+            if app.activeEditObject.classType == selType:
+                result = app.activeEditObject
+                break
         return result
     
     @classmethod

@@ -16,7 +16,7 @@ class CopySketchCommand(TurtleUICommand):
     def __init__(self):
         cmdId = 'ddwCopySketchId'
         cmdName = 'Copy Sketch'
-        cmdDescription = 'Copies sketch curves, constraints, parameters and dimesions. Optionally choose a guideline to allow relative pasting.'
+        cmdDescription = 'Copies sketch curves, constraints, parameters and dimesions. Optionally choose a guideline/point to allow relative pasting.'
         self.idIndex = 0
         super().__init__(cmdId, cmdName, cmdDescription)
 
@@ -27,9 +27,9 @@ class CopySketchCommand(TurtleUICommand):
         try:
             self.namedProfiles = []
             self.isInSketch = app.activeEditObject.classType == f.Sketch.classType
-            self.guideline:f.SketchLine = TurtleUtils.getSelectedTypeOrNone(f.SketchLine)
-            if self.guideline:
-                self.sketch = self.guideline.parentSketch
+            self.guideElement:f.SketchLine = TurtleUtils.getSelectedTypeOrNone([f.SketchLine, f.SketchPoint])
+            if self.guideElement:
+                self.sketch = self.guideElement.parentSketch
             else:
                 self.sketch:f.Sketch = TurtleUtils.getTargetSketch(f.Sketch, False)
 
@@ -37,9 +37,10 @@ class CopySketchCommand(TurtleUICommand):
             inputs = eventArgs.command.commandInputs
 
             # Select optional guideline.
-            self.guidelineSelection = inputs.addSelectionInput('selGuideline', 'Select Guideline', 'Optional reference guideline used if transforming sketch.')
+            self.guidelineSelection = inputs.addSelectionInput('selGuideline', 'Select Guide', 'Optional reference guideline/point used if transforming sketch.')
             self.guidelineSelection.setSelectionLimits(0, 0)
             self.guidelineSelection.addSelectionFilter('SketchLines')
+            self.guidelineSelection.addSelectionFilter('SketchPoints')
 
             # Select sketch.
             self.sketchSelection = inputs.addSelectionInput('selSketch', 'Select Sketch', 'Select sketch to copy.')
@@ -48,11 +49,11 @@ class CopySketchCommand(TurtleUICommand):
 
             self.sketchText = inputs.addTextBoxCommandInput('txSketch', 'Select Sketch', '<b>Auto selected.</b>', 1, True)
 
-            if self.sketch and not self.guideline:
+            if self.sketch and not self.guideElement:
                 tSketch = TurtleSketch(self.sketch)
                 lines = tSketch.getSingleLines()
                 if(len(lines) == 1):
-                    self.guideline = lines[0]
+                    self.guideElement = lines[0]
                     
 
             self.profileGroup = inputs.addGroupCommandInput('profileGroup', 'Named Profiles')
@@ -94,13 +95,13 @@ class CopySketchCommand(TurtleUICommand):
             cmdInput = eventArgs.input
             if cmdInput.id == 'selGuideline':
                 if cmdInput.selectionCount > 0:
-                    self.guideline = cmdInput.selection(0).entity
-                    self.sketch = self.guideline.parentSketch
+                    self.guideElement = cmdInput.selection(0).entity
+                    self.sketch = self.guideElement.parentSketch
                     if self.sketchSelection.selection != self.sketch:
                         self.sketchSelection.clearSelection()
                         self.sketchSelection.addSelection(self.sketch)
                 else:
-                    self.guideline = None
+                    self.guideElement = None
                 self._resetUI()
 
             elif cmdInput.id == 'selProfile':
@@ -129,7 +130,7 @@ class CopySketchCommand(TurtleUICommand):
                     filename = self._saveSketch()
                     if filename != "":
                         np = self._getNamedProfiles()
-                        enc = TurtleEncoder(self.sketch, self.guideline, np)
+                        enc = TurtleEncoder(self.sketch, self.guideElement, np)
                         SketchData.saveData(filename, enc.encodedSketch)
                     self.btSaveText.listItems.clear()
                 
@@ -180,7 +181,7 @@ class CopySketchCommand(TurtleUICommand):
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
         np = self._getNamedProfiles()
-        enc = TurtleEncoder(self.sketch, self.guideline, np)
+        enc = TurtleEncoder(self.sketch, self.guideElement, np)
     
     def onValidateInputs(self, eventArgs:core.ValidateInputsEventArgs):
         eventArgs.areInputsValid = self.sketch != None
@@ -259,7 +260,7 @@ class CopySketchCommand(TurtleUICommand):
                 break
          
     def _resetUI(self):
-        if self.guideline or self.isInSketch:
+        if self.guideElement or self.isInSketch:
             self.sketchSelection.isVisible = False
             self.sketchText.isVisible = True
             self.guidelineSelection.hasFocus = True 
