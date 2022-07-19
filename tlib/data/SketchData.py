@@ -25,7 +25,8 @@ class Sketches(Enum):
     # join ops 20-29
     edgeFinger = 20
     edgeFilletFinger = 21
-    notches = 22
+    edgePokeFinger = 22
+    notches = 23
     # intersect ops 30-39
     # new component ops 40-49
     # new body op 50+
@@ -114,6 +115,8 @@ class SketchData:
             data = cls.edgeFinger()
         elif kind == Sketches.edgeFilletFinger:
             data = cls.edgeFilletFinger()
+        elif kind == Sketches.edgePokeFinger:
+            data = cls.edgePokeFinger()
         elif kind == Sketches.notches:
             data = cls.notches()
         else:
@@ -403,7 +406,6 @@ class SketchData:
 }
 
 
-
     @classmethod
     def edgeFilletFinger(cls):
         return \
@@ -443,6 +445,57 @@ class SketchData:
 }
 
 
+    @classmethod
+    def edgePokeFinger(cls):
+        return \
+{#Turtle Generated Data
+'CoordinateSystem':[
+1.0,	0.0,	0.0,	0.0, # 0 - 3
+0.0,	1.0,	0.0,	0.0, # 4 - 7
+0.0,	0.0,	1.0,	0.0, # 8 - 11
+0.0,	0.0,	0.0,	1.0
+],
+'Params':{
+'wallThickness':'d[2.8 mm]',
+'shellThickness':'d[15 mm]',
+'lipWidth':'d[3 mm]',
+},
+'PointBounds':[[5.987035,3.570218],	[6.737035,5.630218]],
+'Points':[
+[0.0,0.0,'f'],	[6.587035,3.570218],	[6.137035,3.570218],	[6.137035,3.850218],	[5.987035,3.850218], # 0 - 4
+[5.987035,5.350218],	[6.082035,5.350218],	[6.082035,5.630218],	[6.642035,5.630218],	[6.642035,5.350218], # 5 - 9
+[6.737035,5.350218],	[6.737035,3.850218],	[6.587035,3.850218],	[6.082035,5.530218],	[6.182035,5.630218], # 10 - 14
+[6.182035,5.530218],	[6.542035,5.630218],	[6.642035,5.530218],	[6.542035,5.530218],	[6.137035,5.200218], # 15 - 19
+[6.587035,5.200218],	[6.587035,4.000218],	[6.137035,4.000218],	[6.362035,4.000218],	[6.362035,3.570218], # 20 - 24
+[6.137035,4.600218],	[5.987035,4.600218]
+],
+'Chains':[
+'XFLp2p3 XFLp3p4 XFLp4p5 XFLp5p6 XFLp6p13 XFAp14v[6.111324,5.600929]p13p15 XFLp14p16 XFAp17v[6.612746,5.600929]p16p18 XFLp17p9 XFLp9p10 XFLp10p11 XFLp11p12 XFLp12p1 XFLp1p2', # 0-13
+'XFLp20p21 XFLp21p22 XFLp22p19 XFLp19p20', # 14-17
+'xFLp23p24', # 18
+'xFLp25p26', # 19
+],
+'Constraints':[
+'VHc13',	'PEc0c13',	'PEc1c0',	'PEc2c13',	'PEc3c2', # 0 - 4
+'PEc4c3',	'PEc6c4',	'PEc8c3',	'PEc9c8',	'PEc10c3', # 5 - 9
+'PEc11c10',	'PEc12c13',	'EQc2c10',	'EQc9c3',	'EQc1c11', # 10 - 14
+'COp7c4',	'COp7c6',	'TAc4c5',	'TAc6c5',	'COp8c6', # 15 - 19
+'COp8c8',	'TAc6c7',	'TAc8c7',	'EQc5c7',	'VHc17', # 20 - 24
+'VHc14',	'VHc15',	'VHc16',	'MIp23c15',	'MIp24c13', # 25 - 29
+'VHc18',	'MIp25c16',	'MIp26c2',	'VHc19',	'CLc9c3'
+],
+'Dimensions':[
+'SLDp7p8e1d[wallThickness * 2]v[6.381025,5.952375]',	'SLDp2p3e2d[wallThickness]v[5.462298,3.674666]',	'SLDp4p5e2d[shellThickness]v[5.193091,4.495314]',	'SLDp6p7e2d[wallThickness]v[5.17284,5.485446]',	'SLDp3p4e1d[lipWidth / 2]v[6.051693,3.242743]', # 0 - 4
+'SRDc5d[1.00 mm]v[6.075969,5.636284]',	'SLDp25p26e1d[lipWidth / 2]v[5.811083,4.714697]',	'SLDp23p24e2d[wallThickness + lipWidth / 2]v[6.91528,3.836263]'
+],
+'Guideline':['p2','p1','c13','flip'],
+'ProfileCentroids':[
+[6.362035,4.626955],	[6.362035,4.600218]
+],
+'NamedProfiles':{
+
+}
+}
 
 
 

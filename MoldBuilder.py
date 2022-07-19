@@ -80,7 +80,7 @@ class MoldBuilder(TurtleCustomCommand):
 
     def onPreview(self, eventArgs:core.CommandEventArgs):
         self.setParameters()
-        self.createSpecificWalls([WallKind.backInner, WallKind.leftOuter, WallKind.bottomInner])
+        self.createSpecificWalls([WallKind.rightInner])#WallKind.backInner, WallKind.leftOuter, WallKind.bottomInner])
         self.body.opacity = 0.2
 
     def onExecute(self, eventArgs:core.CommandEventArgs):
@@ -116,7 +116,7 @@ class MoldBuilder(TurtleCustomCommand):
             WallKind.backInner:[[SlotKind.fingerLock, self.slotCountInnerWidth], [SlotKind.holeLock, self.slotCountInnerHeight]],
             # left right need to be last as they can potentially punch through to lock multiple walls
             WallKind.leftOuter:[[SlotKind.fingerLock, self.slotCountOuterDepth], [SlotKind.fingerLock, self.slotCountOuterHeight]],
-            WallKind.rightInner:[[SlotKind.fingerLock, self.slotCountInnerDepth], [SlotKind.fingerLock, self.slotCountInnerHeight]],
+            WallKind.rightInner:[[SlotKind.fingerLock, self.slotCountInnerDepth], [SlotKind.fingerPokeLock, self.slotCountInnerHeight]],
         }
     def createSpecificWalls(self, wallKinds:list[SlotKind]):
         self.setWallData()
@@ -195,12 +195,14 @@ class MoldBuilder(TurtleCustomCommand):
         result = Sketches.default
         if slotKind == SlotKind.hole:
             result = Sketches.edgeHole
-        if slotKind == SlotKind.holeLock or slotKind == SlotKind.holeEdge:
+        elif slotKind == SlotKind.holeLock or slotKind == SlotKind.holeEdge:
             result = Sketches.edgeFilletHole
-        if slotKind == SlotKind.finger:
+        elif slotKind == SlotKind.finger:
             result = Sketches.edgeFinger
-        if slotKind == SlotKind.fingerLock or slotKind == SlotKind.fingerEdge:
+        elif slotKind == SlotKind.fingerLock or slotKind == SlotKind.fingerEdge:
             result = Sketches.edgeFilletFinger
+        elif slotKind == SlotKind.fingerPokeLock:
+            result = Sketches.edgePokeFinger
         return result
 
     # def createTop(self, isPreview:bool):
@@ -354,7 +356,9 @@ class MoldBuilder(TurtleCustomCommand):
             dist = app.measureManager.measureMinimumDistance(body1, body2)
             self.shellThicknessVal = dist.value
             self.shellThicknessExpr = f'{dist.value} cm'
-            
+        
+        self.parameters.setOrCreateParam('shellThickness', self.shellThicknessExpr)
+
         #topLengths = self.topOuterFace.xyzLengths
         frontLengths = self.frontOuterFace.xyzLengths
         sideLengths = self.rightOuterFace.xyzLengths

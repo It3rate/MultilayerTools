@@ -18,6 +18,7 @@ class SlotKind(Enum):
     finger = 20
     fingerEdge = 21
     fingerLock = 22
+    fingerPokeLock = 23
 
 class WallKind(Enum):
     none = 0
