@@ -25,7 +25,8 @@ class Sketches(Enum):
     # join ops 20-29
     edgeFinger = 20
     edgeFilletFinger = 21
-    edgePokeFinger = 22
+    edgeExtendFinger = 22
+    edgePokeFinger = 23
     notches = 23
     # intersect ops 30-39
     # new component ops 40-49
@@ -115,8 +116,10 @@ class SketchData:
             data = cls.edgeFinger()
         elif kind == Sketches.edgeFilletFinger:
             data = cls.edgeFilletFinger()
+        elif kind == Sketches.edgeExtendFinger:
+            data = cls.edgeExtendFinger()
         elif kind == Sketches.edgePokeFinger:
-            data = cls.edgePokeFinger()
+            data = cls.edgePokeLockFinger()
         elif kind == Sketches.notches:
             data = cls.notches()
         else:
@@ -448,9 +451,58 @@ class SketchData:
 }
 
 
+    @classmethod
+    def edgeExtendFinger(cls):
+        return \
+{#Turtle Generated Data
+'CoordinateSystem':[
+1.0,	0.0,	0.0,	0.0, # 0 - 3
+0.0,	0.0,	1.0,	0.0, # 4 - 7
+0.0,	-1.0,	0.0,	0.0, # 8 - 11
+0.0,	0.0,	0.0,	1.0
+],
+'Params':{
+'wallThickness':'d[14 mm]',
+'shellThickness':'d[15 mm]',
+},
+'PointBounds':[[2.232345,3.198654],	[3.232345,7.998654]],
+'Points':[
+[0.0,0.0,'f'],	[2.232345,3.198654,'f'],	[2.232345,7.598655],	[2.632344,7.998654],	[2.832346,7.998654], # 0 - 4
+[3.232345,7.598655],	[3.232345,3.198654,'f'],	[2.232345,7.498654],	[3.232345,7.498654],	[2.382345,7.523654], # 5 - 9
+[3.082345,7.523654],	[3.082345,7.498654],	[2.382345,7.498654],	[2.832346,7.598655],	[2.632344,7.598655], # 10 - 14
+[2.232345,4.598654],	[3.232345,4.598654],	[2.232345,6.098654],	[3.232345,6.098654]
+],
+'Chains':[
+'XFAp3v[2.349502,7.881497]p2p14 XFLp3p4 XFAp5v[3.115188,7.881497]p4p13 XFLp5p6 XFLp6p1 XFLp1p2', # 0-5
+'xFLp7p8', # 6
+'XFLp11p12 XFLp12p9 XFLp9p10 XFLp10p11', # 7-10
+'xFLp15p16', # 11
+'xFLp17p18', # 12
+],
+'Constraints':[
+'COp7c5',	'COp8c3',	'PEc6c3',	'VHc5',	'VHc1', # 0 - 4
+'VHc9',	'VHc10',	'VHc7',	'VHc8',	'TAc0c5', # 5 - 9
+'TAc2c1',	'TAc0c1',	'TAc2c3',	'EQc0c2',	'CLc7c6', # 10 - 14
+'COp15c5',	'COp16c3',	'PEc11c3',	'COp17c5',	'COp18c3', # 15 - 19
+'PEc12c3'
+],
+'Dimensions':[
+'SRDc0d[4 mm]v[2.432345,7.798654]',	'SODc6c1d[5 mm]v[2.182266,7.740315]',	'SODc8c5d[1.50 mm]v[2.436533,7.629362]',	'SODc10c3d[1.50 mm]v[3.082345,7.518654]',	'SODc11c4d[wallThickness]v[1.774795,3.965611]', # 0 - 4
+'SODc11c12d[shellThickness]v[1.876032,5.451411]',	'SODc6c12d[wallThickness]v[2.037587,6.561944]',	'SODc12c9d[wallThickness + 0.25 mm]v[2.093126,7.793123]'
+],
+'Guideline':['p1','p6','c4','flip'],
+'ProfileCentroids':[
+[2.732345,5.557892],	[2.732345,7.511154]
+],
+'NamedProfiles':{
+
+}
+}
+
+
 
     @classmethod
-    def edgePokeFinger(cls):
+    def edgePokeLockFinger(cls):
         return \
 {#Turtle Generated Data
 'CoordinateSystem':[
@@ -510,4 +562,4 @@ class SketchData:
 
     @classmethod
     def getDefaultRawData(cls):
-        return cls.edgePokeFinger()
+        return cls.edgeFilletFinger()

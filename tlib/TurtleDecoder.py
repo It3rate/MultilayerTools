@@ -442,42 +442,44 @@ class TurtleDecoder:
             dimPt = TurtleSketch.getMidpointOfPoints(p0.geometry, p1.geometry)\
                  if p1 and isinstance(p1, f.SketchPoint) else \
                     TurtleSketch.getMidpointOfGeometry(p0.geometry)
-
-            if kind == "SLD": # SketchDistanceDimension
-                if not self.isGuideline(p0, p1):
-                    line = core.Line3D.create(p0.geometry, p1.geometry)
-                    dimension = dimensions.addDistanceDimension(p0, p1, p2, dimPt)# self.asTransformedPoint3D(p4))
-                    dimension.parameter.expression = p3
-            elif kind == "SOD": # SketchOffsetDimension
-                dimension = dimensions.addOffsetDimension(p0,p1,dimPt)#self.asTransformedPoint3D(p3))
-                dimension.parameter.expression = p2
-            elif kind == "SAD": # SketchAngularDimension
-                midText = self.textPoint(p0, p1) # this must be mid centers as the quadrant dimensioned is based on the text postion.
-                dimension = dimensions.addAngularDimension(p0,p1, midText)
-                dimension.parameter.expression = p2
-            elif kind == "SDD": # SketchDiameterDimension
-                dimension = dimensions.addDiameterDimension(p0, self.asTransformedPoint3D(p2)) 
-                dimension.parameter.expression = p1
-            elif kind == "SRD": # SketchRadialDimension
-                dimension = dimensions.addRadialDimension(p0,dimPt)# self.asTransformedPoint3D(p2))
-                dimension.parameter.expression = p1
-            elif kind == "SMA": # SketchEllipseMajorRadiusDimension
-                dimension = dimensions.addEllipseMajorRadiusDimension(p0, dimPt)#self.asTransformedPoint3D(p2))
-                dimension.parameter.expression = p1
-            elif kind == "SMI": # SketchEllipseMinorRadiusDimension
-                dimension = dimensions.addEllipseMinorRadiusDimension(p0, dimPt)#self.asTransformedPoint3D(p2))
-                dimension.parameter.expression = p1
-            elif kind == "SCC": # SketchConcentricCircleDimension
-                dimension = dimensions.addConcentricCircleDimension(p0,p1,dimPt)#self.asTransformedPoint3D(p3))
-                dimension.parameter.expression = p2
-            elif kind == "SOC": # SketchOffsetCurvesDimension
-                parameter = self.offsetRefs[p0]
-                parameter.expression = p1
-                
-            self.addedDimensions.append(dimension)
-            if idx in self.forwardExpressions:
-                for name in self.forwardExpressions[idx]:
-                    self.addUserParam(name)
+            try:
+                if kind == "SLD": # SketchDistanceDimension
+                    if not self.isGuideline(p0, p1):
+                        line = core.Line3D.create(p0.geometry, p1.geometry)
+                        dimension = dimensions.addDistanceDimension(p0, p1, p2, dimPt)# self.asTransformedPoint3D(p4))
+                        dimension.parameter.expression = p3
+                elif kind == "SOD": # SketchOffsetDimension
+                    dimension = dimensions.addOffsetDimension(p0,p1,dimPt)#self.asTransformedPoint3D(p3))
+                    dimension.parameter.expression = p2
+                elif kind == "SAD": # SketchAngularDimension
+                    midText = self.textPoint(p0, p1) # this must be mid centers as the quadrant dimensioned is based on the text postion.
+                    dimension = dimensions.addAngularDimension(p0,p1, midText)
+                    dimension.parameter.expression = p2
+                elif kind == "SDD": # SketchDiameterDimension
+                    dimension = dimensions.addDiameterDimension(p0, self.asTransformedPoint3D(p2)) 
+                    dimension.parameter.expression = p1
+                elif kind == "SRD": # SketchRadialDimension
+                    dimension = dimensions.addRadialDimension(p0,dimPt)# self.asTransformedPoint3D(p2))
+                    dimension.parameter.expression = p1
+                elif kind == "SMA": # SketchEllipseMajorRadiusDimension
+                    dimension = dimensions.addEllipseMajorRadiusDimension(p0, dimPt)#self.asTransformedPoint3D(p2))
+                    dimension.parameter.expression = p1
+                elif kind == "SMI": # SketchEllipseMinorRadiusDimension
+                    dimension = dimensions.addEllipseMinorRadiusDimension(p0, dimPt)#self.asTransformedPoint3D(p2))
+                    dimension.parameter.expression = p1
+                elif kind == "SCC": # SketchConcentricCircleDimension
+                    dimension = dimensions.addConcentricCircleDimension(p0,p1,dimPt)#self.asTransformedPoint3D(p3))
+                    dimension.parameter.expression = p2
+                elif kind == "SOC": # SketchOffsetCurvesDimension
+                    parameter = self.offsetRefs[p0]
+                    parameter.expression = p1
+                    
+                self.addedDimensions.append(dimension)
+                if idx in self.forwardExpressions:
+                    for name in self.forwardExpressions[idx]:
+                        self.addUserParam(name)
+            except:
+                print(dim + ' Could not add dimension:\n{}'.format(traceback.format_exc()))
 
             idx += 1
 

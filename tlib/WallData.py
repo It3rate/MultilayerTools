@@ -18,7 +18,8 @@ class SlotKind(Enum):
     finger = 20
     fingerEdge = 21
     fingerLock = 22
-    fingerPokeLock = 23
+    fingerExtend = 23
+    fingerPokeLock = 24
 
 class WallKind(Enum):
     none = 0
@@ -168,8 +169,8 @@ class WallKind(Enum):
         return result
 
 class WallData:
-    def __init__(self, slotKind:Sketches, slotCount:int, mirrorInvert:bool, midPlane:core.Plane) -> None:
-        self.slotKind:Sketches = slotKind
+    def __init__(self, slotKinds:list[Sketches], slotCount:int, mirrorInvert:bool, midPlane:core.Plane) -> None:
+        self.slotKinds:list[Sketches] = slotKinds
         self.slotCount:int = slotCount
         self.mirrorInvert = mirrorInvert
         self.midPlane = midPlane
@@ -179,6 +180,6 @@ class WallData:
         self.isMirror = False
         self.reflectSlots:bool = True
     @classmethod
-    def create(cls, slotKind:Sketches, slotCount:int, mirrored:bool, midPlane:core.Plane):
-        return cls( slotKind, slotCount, mirrored, midPlane)
+    def create(cls, slotKinds:list[Sketches], slotCount:int, mirrored:bool, midPlane:core.Plane):
+        return cls( slotKinds, slotCount, mirrored, midPlane)
 
